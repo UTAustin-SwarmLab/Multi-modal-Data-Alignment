@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["your_project_name"]  # package names should match these glob patterns (["*"] by default)
+exclude = []  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[project]
+name = "your_project_name"
+version = "0.0.1"
+authors = [
+  { name="Example Author", email="author@example.com" },
+]
+description = "A small example package"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy==1.22.0",
+    "pandas"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/UTAustin-SwarmLab/Python-Project-Template"
+"Bug Tracker" = "https://github.com/UTAustin-SwarmLab/Python-Project-Template/issues"
+
+[project.optional-dependencies]
+dev = ["black", "ruff", "mypy"]
+test = ["pytest", "pytest-cov", "pytest-mock"]
