@@ -1,3 +1,18 @@
+[project]
+name = "tife"
+version = "0.0.1"
+authors = [
+  { name="Po-han Li", email="pohanli@utexas.edu" },
+]
+description = "Text and Image Feature Extraction"
+readme = "README.md"
+requires-python = ">=3.10.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"

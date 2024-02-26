@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn import svm
 
+
 class SVM_classifier:
     def __init__(self, 
                  X_train: np.ndarray, 
@@ -11,9 +12,6 @@ class SVM_classifier:
             y_train: training labels
             X_test: testing data
             y_test: testing labels
-
-        Returns: 
-            None
         '''
         self.X_train = X_train
         self.y_train = y_train

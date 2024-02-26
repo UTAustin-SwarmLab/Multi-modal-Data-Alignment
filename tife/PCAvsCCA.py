@@ -1,10 +1,10 @@
-import numpy as np
 import pickle
-from tqdm import tqdm
+
+import numpy as np
 from cca_zoo.linear import CCA
 from sklearn.decomposition import PCA
-from utils.SVM_classifier import SVM_classifier
 from utils.linear_algebra_utils import origin_centered
+from utils.SVM_classifier import SVM_classifier
 
 img_encoder = "clip"
 text_encoder = "clip"
