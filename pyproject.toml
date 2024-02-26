@@ -8,29 +8,53 @@ include = ["your_project_name"]  # package names should match these glob pattern
 exclude = []  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
-[project]
-name = "your_project_name"
+[tool.poetry]
+name = "tife"
 version = "0.0.1"
-authors = [
-  { name="Example Author", email="author@example.com" },
-]
-description = "A small example package"
+authors = ["Po-han Li <pohanli@utexas.edu>"]
+packages = [{include = "tife"}]
+description = "Text and Image Feature Extraction"
 readme = "README.md"
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-    "numpy==1.22.0",
-    "pandas"
-]
 
-[project.urls]
-"Homepage" = "https://github.com/UTAustin-SwarmLab/Python-Project-Template"
-"Bug Tracker" = "https://github.com/UTAustin-SwarmLab/Python-Project-Template/issues"
+[tool.poetry.dependencies]
+python = "3.10.4"
+numpy = "*"
+matplotlib = "*"
+seaborn = "*"
+pandas = "*"
+argparse = "*"
+flake8 = "*"
+black = "*"
+scikit-learn = "*"
+hydra-core = "*"
+hydra-joblib-launcher = "*"
+protobuf = "3.20.*"
+torch = "2.0.0"
+torchvision = "*"
+torchaudio = "*"
+ipython = "^8.15.0"
+scipy = "^1.11.2"
+swarm-visualizer = {git = "https://github.com/UTAustin-SwarmLab/Swarm-Visualization"}
+cca-zoo = "^2.5.0"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
 test = ["pytest", "pytest-cov", "pytest-mock"]
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "UP",  # pyupgrade
+  "D",   # pydocstyle
+]
+
+ignore = ["ANN101", "ANN102"]
+
+extend-exclude = [".venv", "venv", "vscode"]
+
+[tool.ruff.pydocstyle]
+convention = "google"

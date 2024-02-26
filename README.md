@@ -1,6 +1,7 @@
-# Python-Project-Template
+# Text and Image Feature Extraction (TIFE)
 
-This is a template repository. Please initialize your python project using this template.
+
+<!-- This is a template repository. Please initialize your python project using this template.
 
 1. Make sure you have a right python version installed locally and change the version of python from the files below
    - `.github/workflows/ruff.yml`
@@ -21,4 +22,4 @@ This is a template repository. Please initialize your python project using this 
    ```
    python -m build
    ```
-
+ -->
