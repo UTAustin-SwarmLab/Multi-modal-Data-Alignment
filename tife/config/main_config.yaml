@@ -7,8 +7,10 @@ hydra:
 seed: 42
 img_encoder: "clip"
 text_encoder: "clip"
-gt_category: "bg"
+gt_category: "" # "" or "_bg"
+imbal: "imbal95"
 work_dir: ${hydra:runtime.cwd}
-root_dir: "/nas/tirr/waterbird/dataset/waterbird_landfraction50_forest2water2/"
+root_dir: "/nas/tirr/waterbird/waterbird_landfraction50_forest2water2/"
+root95_dir: "/nas/tirr/waterbird/waterbird_complete95_forest2water2/"
 save_dir: "/nas/tirr/waterbird/"
 data_path: "${work_dir}/data"
