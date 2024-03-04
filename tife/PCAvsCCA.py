@@ -14,6 +14,9 @@ import hydra
 def main(cfg: DictConfig):
     print("Img encoder:", cfg.img_encoder, "| Text encoder:", cfg.text_encoder)
     print("Ground truth category:", cfg.gt_category)
+    # set random seed
+    np.random.seed(cfg.seed)
+
     # load waterbirds text embeddings + image embeddings 
     if cfg.imbal == "imbal95":
         gt_cat = "_cat" # or ""

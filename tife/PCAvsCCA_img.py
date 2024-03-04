@@ -10,37 +10,31 @@ from utils.SVM_classifier import SVM_classifier
 import hydra
 
 
-@hydra.main(version_base=None, config_path='config', config_name='main_config')
+@hydra.main(version_base=None, config_path='config', config_name='noise_config')
 def main(cfg: DictConfig):
     print("Ground truth category:", cfg.gt_category)
-    # load waterbirds image embeddings 
-    if cfg.imbal == "imbal95":
-        gt_cat = "_cat" # or ""
-        with open(cfg.save_dir + 'data/waterbird_imbal95_img_emb_train_clip.pkl', 'rb') as f:
-            trainFeatImg = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_imbal95_img_emb_val_clip.pkl', 'rb') as f:
-            valFeatImg = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_imbal95_img_emb_train_dino.pkl', 'rb') as f:
-            trainFeatImg2 = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_imbal95_img_emb_val_dino.pkl', 'rb') as f:
-            valFeatImg2 = pickle.load(f)
-        # load ground truth
-        with open(cfg.save_dir + f'data/waterbird_imbal95{gt_cat}_gt_train.pkl', 'rb') as f:
-            gt_train = pickle.load(f)
-        gt_train = np.array([x[1] for x in gt_train])
-        with open(cfg.save_dir + f'data/waterbird_imbal95{gt_cat}_gt_val.pkl', 'rb') as f:
-            gt_val = pickle.load(f)
-        gt_val = np.array([_[1] for _ in gt_val])
-        print("gt_train:", gt_train[-5:], "gt_val:", gt_val[-5:])
-    else: 
-        with open(cfg.save_dir + 'data/waterbird_img_emb_train_test_clip.pkl', 'rb') as f:
-            trainFeatImg = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_img_emb_val_clip.pkl', 'rb') as f:
-            valFeatImg = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_img_emb_train_test_dino.pkl', 'rb') as f:
-            trainFeatImg2 = pickle.load(f)
-        with open(cfg.save_dir + 'data/waterbird_img_emb_val_dino.pkl', 'rb') as f:
-            valFeatImg2 = pickle.load(f)
+    # load waterbirds image embeddings from the same encoder
+    with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
+        trainFeatImg = pickle.load(f)
+    with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+        valFeatImg = pickle.load(f)
+    # load ground truth
+    with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
+        gt_train = pickle.load(f)
+    gt_train = np.array([x[1] for x in gt_train])
+    with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+        gt_val = pickle.load(f)
+    gt_val = np.array([_[1] for _ in gt_val])
+
+    # add noise to the image embeddings
+    print("Stats of trainFeatImg:", trainFeatImg.max(), trainFeatImg.min(), trainFeatImg.mean(), trainFeatImg.std())
+    print("Stats of valFeatImg:", valFeatImg.max(), valFeatImg.min(), valFeatImg.mean(), valFeatImg.std())
+    trainFeatImg2 = trainFeatImg
+    trainFeatImg = trainFeatImg+ np.random.normal(0, cfg.noise_std, trainFeatImg.shape)
+    valFeatImg2 = valFeatImg
+    valFeatImg = valFeatImg + np.random.normal(0, cfg.noise_std, valFeatImg.shape)
+    print("Stats of trainFeatImg after adding noise:", trainFeatImg.max(), trainFeatImg.min(), trainFeatImg.mean(), trainFeatImg.std())
+    assert cfg.noise_std <=  trainFeatImg.std(), f"noise_std {cfg.noise_std} > trainFeatImg std {trainFeatImg.std()}"
 
     # zero-mean data
     trainFeatImg, trainFeatImg_mean = origin_centered(trainFeatImg)
@@ -102,7 +96,7 @@ def main(cfg: DictConfig):
         valPred = svm.predict(pca_valFeatImg)
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("PCA train img SVM Accuracy {:.4f} | PCA val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("PCA train img 1 SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
         # calculate text PCA
         pca_trainFeatImg2 = textPca.transform(trainFeatImg2)
@@ -113,14 +107,14 @@ def main(cfg: DictConfig):
         valPred = svm.predict(pca_valFeatImg2)
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("PCA train img 2 SVM Accuracy {:.4f} | PCA val txt SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("PCA train img 2 SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
         # fit PCA SVM and calculate accuracy for img + text
         svm = SVM_classifier(img_text_PCA.transform(np.concatenate((trainFeatImg, trainFeatImg2), axis=1)), gt_train)
         valPred = svm.predict(img_text_PCA.transform(np.concatenate((valFeatImg, valFeatImg2), axis=1)))
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("PCA train img 1+2 SVM Accuracy {:.4f} | PCA val img+txt SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("PCA train 2imgs SVM Accuracy {:.4f} | val img+txt SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
         # calculate CCA
         cca_trainFeatImg, cca_trainFeatImg2 = img_text_CCA.transform((trainFeatImg, trainFeatImg2))

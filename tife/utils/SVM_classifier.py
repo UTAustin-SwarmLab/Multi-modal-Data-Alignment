@@ -6,7 +6,7 @@ class SVM_classifier:
     def __init__(self, 
                  X_train: np.ndarray, 
                  y_train: np.ndarray,
-                 decision_function_shape: str = "ovr") -> None:
+                 decision_function_shape: str = "ovo") -> None:
         '''A class of SVM classifier
         Input:
             X_train: training data (n_samples, n_features)
