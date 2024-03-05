@@ -1,7 +1,10 @@
 defaults:
+  - main_config
+  - _self_
   - override hydra/launcher: joblib
 hydra:
   run:
     dir: hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
-noise_std: 1
+noise_std: 0.1
+noise_std2: 0.03
