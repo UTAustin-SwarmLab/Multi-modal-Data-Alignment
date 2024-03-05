@@ -1,5 +1,4 @@
 defaults:
-  - main_config
   - _self_
   - override hydra/launcher: joblib
 hydra:
