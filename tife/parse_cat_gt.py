@@ -39,5 +39,46 @@ def main(cfg: DictConfig):
     with open(cfg.save_dir + 'data/waterbird_imbal95_gt_val.pkl', 'wb') as f:
         pickle.dump(val_img_path_and_gt, f)
 
+    # parse unbalanced metadata
+    metadata_csv = pandas.read_csv(cfg.root_dir + 'metadata.csv')
+    metadata_csv["category"] = metadata_csv["img_filename"].apply(lambda x: int(x.split(".")[0]))
+    metadata_csv['img_filename_no_path'] = metadata_csv['img_filename'].apply(lambda x: x.split('/')[-1])
+    train_img_folder = cfg.root_dir + 'train/real/'
+    train_metadata_csv = pandas.read_csv(cfg.root_dir + 'train_real_metadata.csv')
+    train_metadata_csv['img_filename_no_path'] = train_metadata_csv['img_filename'].apply(lambda x: x.split('/')[-1])
+    train_test_img_files = []
+    gt_train_test = []
+    for _, row in train_metadata_csv.iterrows():
+        train_test_img_files.append(train_img_folder + row['img_filename_no_path'])
+        category = metadata_csv[metadata_csv["img_filename_no_path"] == row['img_filename_no_path']]['category'].values[0]
+        gt_train_test.append(category)
+    
+    test_img_folder = cfg.root_dir + 'test/'
+    test_metadata_csv = pandas.read_csv(cfg.root_dir + 'test_metadata.csv')
+    test_metadata_csv['img_filename_no_path'] = test_metadata_csv['img_filename'].apply(lambda x: x.split('/')[-1])
+    for _, row in test_metadata_csv.iterrows():
+        train_test_img_files.append(test_img_folder + row['img_filename_no_path'])
+        category = metadata_csv[metadata_csv["img_filename_no_path"] == row['img_filename_no_path']]['category'].values[0]
+        gt_train_test.append(category)
+    
+    val_img_folder = cfg.root_dir + 'val/'
+    val_metadata_csv = pandas.read_csv(cfg.root_dir + 'val_metadata.csv')
+    val_metadata_csv['img_filename_no_path'] = val_metadata_csv['img_filename'].apply(lambda x: x.split('/')[-1])
+    val_img_files = []
+    gt_val = []
+    for _, row in val_metadata_csv.iterrows():
+        val_img_files.append(val_img_folder + row['img_filename_no_path'])
+        category = metadata_csv[metadata_csv["img_filename_no_path"] == row['img_filename_no_path']]['category'].values[0]
+        gt_val.append(category)
+
+    train_test_img_path_and_gt = [(f, gt) for f, gt in zip(train_test_img_files, gt_train_test)]
+    val_img_path_and_gt = [(f, gt) for f, gt in zip(val_img_files, gt_val)]
+    
+    # save gt as pickle
+    with open(cfg.save_dir + 'data/waterbird_cat_gt_train_test.pkl', 'wb') as f:
+        pickle.dump(train_test_img_path_and_gt, f)
+    with open(cfg.save_dir + 'data/waterbird_cat_gt_val.pkl', 'wb') as f:
+        pickle.dump(val_img_path_and_gt, f)
+
 if __name__ == "__main__":
     main()
