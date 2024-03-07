@@ -6,5 +6,8 @@ hydra:
   run:
     dir: hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
-noise_std: 0.1
+noise_std: 0.0
 noise_std2: 0.03
+img_encoder: "dino"
+img_encoder2: "clip"
+gt_category: "_cat" # "" or "_bg" or "_cat"
