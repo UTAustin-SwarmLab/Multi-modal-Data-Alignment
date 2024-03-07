@@ -12,7 +12,6 @@ import hydra
 
 @hydra.main(version_base=None, config_path='config', config_name='noise_config')
 def main(cfg: DictConfig):
-    print("Ground truth category:", cfg.gt_category)
     # set random seed
     np.random.seed(cfg.seed)
     # load waterbirds image embeddings from the same encoder
@@ -20,30 +19,42 @@ def main(cfg: DictConfig):
         trainFeatImg = pickle.load(f)
     with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
         valFeatImg = pickle.load(f)
+    with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder2}.pkl', 'rb') as f:
+        trainFeatImg2 = pickle.load(f)
+    with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder2}.pkl', 'rb') as f:
+        valFeatImg2 = pickle.load(f)
     # load ground truth
-    with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
-        gt_train = pickle.load(f)
+    if cfg.gt_category == '':
+        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
+            gt_train = pickle.load(f)
+        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+            gt_val = pickle.load(f)
+    elif cfg.gt_category == '_cat':
+        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
+            gt_train = pickle.load(f)
+        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+            gt_val = pickle.load(f)
+    else:
+        raise ValueError("Invalid gt_category:", cfg.gt_category)
     gt_train = np.array([x[1] for x in gt_train])
-    with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
-        gt_val = pickle.load(f)
     gt_val = np.array([_[1] for _ in gt_val])
+    print("gt_train max:", gt_train.max(), "gt_train min:", gt_train.min())
 
     # add noise to the image embeddings
     print("Stats of trainFeatImg:", trainFeatImg.max(), trainFeatImg.min(), trainFeatImg.mean(), trainFeatImg.std())
-    print("Stats of valFeatImg:", valFeatImg.max(), valFeatImg.min(), valFeatImg.mean(), valFeatImg.std())
-    trainFeatImg2 = trainFeatImg + np.random.normal(0, cfg.noise_std2, trainFeatImg.shape)
+    print("Stats of trainFeatImg2:", trainFeatImg2.max(), trainFeatImg2.min(), trainFeatImg2.mean(), trainFeatImg2.std())
     trainFeatImg = trainFeatImg + np.random.normal(0, cfg.noise_std, trainFeatImg.shape)
-    valFeatImg2 = valFeatImg + np.random.normal(0, cfg.noise_std2, valFeatImg.shape)
+    trainFeatImg2 = trainFeatImg2 + np.random.normal(0, cfg.noise_std2, trainFeatImg2.shape)
     valFeatImg = valFeatImg + np.random.normal(0, cfg.noise_std, valFeatImg.shape)
+    valFeatImg2 = valFeatImg2 + np.random.normal(0, cfg.noise_std2, valFeatImg2.shape)
     print("Stats of trainFeatImg after adding noise:", trainFeatImg.max(), trainFeatImg.min(), trainFeatImg.mean(), trainFeatImg.std())
+    print("Stats of trainFeatImg2 after adding noise:", trainFeatImg2.max(), trainFeatImg2.min(), trainFeatImg2.mean(), trainFeatImg2.std())
 
     # zero-mean data
     trainFeatImg, trainFeatImg_mean = origin_centered(trainFeatImg)
     trainFeatImg2, trainFeatImg2_mean = origin_centered(trainFeatImg2)
     valFeatImg = valFeatImg - trainFeatImg_mean
     valFeatImg2 = valFeatImg2 - trainFeatImg2_mean
-    print("trainFeatImg shape:", trainFeatImg.shape, "trainFeatImg2 shape:", trainFeatImg2.shape)
-    print("valFeatImg shape:", valFeatImg.shape, "valFeatImg2 shape:", valFeatImg2.shape)
 
     # make sure the data is zero mean
     assert np.allclose(trainFeatImg.mean(axis=0), 0, atol=1e-4), f"trainFeatImg not zero mean: {trainFeatImg.mean(axis=0)}"
@@ -78,9 +89,7 @@ def main(cfg: DictConfig):
     for dim in range(200, 701, 200):
         print("Embedding Dimension:", dim)
 
-        # fit CCA and PCA
-        img_text_CCA = CCA(latent_dimensions=dim)
-        img_text_CCA.fit((trainFeatImg, trainFeatImg2))
+        # fit PCA
         imgPca = PCA(n_components=dim)
         imgPca.fit(trainFeatImg)
         textPca = PCA(n_components=dim)
@@ -98,7 +107,7 @@ def main(cfg: DictConfig):
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
         print("PCA train img 1 SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
-
+        
         # calculate text PCA
         pca_trainFeatImg2 = textPca.transform(trainFeatImg2)
         pca_valFeatImg2 = textPca.transform(valFeatImg2)
@@ -117,6 +126,10 @@ def main(cfg: DictConfig):
         valAcc = svm.get_accuracy(valPred, gt_val)
         print("PCA train 2imgs SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
+        # fit CCA
+        img_text_CCA = CCA(latent_dimensions=dim)
+        img_text_CCA.fit((trainFeatImg, trainFeatImg2))
+
         # calculate CCA
         cca_trainFeatImg, cca_trainFeatImg2 = img_text_CCA.transform((trainFeatImg, trainFeatImg2))
         cca_valFeatImg, cca_valFeatImg2 = img_text_CCA.transform((valFeatImg, valFeatImg2))
@@ -126,21 +139,21 @@ def main(cfg: DictConfig):
         valPred = svm.predict(cca_valFeatImg)
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("CCA train img 1 SVM Accuracy {:.4f} | CCA val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("CCA train img 1 SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
         # fit SVM
         svm = SVM_classifier(cca_trainFeatImg2, gt_train)
         valPred = svm.predict(cca_valFeatImg2)
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("CCA train img 2 SVM Accuracy {:.4f} | CCA val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("CCA train img 2 SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
         # Img + text CCA 
         svm = SVM_classifier(np.concatenate((cca_trainFeatImg, cca_trainFeatImg2), axis=1), gt_train)
         valPred = svm.predict(np.concatenate((cca_valFeatImg, cca_valFeatImg2), axis=1))
         trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
         valAcc = svm.get_accuracy(valPred, gt_val)
-        print("CCA train 2imgs SVM Accuracy {:.4f} | CCA val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
+        print("CCA train 2imgs SVM Accuracy {:.4f} | val SVM Accuracy {:.4f}".format(trainAcc, valAcc))
 
 
 if __name__ == '__main__':
