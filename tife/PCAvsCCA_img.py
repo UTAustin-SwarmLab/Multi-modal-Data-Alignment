@@ -14,15 +14,27 @@ import hydra
 def main(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
-    # load waterbirds image embeddings from the same encoder
-    with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
+
+    # load waterbirds image embeddings from the 2 img encoders
+    # with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
+    #     trainFeatImg = pickle.load(f)
+    # with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+    #     valFeatImg = pickle.load(f)
+    # with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder2}.pkl', 'rb') as f:
+    #     trainFeatImg2 = pickle.load(f)
+    # with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder2}.pkl', 'rb') as f:
+    #     valFeatImg2 = pickle.load(f)
+
+    # load waterbirds image embeddings from the same img encoders with padding
+    with open(cfg.save_dir + 'data/waterbird_paddedimg_emb_train_test_clip.pkl', 'rb') as f:
         trainFeatImg = pickle.load(f)
-    with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+    with open(cfg.save_dir + 'data/waterbird_paddedimg_emb_val_clip.pkl', 'rb') as f:
         valFeatImg = pickle.load(f)
-    with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder2}.pkl', 'rb') as f:
+    with open(cfg.save_dir + 'data/waterbird_img_emb_train_test_dino.pkl', 'rb') as f:
         trainFeatImg2 = pickle.load(f)
-    with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder2}.pkl', 'rb') as f:
+    with open(cfg.save_dir + 'data/waterbird_img_emb_val_dino.pkl', 'rb') as f:
         valFeatImg2 = pickle.load(f)
+        
     # load ground truth
     if cfg.gt_category == '':
         with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
@@ -64,29 +76,29 @@ def main(cfg: DictConfig):
     assert gt_val.shape[0] == valFeatImg.shape[0], f"gt_val shape {gt_val.shape} != valFeatImg shape {valFeatImg.shape}"
 
     # maximum performance of SVM
-    # image only
-    svm = SVM_classifier(trainFeatImg, gt_train)
-    valPred = svm.predict(valFeatImg)
-    trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
-    valAcc = svm.get_accuracy(valPred, gt_val)
-    print("img1 SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
+    # # image only
+    # svm = SVM_classifier(trainFeatImg, gt_train)
+    # valPred = svm.predict(valFeatImg)
+    # trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
+    # valAcc = svm.get_accuracy(valPred, gt_val)
+    # print("img1 SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
 
-    # text only
-    svm = SVM_classifier(trainFeatImg2, gt_train)
-    valPred = svm.predict(valFeatImg2)
-    trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
-    valAcc = svm.get_accuracy(valPred, gt_val)
-    print("img2 SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
+    # # text only
+    # svm = SVM_classifier(trainFeatImg2, gt_train)
+    # valPred = svm.predict(valFeatImg2)
+    # trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
+    # valAcc = svm.get_accuracy(valPred, gt_val)
+    # print("img2 SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
 
-    # img + text
-    svm = SVM_classifier(np.concatenate((trainFeatImg, trainFeatImg2), axis=1), gt_train)
-    valPred = svm.predict(np.concatenate((valFeatImg, valFeatImg2), axis=1))
-    trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
-    valAcc = svm.get_accuracy(valPred, gt_val)
-    print("2img SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
+    # # img + text
+    # svm = SVM_classifier(np.concatenate((trainFeatImg, trainFeatImg2), axis=1), gt_train)
+    # valPred = svm.predict(np.concatenate((valFeatImg, valFeatImg2), axis=1))
+    # trainAcc = svm.get_accuracy(svm.y_pred, gt_train)
+    # valAcc = svm.get_accuracy(valPred, gt_val)
+    # print("2img SVM Accuracy {:.4f} | val Accuracy {:.4f}".format(trainAcc, valAcc))
 
     # PCA and CCA
-    for dim in range(200, 701, 200):
+    for dim in range(600, 701, 200):
         print("Embedding Dimension:", dim)
 
         # fit PCA

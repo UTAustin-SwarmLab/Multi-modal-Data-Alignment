@@ -32,7 +32,7 @@ description = "Text and Image Feature Extraction"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.10.4"
+python = "3.10.13"
 numpy = "*"
 matplotlib = "*"
 seaborn = "*"
@@ -51,6 +51,8 @@ ipython = "^8.15.0"
 scipy = "^1.11.2"
 swarm-visualizer = {git = "https://github.com/UTAustin-SwarmLab/Swarm-Visualization"}
 cca-zoo = "^2.5.0"
+ipykernel = "^6.29.3"
+jupyter = "^1.0.0"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
