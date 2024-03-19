@@ -1,0 +1,15 @@
+defaults:
+  - override hydra/launcher: joblib
+hydra:
+  run:
+    dir: hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+seed: 42
+train_test_ratio: 0.7
+img_encoder: "clip"
+text_encoder: "gtr"
+work_dir: ${hydra:runtime.cwd}
+sop_dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
+save_dir: "/nas/tirr/SOP/"
+
+plots_dir: ${work_dir}/plots
