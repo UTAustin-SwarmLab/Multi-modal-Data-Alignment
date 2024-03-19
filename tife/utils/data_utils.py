@@ -1,5 +1,5 @@
 import pickle
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from omegaconf import DictConfig
@@ -14,7 +14,6 @@ def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     :param cfg: configuration file
     :return: image paths and text descriptions
     """
-
     # load SOP images path
     with open(cfg.sop_dataset_path + "text_descriptions_SOP.pkl", 'rb') as f:
         # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
@@ -30,6 +29,15 @@ def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     classes = [img_path.split('/')[-2].split('_')[0] for img_path in img_paths]
     obj_ids = [img_path.split('/')[-1].split('_')[0] for img_path in img_paths]
     return img_paths, text_descriptions, classes, obj_ids
+
+def origin_centered(X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    ''' This function returns the origin centered data matrix and the mean of each feature
+    Args:
+        X: data matrix (n_samples, n_features)
+    Returns: 
+        origin centered data matrix, mean of each feature
+    '''
+    return X - np.mean(X, axis=0), np.mean(X, axis=0)
 
 def get_train_test_split_index(train_test_ration: float, N: int, seed: int) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -55,4 +63,34 @@ def train_test_split(data: np.ndarray, train_idx: List[int], val_idx: List[int])
     :param val_idx: index of the validation set
     :return: training and validation set
     """
+    if type(data) != np.ndarray:
+        data = np.array(data)
     return data[train_idx], data[val_idx]
+
+def filter_str_label(ground_truth: np.ndarray) -> Dict[str, np.ndarray]:
+    """
+    Filter the data based on the provided ground truth
+    :param ground_truth: ground truth. shape: (N, )
+    :return: a dict of index filter. keys: unique ground truth, values: indices of the data
+    """
+    ground_truth = ground_truth.astype(str)
+    unique_classes = np.unique(ground_truth)
+    filter_idx = {}
+    for cls in unique_classes:
+        filter_idx[cls] = np.where(ground_truth == cls)[0]
+    return filter_idx
+
+def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray]) -> np.ndarray:
+    """
+    Shuffle the data by classes
+    :param data: data
+    :param classes: classes
+    :param filter_idx: a dict of index filter. keys: unique ground truth, values: indices of the data
+    :return: shuffled data
+    """
+    for key, val in filter_idx.items():
+        # print(f"{key}: {len(val)}")
+        c = data[val]
+        np.random.shuffle(c)
+        data[val] = c
+    return data

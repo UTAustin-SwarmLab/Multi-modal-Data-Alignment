@@ -9,14 +9,14 @@ from swarm_visualizer.histogram import (
     plot_several_pdf,
 )
 from swarm_visualizer.utility.general_utils import save_fig
-from utils.linear_algebra_utils import origin_centered
-from utils.load_data import (
-    get_train_test_split_index,
-    train_test_split,
-)
-from utils.sim_utils import weighted_corr_sim
 
 import hydra
+from tife.utils.data_utils import (
+    get_train_test_split_index,
+    origin_centered,
+    train_test_split,
+)
+from tife.utils.sim_utils import weighted_corr_sim
 
 
 @hydra.main(version_base=None, config_path='config', config_name='sop')
@@ -35,7 +35,6 @@ def main(cfg: DictConfig):
     trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
     trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
 
-
     # ### aligned case: not shuffle the data
     trainImgAlign, valImgAlign = trainImg.copy(), valImg.copy()
     trainTxtAlign, valTxtAlign = trainTxt.copy(), valTxt.copy()
@@ -52,10 +51,11 @@ def main(cfg: DictConfig):
     img_text_CCA = CCA(latent_dimensions=700)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
     corr_align = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim, 1
+    print(corr_align[:10])
 
     # calculate the similarity score
     valImgAlign, valTxtAlign = img_text_CCA.transform((valImgAlign, valTxtAlign))
-    sim_align = weighted_corr_sim(valImgAlign, valTxtAlign, corr_align, dim=150)
+    sim_align = weighted_corr_sim(valImgAlign, valTxtAlign, corr_align, dim=cfg.sim_dim)
     print(f"Aligned case: similarity score: {sim_align.mean()}")
 
 
@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
     assert np.allclose(trainTxtUnalign.mean(axis=0), 0, atol=1e-4), f"trainTxtUnalign not zero mean: {trainTxtUnalign.mean(axis=0)}"
 
     valImgAlign, valTxtAlign = img_text_CCA.transform((valImgUnalign, valTxtUnalign))
-    sim_unalign = weighted_corr_sim(valImgAlign, valTxtAlign, corr_align, dim=150)
+    sim_unalign = weighted_corr_sim(valImgAlign, valTxtAlign, corr_align, dim=cfg.sim_dim)
     print(f"Unaligned case: similarity score: {sim_unalign.mean()}")
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 

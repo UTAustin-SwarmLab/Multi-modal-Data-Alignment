@@ -4,10 +4,10 @@ import numpy as np
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 from sklearn.decomposition import PCA
-from utils.linear_algebra_utils import origin_centered
 from utils.SVM_classifier import SVM_classifier
 
 import hydra
+from tife.utils.data_utils import origin_centered
 
 
 @hydra.main(version_base=None, config_path='config', config_name='noise_config')

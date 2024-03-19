@@ -18,8 +18,7 @@ def weighted_corr_sim(X: np.ndarray, Y: np.ndarray, corr: np.ndarray, dim: int=1
     Y = Y / np.linalg.norm(Y, axis=1, keepdims=True)
     # compute the similarity scores
     sim = np.zeros(X.shape[0])
-    # for ii in range(X.shape[0]):
-    #     sim[ii] = corr * X[ii] @ Y[ii]
-    sim = corr * np.diag(X @ Y.T)
+    for ii in range(X.shape[0]):
+        sim[ii] = corr * X[ii] @ Y[ii]
     return sim
     
