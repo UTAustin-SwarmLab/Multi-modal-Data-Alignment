@@ -6,8 +6,8 @@ hydra:
 
 seed: 42
 train_test_ratio: 0.7
+CCA_dim: 700
 sim_dim: 150
-shuffle_by_class: False
 img_encoder: "clip"
 text_encoder: "gtr"
 work_dir: ${hydra:runtime.cwd}

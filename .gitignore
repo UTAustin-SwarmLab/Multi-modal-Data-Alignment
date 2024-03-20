@@ -164,3 +164,6 @@ cython_debug/
 
 # hydra
 .hydra/
+
+# plots
+plots/

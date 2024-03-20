@@ -23,7 +23,7 @@ from tife.utils.sim_utils import ROC_points, cal_AUC, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='config', config_name='sop')
-def SOP_class_align(cfg: DictConfig):
+def SOP_obj_align(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
     plots_folder_path = os.path.join(os.path.dirname(__file__), "./plots/")
@@ -59,8 +59,8 @@ def SOP_class_align(cfg: DictConfig):
     _, valTxtUnalign = trainTxt.copy(), valTxt.copy()
 
     # filter and shuffle data by classes or object ids
-    val_class_dict_filter = filter_str_label(valClasses)
-    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter)
+    val_obj_dict_filter = filter_str_label(valObjIds)
+    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_obj_dict_filter)
     assert not np.allclose(valTxtUnalign, valTxt, atol=1e-4), "valTxtUnalign not shuffled correctly"
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
 
@@ -78,7 +78,7 @@ def SOP_class_align(cfg: DictConfig):
     sim_unalign = weighted_corr_sim(valImgUnalign, valTxtUnalign, corr, dim=cfg.sim_dim)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    unalign_level = "obj"
+    unalign_level = "view"
     plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
                      legend=['Aligned', f'{unalign_level} Unaligned'], 
                      title_str='Similarity Score Distribution', 
@@ -106,4 +106,4 @@ def SOP_class_align(cfg: DictConfig):
     return ROC_points_list
 
 if __name__ == '__main__':
-    SOP_class_align()
+    SOP_obj_align()
