@@ -13,5 +13,16 @@ text_encoder: "gtr"
 work_dir: ${hydra:runtime.cwd}
 sop_dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
 save_dir: "/nas/tirr/SOP/"
-
 plots_dir: ${work_dir}/plots
+
+llava:
+  model_path: '/nas/omama/llava-v1.5-13b'
+  model_base: null
+  num_gpus: 1
+  conv_mode: null
+  temperature: 0.2
+  max_new_tokens: 512
+  load_8bit: True
+  load_4bit: False
+  debug: False
+  num_processes: 1

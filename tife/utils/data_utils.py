@@ -25,7 +25,7 @@ def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     img_paths = [x[0] for x in path_text_descriptions]
     text_descriptions = [x[1] for x in path_text_descriptions]
 
-    ### example: /store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG
+    ### img_path example: /store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG
     classes = [img_path.split('/')[-2].split('_')[0] for img_path in img_paths]
     obj_ids = [img_path.split('/')[-1].split('_')[0] for img_path in img_paths]
     return img_paths, text_descriptions, classes, obj_ids
@@ -80,7 +80,7 @@ def filter_str_label(ground_truth: np.ndarray) -> Dict[str, np.ndarray]:
         filter_idx[cls] = np.where(ground_truth == cls)[0]
     return filter_idx
 
-def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray]) -> np.ndarray:
+def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray], seed: int =42) -> np.ndarray:
     """
     Shuffle the data by classes
     :param data: data
@@ -88,6 +88,7 @@ def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray])
     :param filter_idx: a dict of index filter. keys: unique ground truth, values: indices of the data
     :return: shuffled data
     """
+    np.random.seed(seed)
     for key, val in filter_idx.items():
         # print(f"{key}: {len(val)}")
         c = data[val]

@@ -29,7 +29,7 @@ def SOP_class_align(cfg: DictConfig):
     plots_folder_path = os.path.join(os.path.dirname(__file__), "./plots/")
 
     # load raw data
-    _, _, classes, obj_ids = load_SOP(cfg)
+    _, __, classes, obj_ids = load_SOP(cfg)
 
     # load image embeddings and text embeddings
     with open(cfg.save_dir + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
@@ -60,7 +60,7 @@ def SOP_class_align(cfg: DictConfig):
 
     # filter and shuffle data by classes or object ids
     val_class_dict_filter = filter_str_label(valClasses)
-    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter)
+    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter, seed=cfg.seed)
     assert not np.allclose(valTxtUnalign, valTxt, atol=1e-4), "valTxtUnalign not shuffled correctly"
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
 
@@ -78,14 +78,13 @@ def SOP_class_align(cfg: DictConfig):
     sim_unalign = weighted_corr_sim(valImgUnalign, valTxtUnalign, corr, dim=cfg.sim_dim)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    unalign_level = "obj"
     plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
-                     legend=['Aligned', f'{unalign_level} Unaligned'], 
+                     legend=['Aligned', 'Class level shuffle'], 
                      title_str='Similarity Score Distribution', 
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
-    save_fig(fig, plots_folder_path + f'similarity_score_{unalign_level}_dim{cfg.sim_dim}.png')
+    save_fig(fig, plots_folder_path + f'similarity_score_class_dim{cfg.sim_dim}.png')
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
@@ -101,7 +100,7 @@ def SOP_class_align(cfg: DictConfig):
     ax.set_ylabel('True Positive Rate')
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + f'ROC_{unalign_level}_dim{cfg.sim_dim}.png')
+    fig.savefig(plots_folder_path + f'ROC_obj_dim{cfg.sim_dim}.png')
 
     return ROC_points_list
 
