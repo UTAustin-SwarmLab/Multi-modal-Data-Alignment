@@ -25,16 +25,20 @@ def SOP_align(cfg: DictConfig):
     np.random.seed(cfg.seed)
     plots_folder_path = os.path.join(os.path.dirname(__file__), "./plots/")
 
+    print("Prepare to CCA dimensionality reduction.")
     # load image embeddings and text embeddings
     with open(cfg.save_dir + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
         Img = pickle.load(f)
     with open(cfg.save_dir + f'data/SOP_text_emb_{cfg.text_encoder}.pkl', 'rb') as f:
         Txt = pickle.load(f)
 
+    print("Prepare to CCA dimensionality reduction.")
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
+    print("Prepare to CCA dimensionality reduction.")
     trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
+    print("Prepare to CCA dimensionality reduction.")
     trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
-
+    print("Prepare to CCA dimensionality reduction.")
 
     ### aligned case: not shuffle the data
     trainImgAlign, valImgAlign = trainImg.copy(), valImg.copy()
@@ -49,6 +53,7 @@ def SOP_align(cfg: DictConfig):
     assert np.allclose(trainTxtAlign.mean(axis=0), 0, atol=1e-4), f"trainTxtAlign not zero mean: {trainTxtAlign.mean(axis=0)}"
 
     # CCA dimensionality reduction
+    print("Prepare to CCA dimensionality reduction.")
     img_text_CCA = CCA(latent_dimensions=cfg.CCA_dim)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
     corr_align = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim, 1
@@ -114,7 +119,7 @@ def SOP_align(cfg: DictConfig):
     ax.set_ylabel('True Positive Rate')
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + f'ROC_dataset_dim{cfg.sim_dim}.png')
+    fig.savefig(plots_folder_path + f'ROC_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
     
     return ROC_points_list
 

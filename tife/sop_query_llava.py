@@ -39,6 +39,32 @@ def sop_llava_align(cfg: DictConfig):
     return
 
 @hydra_main(version_base=None, config_path='config', config_name='sop')
+def sop_llava_dataset_shuffle(cfg: DictConfig):
+    # set random seed
+    np.random.seed(cfg.seed)
+    # load raw data
+    img_paths, text_descriptions, _, _ = load_SOP(cfg)
+    # split data
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths), cfg.seed)
+    _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
+    trainTxt, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
+    np.random.shuffle(trainTxt)
+    np.random.shuffle(valTxt)
+
+    model_name = cfg.llava.model_path.split("/")[-1]
+
+    # query llava without shuffling
+    aligned_answer = query_llava(cfg, valImgPath, valTxt)
+    # Save text_descriptions pickle
+    with open(
+        cfg.save_dir + f"sop_{model_name}_ds_unalign.pkl",
+        "wb",
+    ) as f:
+        pickle.dump(aligned_answer, f)
+
+    return
+
+@hydra_main(version_base=None, config_path='config', config_name='sop')
 def sop_llava_class_shuffle(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
@@ -98,7 +124,8 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
 
 if __name__ == "__main__":
     # sop_llava_align()
-    sop_llava_class_shuffle()
-    sop_llava_obj_shuffle()
+    sop_llava_dataset_shuffle()
+    # sop_llava_class_shuffle()
+    # sop_llava_obj_shuffle()
 
-# CUDA_VISIBLE_DEVICES=4 poetry run python sop_query_llava.py
+# CUDA_VISIBLE_DEVICES=2 poetry run python sop_query_llava.py

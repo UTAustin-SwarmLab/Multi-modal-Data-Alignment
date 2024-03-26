@@ -65,7 +65,7 @@ def SOP_obj_align(cfg: DictConfig):
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
 
     # CCA dimensionality reduction
-    img_text_CCA = CCA(latent_dimensions=700)
+    img_text_CCA = CCA(latent_dimensions=cfg.sim_dim)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
     corr = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim, 1
 
@@ -100,7 +100,7 @@ def SOP_obj_align(cfg: DictConfig):
     ax.set_ylabel('True Positive Rate')
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + f'ROC_obj_dim{cfg.sim_dim}.png')
+    fig.savefig(plots_folder_path + f'ROC_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     return ROC_points_list
 

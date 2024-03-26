@@ -64,6 +64,7 @@ def train_test_split(data: np.ndarray, train_idx: List[int], val_idx: List[int])
     :return: training and validation set
     """
     if type(data) != np.ndarray:
+        print("Converting data to numpy array")
         data = np.array(data)
     return data[train_idx], data[val_idx]
 
