@@ -16,7 +16,7 @@ from tife.utils.data_utils import (
     train_test_split,
 )
 from tife.utils.hydra_utils import hydra_main
-from tife.utils.sim_utils import ROC_points, cal_AUC, weighted_corr_sim
+from tife.utils.sim_utils import ROC_points, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='config', config_name='sop')
@@ -25,20 +25,15 @@ def SOP_align(cfg: DictConfig):
     np.random.seed(cfg.seed)
     plots_folder_path = os.path.join(os.path.dirname(__file__), "./plots/")
 
-    print("Prepare to CCA dimensionality reduction.")
     # load image embeddings and text embeddings
     with open(cfg.save_dir + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
         Img = pickle.load(f)
     with open(cfg.save_dir + f'data/SOP_text_emb_{cfg.text_encoder}.pkl', 'rb') as f:
         Txt = pickle.load(f)
 
-    print("Prepare to CCA dimensionality reduction.")
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
-    print("Prepare to CCA dimensionality reduction.")
     trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
-    print("Prepare to CCA dimensionality reduction.")
     trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
-    print("Prepare to CCA dimensionality reduction.")
 
     ### aligned case: not shuffle the data
     trainImgAlign, valImgAlign = trainImg.copy(), valImg.copy()
@@ -53,10 +48,12 @@ def SOP_align(cfg: DictConfig):
     assert np.allclose(trainTxtAlign.mean(axis=0), 0, atol=1e-4), f"trainTxtAlign not zero mean: {trainTxtAlign.mean(axis=0)}"
 
     # CCA dimensionality reduction
-    print("Prepare to CCA dimensionality reduction.")
     img_text_CCA = CCA(latent_dimensions=cfg.CCA_dim)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
-    corr_align = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim, 1
+    if cfg.equal_weights:
+        corr_align = np.ones((trainTxtAlign.shape[1],)) # dim,
+    else:
+        corr_align = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim,
 
     # calculate the similarity score
     valImgAlign, valTxtAlign = img_text_CCA.transform((valImgAlign, valTxtAlign))
@@ -87,39 +84,43 @@ def SOP_align(cfg: DictConfig):
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
-    save_fig(fig, plots_folder_path + f'similarity_score_dataset_dim{cfg.sim_dim}.png')
+    if cfg.equal_weights:
+        save_fig(fig, plots_folder_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
+    else:
+        save_fig(fig, plots_folder_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     # CCA dimensionality reduction
     img_text_CCA_unalign = CCA(latent_dimensions=cfg.CCA_dim)
     trainImgUnalign, trainTxtUnalign = img_text_CCA_unalign.fit_transform((trainImgUnalign, trainTxtUnalign))
     corr_unalign = np.diag(trainImgUnalign.T @ trainTxtUnalign) / trainImgUnalign.shape[0]
     
-    # plot the covariance matrix
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot(corr_align)
-    ax.plot(corr_unalign)
-    ax.set_title('Correlation Coefficients of the Cross Covariance')
-    ax.set_xlabel('Dimension of Eigenvalues')
-    ax.set_ylabel('Correlation Coefficients')
-    ax.legend(['Aligned', 'Unaligned'])
-    ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + 'cca_corr.png')
+    # plot the correlation coefficients
+    if not cfg.equal_weights:
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.plot(corr_align)
+        ax.plot(corr_unalign)
+        ax.set_title('Correlation Coefficients of the Cross Covariance')
+        ax.set_xlabel('Dimension of Eigenvalues')
+        ax.set_ylabel('Correlation Coefficients')
+        ax.legend(['Aligned', 'Unaligned'])
+        ax.set_ylim(0, 1)
+        fig.savefig(plots_folder_path + 'cca_corr.png')
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
-    auc = cal_AUC(ROC_points_list)
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot([x[0] for x in ROC_points_list], [x[1] for x in ROC_points_list], 'o-')
-    ax.legend([f'AUC: {auc:.3f}'])
-    ax.set_title('ROC Curve')
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + f'ROC_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    # auc = cal_AUC(ROC_points_list)
+    # fig, ax = plt.subplots(figsize=(6, 6))
+    # ax.plot([x[0] for x in ROC_points_list], [x[1] for x in ROC_points_list], 'o-')
+    # ax.legend([f'AUC: {auc:.3f}'])
+    # ax.set_title('ROC Curve')
+    # ax.set_xlabel('False Positive Rate')
+    # ax.set_ylabel('True Positive Rate')
+    # ax.set_xlim(0, 1)
+    # ax.set_ylim(0, 1)
+    # fig.savefig(plots_folder_path + f'ROC_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
     
     return ROC_points_list
 

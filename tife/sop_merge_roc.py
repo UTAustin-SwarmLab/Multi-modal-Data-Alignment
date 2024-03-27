@@ -11,8 +11,9 @@ from tife.utils.sim_utils import cal_AUC
 
 def main():
     train_test_ratio = 0.7
-    num_train_data = 56222 * train_test_ratio
+    num_train_data = int(56222 * train_test_ratio)
     print(num_train_data)
+    equal_weights = True
 
     print("Start to calculate the ROC curve of detecting modality alignment.")
     ds_roc_points = SOP_align()
@@ -44,7 +45,10 @@ def main():
     ax.set_ylim(0, 1.03)
     ax.legend()
     ax.grid()
-    fig.savefig(os.path.join(os.path.dirname(__file__), "./plots/") + f'roc_curves_size{num_train_data}.png')
+    if equal_weights:
+        fig.savefig(os.path.join(os.path.dirname(__file__), "./plots/") + f'ROC_curves_size{num_train_data}_noweight.png')
+    else:
+        fig.savefig(os.path.join(os.path.dirname(__file__), "./plots/") + f'ROC_curves_size{num_train_data}.png')
     return
 
 if __name__ == "__main__":

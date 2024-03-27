@@ -19,7 +19,7 @@ from tife.utils.data_utils import (
     train_test_split,
 )
 from tife.utils.hydra_utils import hydra_main
-from tife.utils.sim_utils import ROC_points, cal_AUC, weighted_corr_sim
+from tife.utils.sim_utils import ROC_points, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='config', config_name='sop')
@@ -67,7 +67,10 @@ def SOP_obj_align(cfg: DictConfig):
     # CCA dimensionality reduction
     img_text_CCA = CCA(latent_dimensions=cfg.sim_dim)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
-    corr = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim, 1
+    if cfg.equal_weights:
+        corr = np.ones((trainTxtAlign.shape[1],)) # dim,
+    else:
+        corr = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim,
 
     # calculate the similarity score
     valImgAlign, valTxtAlign = img_text_CCA.transform((valImgAlign, valTxtAlign))
@@ -84,23 +87,26 @@ def SOP_obj_align(cfg: DictConfig):
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
-    save_fig(fig, plots_folder_path + f'similarity_score_obj_dim{cfg.sim_dim}.png')
+    if cfg.equal_weights:
+        save_fig(fig, plots_folder_path + f'similarity_score_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
+    else:
+        save_fig(fig, plots_folder_path + f'similarity_score_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
-    auc = cal_AUC(ROC_points_list)
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot([x[0] for x in ROC_points_list], [x[1] for x in ROC_points_list], 'o-')
-    ax.legend([f'AUC: {auc:.3f}'])
-    ax.set_title('ROC Curve')
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    fig.savefig(plots_folder_path + f'ROC_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    # auc = cal_AUC(ROC_points_list)
+    # fig, ax = plt.subplots(figsize=(6, 6))
+    # ax.plot([x[0] for x in ROC_points_list], [x[1] for x in ROC_points_list], 'o-')
+    # ax.legend([f'AUC: {auc:.3f}'])
+    # ax.set_title('ROC Curve')
+    # ax.set_xlabel('False Positive Rate')
+    # ax.set_ylabel('True Positive Rate')
+    # ax.set_xlim(0, 1)
+    # ax.set_ylim(0, 1)
+    # fig.savefig(plots_folder_path + f'ROC_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     return ROC_points_list
 
