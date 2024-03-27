@@ -1,13 +1,12 @@
-import os
-
 import matplotlib.pyplot as plt
+from omegaconf import DictConfig
 from sop_class_image_text_align import SOP_class_align
 from sop_image_text_align import SOP_align
 from sop_obj_image_text_align import SOP_obj_align
-from omegaconf import DictConfig
 
 from mmda.utils.hydra_utils import hydra_main
 from mmda.utils.sim_utils import cal_AUC
+
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')
 def main(cfg: DictConfig):
@@ -44,9 +43,9 @@ def main(cfg: DictConfig):
     ax.legend()
     ax.grid()
     if equal_weights:
-        fig.savefig(cfg.paths.plots_dir + f'ROC_curves_size{num_train_data}_noweight.png')
+        fig.savefig(cfg.paths.plots_path + f'ROC_curves_size{num_train_data}_noweight.png')
     else:
-        fig.savefig(cfg.paths.plots_dir + f'ROC_curves_size{num_train_data}.png')
+        fig.savefig(cfg.paths.plots_path + f'ROC_curves_size{num_train_data}.png')
     return
 
 if __name__ == "__main__":

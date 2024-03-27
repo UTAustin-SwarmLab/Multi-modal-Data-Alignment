@@ -28,7 +28,7 @@ name = "mmda"
 version = "0.0.1"
 authors = ["Po-han Li <pohanli@utexas.edu>"]
 packages = [{include = "mmda"}]
-description = "Text and Image Feature Extraction"
+description = "Multi-modal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]

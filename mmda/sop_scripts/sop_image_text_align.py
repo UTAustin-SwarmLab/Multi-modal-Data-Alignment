@@ -28,9 +28,9 @@ def SOP_align(cfg: DictConfig):
     np.random.seed(cfg.seed)
 
     # load image embeddings and text embeddings
-    with open(cfg.paths.save_dir + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
         Img = pickle.load(f)
-    with open(cfg.paths.save_dir + f'data/SOP_text_emb_{cfg.text_encoder}.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + f'data/SOP_text_emb_{cfg.text_encoder}.pkl', 'rb') as f:
         Txt = pickle.load(f)
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
@@ -87,9 +87,9 @@ def SOP_align(cfg: DictConfig):
                      ylabel='Frequency', 
                      ax=ax)
     if cfg.equal_weights:
-        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
+        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
     else:
-        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     # CCA dimensionality reduction
     img_text_CCA_unalign = CCA(latent_dimensions=cfg.CCA_dim)
@@ -106,7 +106,7 @@ def SOP_align(cfg: DictConfig):
         ax.set_ylabel('Correlation Coefficients')
         ax.legend(['Aligned', 'Unaligned'])
         ax.set_ylim(0, 1)
-        fig.savefig(cfg.paths.plots_dir + 'cca_corr.png')
+        fig.savefig(cfg.paths.plots_path + 'cca_corr.png')
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
@@ -122,7 +122,7 @@ def SOP_align(cfg: DictConfig):
     # ax.set_ylabel('True Positive Rate')
     # ax.set_xlim(0, 1)
     # ax.set_ylim(0, 1)
-    # fig.savefig(cfg.paths.plots_dir + f'ROC_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    # fig.savefig(cfg.paths.plots_path + f'ROC_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
     
     return ROC_points_list
 

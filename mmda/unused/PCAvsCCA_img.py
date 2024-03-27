@@ -16,35 +16,35 @@ def main(cfg: DictConfig):
     np.random.seed(cfg.seed)
 
     # load waterbirds image embeddings from the 2 img encoders
-    # with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
+    # with open(cfg.save_path + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
     #     trainFeatImg = pickle.load(f)
-    # with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+    # with open(cfg.save_path + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
     #     valFeatImg = pickle.load(f)
-    # with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder2}.pkl', 'rb') as f:
+    # with open(cfg.save_path + f'data/waterbird_img_emb_train_test_{cfg.img_encoder2}.pkl', 'rb') as f:
     #     trainFeatImg2 = pickle.load(f)
-    # with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder2}.pkl', 'rb') as f:
+    # with open(cfg.save_path + f'data/waterbird_img_emb_val_{cfg.img_encoder2}.pkl', 'rb') as f:
     #     valFeatImg2 = pickle.load(f)
 
     # load waterbirds image embeddings from the same img encoders with padding
-    with open(cfg.save_dir + 'data/waterbird_paddedimg_emb_train_test_clip.pkl', 'rb') as f:
+    with open(cfg.save_path + 'data/waterbird_paddedimg_emb_train_test_clip.pkl', 'rb') as f:
         trainFeatImg = pickle.load(f)
-    with open(cfg.save_dir + 'data/waterbird_paddedimg_emb_val_clip.pkl', 'rb') as f:
+    with open(cfg.save_path + 'data/waterbird_paddedimg_emb_val_clip.pkl', 'rb') as f:
         valFeatImg = pickle.load(f)
-    with open(cfg.save_dir + 'data/waterbird_img_emb_train_test_dino.pkl', 'rb') as f:
+    with open(cfg.save_path + 'data/waterbird_img_emb_train_test_dino.pkl', 'rb') as f:
         trainFeatImg2 = pickle.load(f)
-    with open(cfg.save_dir + 'data/waterbird_img_emb_val_dino.pkl', 'rb') as f:
+    with open(cfg.save_path + 'data/waterbird_img_emb_val_dino.pkl', 'rb') as f:
         valFeatImg2 = pickle.load(f)
         
     # load ground truth
     if cfg.gt_category == '':
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
             gt_train = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
             gt_val = pickle.load(f)
     elif cfg.gt_category == '_cat':
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_train_test.pkl', 'rb') as f:
             gt_train = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
             gt_val = pickle.load(f)
     else:
         raise ValueError("Invalid gt_category:", cfg.gt_category)

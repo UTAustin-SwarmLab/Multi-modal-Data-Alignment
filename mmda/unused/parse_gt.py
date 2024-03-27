@@ -49,13 +49,13 @@ def main(cfg: DictConfig):
     val_img_path_and_bg_gt = [(f, gt) for f, gt in zip(val_img_files, bg_gt_val)]
 
     # save gt as pickle
-    with open(cfg.save_dir + 'data/waterbird_gt_train_test.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_gt_train_test.pkl', 'wb') as f:
         pickle.dump(train_test_img_path_and_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_bg_gt_train_test.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_bg_gt_train_test.pkl', 'wb') as f:
         pickle.dump(train_test_img_path_and_bg_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_gt_val.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_gt_val.pkl', 'wb') as f:
         pickle.dump(val_img_path_and_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_bg_gt_val.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_bg_gt_val.pkl', 'wb') as f:
         pickle.dump(val_img_path_and_bg_gt, f)
 
 

@@ -20,36 +20,36 @@ def main(cfg: DictConfig):
     # load waterbirds text embeddings + image embeddings 
     if cfg.imbal == "imbal95":
         gt_cat = "_cat" # or ""
-        with open(cfg.save_dir + f'data/waterbird_imbal95_img_emb_train_{cfg.img_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95_img_emb_train_{cfg.img_encoder}.pkl', 'rb') as f:
             trainFeatImg = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_imbal95_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
             valFeatImg = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_imbal95_text_emb_train_{cfg.text_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95_text_emb_train_{cfg.text_encoder}.pkl', 'rb') as f:
             trainFeatText = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_imbal95_text_emb_val_{cfg.text_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95_text_emb_val_{cfg.text_encoder}.pkl', 'rb') as f:
             valFeatText = pickle.load(f)
         # load ground truth
-        with open(cfg.save_dir + f'data/waterbird_imbal95{gt_cat}_gt_train.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95{gt_cat}_gt_train.pkl', 'rb') as f:
             gt_train = pickle.load(f)
         gt_train = np.array([x[1] for x in gt_train])
-        with open(cfg.save_dir + f'data/waterbird_imbal95{gt_cat}_gt_val.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_imbal95{gt_cat}_gt_val.pkl', 'rb') as f:
             gt_val = pickle.load(f)
         gt_val = np.array([_[1] for _ in gt_val])
         print("gt_train:", gt_train[-5:], "gt_val:", gt_val[-5:])
     else: 
-        with open(cfg.save_dir + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_img_emb_train_test_{cfg.img_encoder}.pkl', 'rb') as f:
             trainFeatImg = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_img_emb_val_{cfg.img_encoder}.pkl', 'rb') as f:
             valFeatImg = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_text_emb_train_test{cfg.gt_category}_{cfg.text_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_text_emb_train_test{cfg.gt_category}_{cfg.text_encoder}.pkl', 'rb') as f:
             trainFeatText = pickle.load(f)
-        with open(cfg.save_dir + f'data/waterbird_text_emb_val{cfg.gt_category}_{cfg.text_encoder}.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird_text_emb_val{cfg.gt_category}_{cfg.text_encoder}.pkl', 'rb') as f:
             valFeatText = pickle.load(f)
         # load ground truth
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_train.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_train.pkl', 'rb') as f:
             gt_train = pickle.load(f)
         gt_train = np.array([x[1] for x in gt_train])
-        with open(cfg.save_dir + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
+        with open(cfg.save_path + f'data/waterbird{cfg.gt_category}_gt_val.pkl', 'rb') as f:
             gt_val = pickle.load(f)
         gt_val = np.array([_[1] for _ in gt_val])
 

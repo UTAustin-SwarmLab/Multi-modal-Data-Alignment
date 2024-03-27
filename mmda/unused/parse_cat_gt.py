@@ -32,11 +32,11 @@ def main(cfg: DictConfig):
     val_img_path_and_gt = [(row["img_filename_no_path"], row["y"]) for row in val_rows]
 
     # save gt as pickle
-    with open(cfg.save_dir + 'data/waterbird_imbal95_gt_train.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_imbal95_gt_train.pkl', 'wb') as f:
         pickle.dump(train_img_path_and_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_imbal95_gt_test.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_imbal95_gt_test.pkl', 'wb') as f:
         pickle.dump(test_img_path_and_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_imbal95_gt_val.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_imbal95_gt_val.pkl', 'wb') as f:
         pickle.dump(val_img_path_and_gt, f)
 
     # parse unbalanced metadata
@@ -75,9 +75,9 @@ def main(cfg: DictConfig):
     val_img_path_and_gt = [(f, gt) for f, gt in zip(val_img_files, gt_val)]
     
     # save gt as pickle
-    with open(cfg.save_dir + 'data/waterbird_cat_gt_train_test.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_cat_gt_train_test.pkl', 'wb') as f:
         pickle.dump(train_test_img_path_and_gt, f)
-    with open(cfg.save_dir + 'data/waterbird_cat_gt_val.pkl', 'wb') as f:
+    with open(cfg.save_path + 'data/waterbird_cat_gt_val.pkl', 'wb') as f:
         pickle.dump(val_img_path_and_gt, f)
 
 if __name__ == "__main__":
