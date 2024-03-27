@@ -15,7 +15,7 @@ def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     :return: image paths and text descriptions
     """
     # load SOP images path
-    with open(cfg.sop_dataset_path + "text_descriptions_SOP.pkl", 'rb') as f:
+    with open(cfg.paths.sop_dataset_path + "text_descriptions_SOP.pkl", 'rb') as f:
         # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
         # "The image features a close-up view of a bicycle's suspension system, specifically focusing on the front fork and the shock absorber.</s>"
         path_text_descriptions = pickle.load(f) 

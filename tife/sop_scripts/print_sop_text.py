@@ -8,7 +8,7 @@ from tife.utils.data_utils import (
 from tife.utils.hydra_utils import hydra_main
 
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
+@hydra_main(version_base=None, config_path='../config', config_name='sop')
 def SOP_print_text(cfg: DictConfig):
     while True:
         # load raw data

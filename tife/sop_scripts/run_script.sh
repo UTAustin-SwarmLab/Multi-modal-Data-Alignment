@@ -1,0 +1,29 @@
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=50
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=100
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=150
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=200
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=300
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=400
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=500
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=600
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_obj_image_text_align.py sim_dim=700
+
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=50
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=100
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=150
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=200
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=300
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=400
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=500
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=600
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_class_image_text_align.py sim_dim=700
+
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=50
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=100
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=150
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=200
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=300
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=400
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=500
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=600
+/home/pl22767/.cache/pypoetry/virtualenvs/tife-E6Q3UM_I-py3.10/bin/python3 /home/pl22767/Project/TIFE/tife/sop_scripts/sop_image_text_align.py sim_dim=700

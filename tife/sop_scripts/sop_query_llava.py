@@ -31,7 +31,7 @@ def sop_llava_align(cfg: DictConfig):
     aligned_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.save_dir + f"sop_{model_name}_aligned.pkl",
+        cfg.paths.save_dir + f"sop_{model_name}_aligned.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -57,7 +57,7 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     aligned_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.save_dir + f"sop_{model_name}_ds_unalign.pkl",
+        cfg.paths.save_dir + f"sop_{model_name}_ds_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -86,7 +86,7 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     class_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.save_dir + f"sop_{model_name}_class_unalign.pkl",
+        cfg.paths.save_dir + f"sop_{model_name}_class_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(class_unalign_answer, f)
@@ -115,7 +115,7 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
     obj_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.save_dir + f"sop_{model_name}_obj_unalign.pkl",
+        cfg.paths.save_dir + f"sop_{model_name}_obj_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(obj_unalign_answer, f)

@@ -45,13 +45,13 @@ def SOP_llava_align(cfg: DictConfig):
     np.random.seed(cfg.seed)
 
     # load image embeddings and text embeddings
-    with open(cfg.save_dir + "sop_llava-v1.5-13b_aligned.pkl", 'rb') as f:
+    with open(cfg.paths.save_dir + "sop_llava-v1.5-13b_aligned.pkl", 'rb') as f:
         align = pickle.load(f)
-    with open(cfg.save_dir + "sop_llava-v1.5-13b_ds_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_dir + "sop_llava-v1.5-13b_ds_unalign.pkl", 'rb') as f:
         ds_unalign = pickle.load(f)
-    with open(cfg.save_dir + "sop_llava-v1.5-13b_class_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_dir + "sop_llava-v1.5-13b_class_unalign.pkl", 'rb') as f:
         class_unalign = pickle.load(f)
-    with open(cfg.save_dir + "sop_llava-v1.5-13b_obj_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_dir + "sop_llava-v1.5-13b_obj_unalign.pkl", 'rb') as f:
         obj_unalign = pickle.load(f)
     align = parse_llava_yes_no(align)
     ds_unalign = parse_llava_yes_no(ds_unalign)
