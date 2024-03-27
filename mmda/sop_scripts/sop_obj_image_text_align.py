@@ -9,7 +9,7 @@ from swarm_visualizer.histogram import (
 )
 from swarm_visualizer.utility.general_utils import save_fig
 
-from tife.utils.data_utils import (
+from mmda.utils.data_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_SOP,
@@ -17,17 +17,21 @@ from tife.utils.data_utils import (
     shuffle_data_by_indices,
     train_test_split,
 )
-from tife.utils.hydra_utils import hydra_main
-from tife.utils.sim_utils import ROC_points, weighted_corr_sim
+from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.sim_utils import ROC_points, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')
-def SOP_class_align(cfg: DictConfig):
+def main(cfg: DictConfig):
+    SOP_obj_align(cfg)
+    return
+
+def SOP_obj_align(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
 
     # load raw data
-    _, __, classes, obj_ids = load_SOP(cfg)
+    _, _, classes, obj_ids = load_SOP(cfg)
 
     # load image embeddings and text embeddings
     with open(cfg.paths.save_dir + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
@@ -57,8 +61,8 @@ def SOP_class_align(cfg: DictConfig):
     _, valTxtUnalign = trainTxt.copy(), valTxt.copy()
 
     # filter and shuffle data by classes or object ids
-    val_class_dict_filter = filter_str_label(valClasses)
-    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter, seed=cfg.seed)
+    val_obj_dict_filter = filter_str_label(valObjIds)
+    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_obj_dict_filter, seed=cfg.seed)
     assert not np.allclose(valTxtUnalign, valTxt, atol=1e-4), "valTxtUnalign not shuffled correctly"
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
 
@@ -80,15 +84,15 @@ def SOP_class_align(cfg: DictConfig):
 
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
-                     legend=['Aligned', 'Class level shuffle'], 
+                     legend=['Aligned', 'Object level shuffle'], 
                      title_str='Similarity Score Distribution', 
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
     if cfg.equal_weights:
-        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_class_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
     else:
-        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_class_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
+        save_fig(fig, cfg.paths.plots_dir + f'similarity_score_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
@@ -104,9 +108,9 @@ def SOP_class_align(cfg: DictConfig):
     # ax.set_ylabel('True Positive Rate')
     # ax.set_xlim(0, 1)
     # ax.set_ylim(0, 1)
-    # fig.savefig(cfg.paths.plots_dir + f'ROC_class_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    # fig.savefig(cfg.paths.plots_dir + f'ROC_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     return ROC_points_list
 
 if __name__ == '__main__':
-    SOP_class_align()
+    main()

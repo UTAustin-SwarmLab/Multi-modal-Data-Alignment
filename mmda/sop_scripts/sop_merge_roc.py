@@ -4,31 +4,29 @@ import matplotlib.pyplot as plt
 from sop_class_image_text_align import SOP_class_align
 from sop_image_text_align import SOP_align
 from sop_obj_image_text_align import SOP_obj_align
+from omegaconf import DictConfig
 
-from hydra.core.global_hydra import GlobalHydra
-from tife.utils.sim_utils import cal_AUC
+from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.sim_utils import cal_AUC
 
-
-def main():
+@hydra_main(version_base=None, config_path='../config', config_name='sop')
+def main(cfg: DictConfig):
     train_test_ratio = 0.7
     num_train_data = int(56222 * train_test_ratio)
     print(num_train_data)
     equal_weights = True
 
     print("Start to calculate the ROC curve of detecting modality alignment.")
-    ds_roc_points = SOP_align()
+    ds_roc_points = SOP_align(cfg)
     ds_auc = cal_AUC(ds_roc_points)
-    GlobalHydra.instance().clear()
 
     print("Start to calculate the ROC curve of detecting modality alignment with class level shuffle.")
-    class_roc_points = SOP_class_align()
+    class_roc_points = SOP_class_align(cfg)
     class_auc = cal_AUC(class_roc_points)
-    GlobalHydra.instance().clear()
 
     print("Start to calculate the ROC curve of detecting modality alignment with object level shuffle.")
-    obj_roc_points = SOP_obj_align()
+    obj_roc_points = SOP_obj_align(cfg)
     obj_auc = cal_AUC(obj_roc_points)
-    GlobalHydra.instance().clear()
 
     # plot the ROC curve
     fig, ax = plt.subplots()
@@ -46,9 +44,9 @@ def main():
     ax.legend()
     ax.grid()
     if equal_weights:
-        fig.savefig(os.path.join(os.path.dirname(__file__), "./plots/") + f'ROC_curves_size{num_train_data}_noweight.png')
+        fig.savefig(cfg.paths.plots_dir + f'ROC_curves_size{num_train_data}_noweight.png')
     else:
-        fig.savefig(os.path.join(os.path.dirname(__file__), "./plots/") + f'ROC_curves_size{num_train_data}.png')
+        fig.savefig(cfg.paths.plots_dir + f'ROC_curves_size{num_train_data}.png')
     return
 
 if __name__ == "__main__":

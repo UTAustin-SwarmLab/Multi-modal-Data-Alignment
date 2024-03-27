@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from omegaconf import DictConfig
 
-from tife.utils.hydra_utils import hydra_main
+from mmda.utils.hydra_utils import hydra_main
 
 
 def parse_llava_yes_no(llava_output: List[str]) -> np.ndarray:
@@ -39,7 +39,7 @@ def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> List[Lis
     FPR = FP / (FP + TN)
     return TPR, FPR
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
+@hydra_main(version_base=None, config_path='../config', config_name='sop')
 def SOP_llava_align(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)

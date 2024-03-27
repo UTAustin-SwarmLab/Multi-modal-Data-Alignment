@@ -3,15 +3,15 @@ import pickle
 import numpy as np
 from omegaconf import DictConfig
 
-from tife.utils.data_utils import (
+from mmda.utils.data_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_SOP,
     shuffle_data_by_indices,
     train_test_split,
 )
-from tife.utils.hydra_utils import hydra_main
-from tife.utils.query_llava import query_llava
+from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.query_llava import query_llava
 
 
 @hydra_main(version_base=None, config_path='config', config_name='sop')

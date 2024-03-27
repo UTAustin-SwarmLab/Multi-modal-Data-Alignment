@@ -9,16 +9,20 @@ from swarm_visualizer.histogram import (
 )
 from swarm_visualizer.utility.general_utils import save_fig
 
-from tife.utils.data_utils import (
+from mmda.utils.data_utils import (
     get_train_test_split_index,
     origin_centered,
     train_test_split,
 )
-from tife.utils.hydra_utils import hydra_main
-from tife.utils.sim_utils import ROC_points, weighted_corr_sim
+from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.sim_utils import ROC_points, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')
+def main(cfg: DictConfig):
+    SOP_align(cfg)
+    return
+
 def SOP_align(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
@@ -124,4 +128,4 @@ def SOP_align(cfg: DictConfig):
 
     
 if __name__ == '__main__':
-    SOP_align()
+    main()

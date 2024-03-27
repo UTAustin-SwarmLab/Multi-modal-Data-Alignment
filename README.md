@@ -1,5 +1,4 @@
-# Text and Image Feature Extraction (TIFE)
-
+# Multi-modal Data Alignment (MMDA)
 
 <!-- This is a template repository. Please initialize your python project using this template.
 

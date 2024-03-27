@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 from utils.SVM_classifier import SVM_classifier
 
 import hydra
-from tife.utils.data_utils import origin_centered
+from mmda.utils.data_utils import origin_centered
 
 
 @hydra.main(version_base=None, config_path='config', config_name='main_config')

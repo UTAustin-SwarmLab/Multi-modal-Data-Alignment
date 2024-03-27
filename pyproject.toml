@@ -1,5 +1,5 @@
 [project]
-name = "tife"
+name = "mmda"
 version = "0.0.1"
 authors = [
   { name="Po-han Li", email="pohanli@utexas.edu" },
@@ -19,15 +19,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]  # list of folders that contain the packages (["."] by default)
-include = ["tife"]  # package names should match these glob patterns (["*"] by default)
+include = ["mmda"]  # package names should match these glob patterns (["*"] by default)
 exclude = []  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.poetry]
-name = "tife"
+name = "mmda"
 version = "0.0.1"
 authors = ["Po-han Li <pohanli@utexas.edu>"]
-packages = [{include = "tife"}]
+packages = [{include = "mmda"}]
 description = "Text and Image Feature Extraction"
 readme = "README.md"
 

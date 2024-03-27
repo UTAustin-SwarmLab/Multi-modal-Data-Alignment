@@ -2,10 +2,10 @@
 import numpy as np
 from omegaconf import DictConfig
 
-from tife.utils.data_utils import (
+from mmda.utils.data_utils import (
     load_SOP,
 )
-from tife.utils.hydra_utils import hydra_main
+from mmda.utils.hydra_utils import hydra_main
 
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')

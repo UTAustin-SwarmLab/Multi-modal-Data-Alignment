@@ -13,10 +13,11 @@ img_encoder: "clip"
 text_encoder: "gtr"
 work_dir: ${hydra:runtime.cwd}
 paths:
+  repo_root: "/home/po-han/Desktop/Projects/MMDA/"
   # sop_dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
   sop_dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
   save_dir: "/home/po-han/Downloads/SOP/"
-  plots_dir: "/home/po-han/Desktop/Projects/TIFE/plots/sop/"
+  plots_dir: ${paths.repo_root} + "plots/sop/"
 
 llava:
   model_path: '/nas/omama/llava-v1.5-13b'
