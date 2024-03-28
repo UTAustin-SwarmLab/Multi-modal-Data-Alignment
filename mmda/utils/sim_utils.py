@@ -3,6 +3,18 @@ from typing import List, Tuple
 import numpy as np
 
 
+def cosine_sim(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    """
+    :param X: data 1. shape: (N, feats)
+    :param Y: data 2. shape: (N, feats)
+    :return: cos similarity between X and Y. shape: (N, )
+    """
+    assert X.shape == Y.shape, f"X and Y should have the same number of shape, but got {X.shape} and {Y.shape}"
+    X = X / np.linalg.norm(X, axis=1, keepdims=True)
+    Y = Y / np.linalg.norm(Y, axis=1, keepdims=True)
+    return np.sum(X * Y, axis=1)
+
+
 def weighted_corr_sim(X: np.ndarray, Y: np.ndarray, corr: np.ndarray, dim: int=150) -> np.ndarray:
     """
     Compute the weighted correlation similarity
@@ -70,8 +82,13 @@ def cal_AUC(ROC_points: List[Tuple[float, float]]) -> float:
     return AUC
 
 if __name__ == '__main__':
-    sim_align = 2 * np.random.rand(200) - 1
-    sim_unalign = 2 * np.random.rand(100) - 1 
-    threshold_list = np.linspace(-1, 1, 20)
-    points = ROC_points(sim_align, sim_unalign, threshold_list)
-    print(f"AUC: {cal_AUC(points)}")
+    test_X = np.random.rand(1000, 150) * 2 - 1
+    test_Y = np.random.rand(1000, 150) * 2 - 1
+    cossim = cosine_sim(test_X, test_Y)
+    print(cossim.shape, cossim.min(), cossim.max())
+
+    # sim_align = 2 * np.random.rand(200) - 1
+    # sim_unalign = 2 * np.random.rand(100) - 1 
+    # threshold_list = np.linspace(-1, 1, 20)
+    # points = ROC_points(sim_align, sim_unalign, threshold_list)
+    # print(f"AUC: {cal_AUC(points)}")

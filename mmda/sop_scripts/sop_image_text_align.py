@@ -11,16 +11,18 @@ from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.utils.data_utils import (
     get_train_test_split_index,
+    load_SOP,
     origin_centered,
     train_test_split,
 )
 from mmda.utils.hydra_utils import hydra_main
-from mmda.utils.sim_utils import ROC_points, weighted_corr_sim
+from mmda.utils.sim_utils import ROC_points, cosine_sim, weighted_corr_sim
 
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')
 def main(cfg: DictConfig):
-    SOP_align(cfg)
+    # SOP_align(cfg)
+    SOP_CLIP_align(cfg)
     return
 
 def SOP_align(cfg: DictConfig):
@@ -109,7 +111,7 @@ def SOP_align(cfg: DictConfig):
         fig.savefig(cfg.paths.plots_path + 'cca_corr.png')
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-0.15, 0.65, 20).reshape(-1)]
+    threshold_list = [i for i in np.linspace(-0.15, 0.65, 40).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
@@ -126,6 +128,48 @@ def SOP_align(cfg: DictConfig):
     
     return ROC_points_list
 
-    
+def SOP_CLIP_align(cfg):
+    # set random seed
+    np.random.seed(cfg.seed)
+
+    # load raw data
+    _, _, classes, obj_ids = load_SOP(cfg)
+
+    # load image embeddings and text embeddings
+    with open(cfg.paths.save_path + 'data/SOP_img_emb_clip.pkl', 'rb') as f:
+        Img = pickle.load(f)
+    with open(cfg.paths.save_path + 'data/SOP_text_emb_clip.pkl', 'rb') as f:
+        Txt = pickle.load(f)
+
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
+    trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
+    trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
+
+    # copy data
+    _, valImgAlign = trainImg.copy(), valImg.copy()
+    _, valTxtAlign = trainTxt.copy(), valTxt.copy()
+    _, valTxtUnalign = trainTxt.copy(), valTxt.copy()
+    np.random.shuffle(valTxtUnalign)
+
+    sim_align = cosine_sim(valImgAlign, valTxtAlign)
+    sim_unalign = cosine_sim(valImgAlign, valTxtUnalign)
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
+                     legend=['Aligned', 'Class level shuffle'], 
+                     title_str='Similarity Score Distribution', 
+                     xlabel='Similarity Score', 
+                     ylabel='Frequency', 
+                     ax=ax)
+    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+
+    # plot ROC
+    threshold_list = [i for i in np.linspace(-1, 1, 40).reshape(-1)]
+    threshold_list += [-1, 1]
+    threshold_list.sort()
+    ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
+    return ROC_points_list
+
+
 if __name__ == '__main__':
     main()

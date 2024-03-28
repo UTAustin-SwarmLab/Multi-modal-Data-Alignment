@@ -12,12 +12,12 @@ equal_weights: True
 img_encoder: "clip"
 text_encoder: "gtr"
 paths:
-  repo_root: "/home/po-han/Desktop/Projects/MMDA/"
+  repo_root: "/home/po-han/Desktop/Projects/TIFE/"
   # sop_dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
   sop_dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
   save_path: "/home/po-han/Downloads/SOP/"
-  plots_path: ${paths.repo_root} + "plots/sop/"
-work_dir: ${paths.repo_root} + "hydra/" + ${now:%Y-%m-%d}/${now:%H-%M-%S}
+  plots_path: ${paths.repo_root}plots/sop/
+work_dir: ${paths.repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 llava:
   model_path: '/nas/omama/llava-v1.5-13b'
