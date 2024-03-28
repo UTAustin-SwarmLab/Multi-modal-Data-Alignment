@@ -44,7 +44,6 @@ scikit-learn = "*"
 hydra-core = "*"
 hydra-joblib-launcher = "*"
 protobuf = "3.20.*"
-torch = "2.1.2"
 torchvision = "*"
 torchaudio = "*"
 ipython = "^8.15.0"
@@ -53,7 +52,7 @@ swarm-visualizer = {git = "https://github.com/UTAustin-SwarmLab/Swarm-Visualizat
 cca-zoo = "^2.5.0"
 ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
-LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"}
+LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git", tag = "v1.2.2.post1" }
 gpustat = "*"
 
 [project.optional-dependencies]

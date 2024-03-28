@@ -166,4 +166,4 @@ cython_debug/
 .hydra/
 
 # plots
-plots/sop/
+plots/*
