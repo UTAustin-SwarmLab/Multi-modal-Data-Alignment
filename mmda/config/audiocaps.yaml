@@ -5,20 +5,18 @@ hydra:
     dir: hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 seed: 42
-train_test_ratio: 0.7
 CCA_dim: 700 # dimension of the CCA transformation
 sim_dim: 700 # dimension of the similarity score
-equal_weights: True
-img_encoder: "clip"
+audio_encoder: "clap"
 text_encoder: "gtr"
 paths:
-  # repo_root: "/home/pl22767/Project/TIFE/"
-  repo_root: "/home/po-han/Desktop/Projects/TIFE/"
-  # dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
-  dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
-  # save_path: "/nas/tirr/SOP/"
-  save_path: "/home/po-han/Downloads/SOP/"
-  plots_path: ${paths.repo_root}plots/sop/
+  repo_root: "/home/pl22767/Project/TIFE/"
+  # repo_root: "/home/po-han/Desktop/Projects/TIFE/"
+  dataset_path: "/nas/pohan/datasets/"
+  # dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
+  save_path: "/nas/tirr/SOP/"
+  # save_path: "/home/po-han/Downloads/audiocaps/"
+  plots_path: ${paths.repo_root}plots/audiocaps/
 work_dir: ${paths.repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 llava:

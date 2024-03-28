@@ -52,8 +52,9 @@ swarm-visualizer = {git = "https://github.com/UTAustin-SwarmLab/Swarm-Visualizat
 cca-zoo = "^2.5.0"
 ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
-LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git", tag = "v1.2.2.post1" }
+LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git", tag = "v1.2.2" }
 gpustat = "*"
+datasets = "^2.18.0"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
