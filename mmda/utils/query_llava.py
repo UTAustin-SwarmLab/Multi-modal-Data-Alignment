@@ -23,6 +23,13 @@ from tqdm import tqdm
 
 
 def load_image(image_file: str) -> Image.Image:
+    '''
+    Load image from file or url
+    Args:
+        image_file: image file path or url
+    Returns:
+        image: PIL image
+    '''
     if image_file.startswith("http") or image_file.startswith("https"):
         response = requests.get(image_file)
         image = Image.open(BytesIO(response.content)).convert("RGB")
@@ -108,7 +115,16 @@ def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[st
     return text_descriptions
 
 
-def query_llava(cfg, img_paths, text_descriptions):
+def query_llava(cfg, img_paths, text_descriptions) -> List[str]:
+    '''
+    Query llava model
+    Args:
+        cfg: config
+        img_paths: image file paths
+        text_descriptions: text descriptions
+    Returns:
+        return_data: list of text descriptions
+    '''
     mp.set_start_method("spawn")
     try:
         num_processes = cfg.llava.num_processes

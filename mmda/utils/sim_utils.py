@@ -5,9 +5,12 @@ import numpy as np
 
 def cosine_sim(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     """
-    :param X: data 1. shape: (N, feats)
-    :param Y: data 2. shape: (N, feats)
-    :return: cos similarity between X and Y. shape: (N, )
+    Compute the cosine similarity between X and Y
+    Args:
+        X: data 1. shape: (N, feats)
+        Y: data 2. shape: (N, feats)
+    Return: 
+        cos similarity between X and Y. shape: (N, )
     """
     assert X.shape == Y.shape, f"X and Y should have the same number of shape, but got {X.shape} and {Y.shape}"
     X = X / np.linalg.norm(X, axis=1, keepdims=True)
@@ -18,10 +21,12 @@ def cosine_sim(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
 def weighted_corr_sim(X: np.ndarray, Y: np.ndarray, corr: np.ndarray, dim: int=150) -> np.ndarray:
     """
     Compute the weighted correlation similarity
-    :param X: data 1. shape: (N, feats)
-    :param Y: data 2. shape: (N, feats)
-    :param corr: correlation matrix. shape: (feats, )
-    :return: similarity matrix between X and Y. shape: (N, )
+    Args:
+        X: data 1. shape: (N, feats)
+        Y: data 2. shape: (N, feats)
+        corr: correlation matrix. shape: (feats, )
+    Return: 
+        similarity matrix between X and Y. shape: (N, )
     """
 
     assert X.shape == Y.shape, f"X and Y should have the same number of shape, but got {X.shape} and {Y.shape}"
@@ -39,10 +44,12 @@ def weighted_corr_sim(X: np.ndarray, Y: np.ndarray, corr: np.ndarray, dim: int=1
 def cal_ROC_components(sim_align: np.ndarray, sim_unalign: np.ndarray, threshold: float) -> Tuple[float, float, float, float]:
     """
     Calculate the precision and recall
-    :param sim_align: similarity score of aligned case. shape: (N, )
-    :param sim_unalign: similarity score of unaligned case. shape: (N, )
-    :param threshold: threshold 
-    :return: TP, FP, FN, TN
+    Args:
+        sim_align: similarity score of aligned case. shape: (N, )
+        sim_unalign: similarity score of unaligned case. shape: (N, )
+        threshold: threshold 
+    Return: 
+        TP, FP, FN, TN
     """
     # positive = aligned, negative = unaligned
     TP = np.sum(sim_align > threshold)
@@ -56,10 +63,12 @@ def cal_ROC_components(sim_align: np.ndarray, sim_unalign: np.ndarray, threshold
 def ROC_points(sim_align: np.ndarray, sim_unalign: np.ndarray, threshold_list: List[float]) -> List[Tuple[float, float]]:
     """
     Calculate the ROC points
-    :param sim_align: similarity score of aligned case. shape: (N, )
-    :param sim_unalign: similarity score of unaligned case. shape: (N, )
-    :param threshold_list: list of thresholds
-    :return: list of ROC points
+    Args:
+        sim_align: similarity score of aligned case. shape: (N, )
+        sim_unalign: similarity score of unaligned case. shape: (N, )
+        threshold_list: list of thresholds
+    Return: 
+        list of ROC points
     """
     ROC = []
     for threshold in threshold_list:
@@ -72,8 +81,10 @@ def ROC_points(sim_align: np.ndarray, sim_unalign: np.ndarray, threshold_list: L
 def cal_AUC(ROC_points: List[Tuple[float, float]]) -> float:
     """
     Calculate the AUC
-    :param ROC_points: list of ROC points
-    :return: AUC
+    Args:
+        ROC_points: list of ROC points
+    Return:
+        AUC (Area Under Curve)
     """
     ROC_points = sorted(ROC_points, key=lambda x: x[0])
     AUC = 0

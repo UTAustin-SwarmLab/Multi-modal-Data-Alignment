@@ -12,11 +12,10 @@ text_encoder: "gtr"
 paths:
   repo_root: "/home/pl22767/Project/TIFE/"
   # repo_root: "/home/po-han/Desktop/Projects/TIFE/"
-  dataset_path: "/nas/pohan/datasets/"
-  # dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
+  dataset_path: "/nas/pohan/datasets/WikiMuTe/"
   save_path: "/nas/tirr/SOP/"
-  # save_path: "/home/po-han/Downloads/audiocaps/"
-  plots_path: ${paths.repo_root}plots/audiocaps/
+  # save_path: "/home/po-han/Downloads/wikimute/"
+  plots_path: ${paths.repo_root}plots/wikimute/
 work_dir: ${paths.repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 llava:

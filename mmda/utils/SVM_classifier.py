@@ -8,7 +8,7 @@ class SVM_classifier:
                  y_train: np.ndarray,
                  decision_function_shape: str = "ovo") -> None:
         '''A class of SVM classifier
-        Input:
+        Args:
             X_train: training data (n_samples, n_features)
             y_train: training labels
             X_test: testing data
@@ -24,20 +24,19 @@ class SVM_classifier:
     
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         '''Predict labels
-        Input:
+        Args:
             X_test: testing data
-        Returns:
+        Return:
             predicted labels
         '''
         return self.classifier.predict(X_test)
 
     def get_accuracy(self, y_pred: np.ndarray, y_test: np.ndarray) -> float:
         '''Get accuracy
-        Input:
+        Args:
             y_pred: predicted labels
             y_test: true labels
-
-        Returns:
+        Returns
             accuracy
         '''
         return np.mean(y_pred == y_test)

@@ -1,17 +1,17 @@
 import pickle
 from typing import Dict, List, Tuple
 
-import hydra
 import numpy as np
 from omegaconf import DictConfig
 
 
-@hydra.main(version_base=None, config_path='config', config_name='sop')
 def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     """
     Load the Stanford Online Products dataset
-    :param cfg: configuration file
-    :return: image paths and text descriptions
+    Args:
+        cfg: configuration file
+    Returns:
+        image paths and text descriptions
     """
     # load SOP images path
     with open(cfg.paths.dataset_path + "text_descriptions_SOP.pkl", 'rb') as f:
@@ -41,10 +41,12 @@ def origin_centered(X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 def get_train_test_split_index(train_test_ration: float, N: int, seed: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Get the index of the training and validation set
-    :param train_test_ration: ratio of training set
-    :param N: number of samples
-    :param seed: random seed
-    :return: index of the training and validation set
+    Args:
+        train_test_ration: ratio of training set
+        N: number of samples
+        seed: random seed
+    Returns: 
+        index of the training and validation set
     """
     np.random.seed(seed)
     arange = np.arange(N)
@@ -57,10 +59,12 @@ def get_train_test_split_index(train_test_ration: float, N: int, seed: int) -> T
 def train_test_split(data: np.ndarray, train_idx: List[int], val_idx: List[int]) -> Tuple[np.ndarray, np.ndarray]:
     """
     Split the data into training and validation set
-    :param data: data
-    :param train_idx: index of the training set
-    :param val_idx: index of the validation set
-    :return: training and validation set
+    Args:
+        data: data
+        train_idx: index of the training set
+        val_idx: index of the validation set
+    Return: 
+        training and validation set
     """
     if type(data) != np.ndarray:
         # print("Converting data to numpy array")
@@ -70,8 +74,10 @@ def train_test_split(data: np.ndarray, train_idx: List[int], val_idx: List[int])
 def filter_str_label(ground_truth: np.ndarray) -> Dict[str, np.ndarray]:
     """
     Filter the data based on the provided ground truth
-    :param ground_truth: ground truth. shape: (N, )
-    :return: a dict of index filter. keys: unique ground truth, values: indices of the data
+    Args:
+        ground_truth: ground truth. shape: (N, )
+    Return: 
+        a dict of index filter. keys: unique ground truth, values: indices of the data
     """
     ground_truth = ground_truth.astype(str)
     unique_classes = np.unique(ground_truth)
@@ -83,10 +89,12 @@ def filter_str_label(ground_truth: np.ndarray) -> Dict[str, np.ndarray]:
 def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray], seed: int =42) -> np.ndarray:
     """
     Shuffle the data by classes
-    :param data: data
-    :param classes: classes
-    :param filter_idx: a dict of index filter. keys: unique ground truth, values: indices of the data
-    :return: shuffled data
+    Args:
+        data: data
+        classes: classes
+        filter_idx: a dict of index filter. keys: unique ground truth, values: indices of the data
+    Return: 
+        shuffled data
     """
     np.random.seed(seed)
     for key, val in filter_idx.items():
