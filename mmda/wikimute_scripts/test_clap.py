@@ -1,5 +1,11 @@
 # Load model directly
 import datasets
+import numpy as np
+import resampy
+import soundfile as sf
+import torch
+import wavfile
+import wget
 from transformers import (
     AutoTokenizer,
     ClapModel,
@@ -14,15 +20,11 @@ def test_pipeline_and_feature_extractor():
     print(audio.shape, type(audio), max(audio), min(audio))
     sample_rate = 48000
     
-    import numpy as np
-    import torch
+ 
     dataset = datasets.load_from_disk("/nas/pohan/datasets/WikiMuTe")
     audio_url = dataset['train'][0]["audio_url"]
     print(audio_url)
-    import resampy
-    import soundfile as sf
-    import wavfile
-    import wget
+
 
     audio_file = wget.download(audio_url)
     print(audio_file)
@@ -67,7 +69,7 @@ def test_pipeline_and_feature_extractor():
     # cosine similarity as logits
     logit_scale_text = model.logit_scale_t.exp()
     logit_scale_audio = model.logit_scale_a.exp()
-    logits_per_text = torch.matmul(text_features, audio_features.t()) * logit_scale_text
+    _ = torch.matmul(text_features, audio_features.t()) * logit_scale_text
     logits_per_audio = torch.matmul(audio_features, text_features.t()) * logit_scale_audio
     print(logits_per_audio.softmax(dim=-1))
     assert torch.allclose(text_features, outputs.text_embeds, atol=1e-4), f"{text_features[0, :5]} != {outputs.text_embeds[0, :5]}"

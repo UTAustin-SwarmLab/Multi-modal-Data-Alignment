@@ -17,10 +17,10 @@ def download_dataset(cfg: DictConfig):
     dataset = datasets.load_from_disk(cfg.paths.dataset_path)
     for data in dataset['train']:
         audio_url = data["audio_url"] # https://upload.wikimedia.org/wikipedia/en/6/61/"24K_Magic".ogg
-        sentence = data["sentences"] # list of sentences
+        _ = data["sentences"] # list of sentences
         song_name = data["file"] # "24K Magic".ogg
-        aspects = data["aspects"]
-        pageid = data["pageid"]
+        _ = data["aspects"]
+        _ = data["pageid"]
 
         if not os.path.exists(os.path.join(cfg.paths.dataset_path, "ogg_files")):
             os.makedirs(os.path.join(cfg.paths.dataset_path, "ogg_files"))
