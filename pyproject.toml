@@ -64,6 +64,7 @@ wavfile = "*"
 resampy = "*"
 open-clip-torch = "2.24.0"
 sentence-transformers = "2.4.0"
+yt-dlp = "*"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]

@@ -16,12 +16,12 @@ def main(cfg: DictConfig):
 
     # get img embeddings
     img_emb = dinov2(img_files, BATCH_SIZE) # batched np array
-    with open(cfg.save_dir + 'data/SOP_img_emb_dino.pkl', 'wb') as f:
+    with open(cfg.paths.save_path + 'data/SOP_img_emb_dino.pkl', 'wb') as f:
         pickle.dump(img_emb, f)
     print("DINO embeddings saved")
 
     img_emb = clip_imgs(img_files, BATCH_SIZE) # batched np array
-    with open(cfg.save_dir + 'data/SOP_img_emb_clip.pkl', 'wb') as f:
+    with open(cfg.paths.save_path + 'data/SOP_img_emb_clip.pkl', 'wb') as f:
         pickle.dump(img_emb, f)
     print("CLIP embeddings saved")
 

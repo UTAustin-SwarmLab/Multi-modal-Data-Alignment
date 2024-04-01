@@ -1,7 +1,29 @@
 from typing import List, Tuple
 
 import numpy as np
+import torch
+from transformers import (
+    AutoModel,
+)
 
+
+def CLIP_like_sim(model: AutoModel, text_features: np.ndarray, other_features: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    '''
+    Calculate the similarity score between text and other features using CLIP-like method
+    Args:
+        model: CLIP-like model
+        text_features: text features. shape: (N, D)
+        other_features: other features. shape: (M, D)
+    Returns:
+        logits_per_text: similarity score between text and other features. shape: (N, M)
+        logits_per_audio: similarity score between other and text features. shape: (M, N)
+    '''
+    logit_scale_text = model.logit_scale_t.exp()
+    logit_scale_audio = model.logit_scale_a.exp()
+    logits_per_text = torch.matmul(text_features, other_features.t()) * logit_scale_text
+    logits_per_audio = torch.matmul(other_features, text_features.t()) * logit_scale_audio
+
+    return logits_per_text, logits_per_audio
 
 def cosine_sim(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
     """

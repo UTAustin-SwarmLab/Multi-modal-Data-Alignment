@@ -7,17 +7,17 @@ hydra:
 seed: 42
 train_test_ratio: 0.7
 CCA_dim: 700 # dimension of the CCA transformation
-sim_dim: 700 # dimension of the similarity score
-equal_weights: True
+sim_dim: 150 # dimension of the similarity score
+equal_weights: False
 img_encoder: "clip"
 text_encoder: "gtr"
 paths:
-  # repo_root: "/home/pl22767/Project/TIFE/"
-  repo_root: "/home/po-han/Desktop/Projects/TIFE/"
-  # dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
-  dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
-  # save_path: "/nas/tirr/SOP/"
-  save_path: "/home/po-han/Downloads/SOP/"
+  repo_root: "/home/pl22767/Project/MMDA/"
+  # repo_root: "/home/po-han/Desktop/Projects/MMDA/"
+  dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
+  # dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
+  save_path: "/nas/tirr/SOP/"
+  # save_path: "/home/po-han/Downloads/SOP/"
   plots_path: ${paths.repo_root}plots/sop/
 work_dir: ${paths.repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 

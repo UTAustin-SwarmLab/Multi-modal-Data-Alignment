@@ -1,9 +1,42 @@
+import os
 import pickle
 from typing import Dict, List, Tuple
 
+import datasets
 import numpy as np
 from omegaconf import DictConfig
 
+
+def load_MusicCaps(cfg: DictConfig) -> Tuple[List[str], List[str]]:
+    """
+    Load the Google MusicCaps dataset
+    Args:
+        cfg: configuration file
+    Returns:
+        audio paths, text descriptions, aspect_list, and audioset_positive_labels
+    """
+    dataset = datasets.load_dataset('google/MusicCaps', split='train')
+    audio_path_list, caption_list = [], []
+    aspect_list, audioset_positive_labels = [], []
+    for data in dataset:
+        audio_path = os.path.join(cfg.paths.dataset_path, f"{data['ytid']}.wav")
+        caption = data["caption"]
+        aspects, audioset_positive_labels = data["aspect_list"], data["audioset_positive_labels"]
+
+        ### check if the audio file exists
+        if not os.path.exists(audio_path):
+            print(f"Audio file {audio_path} does not exist. Skipping.")
+            continue
+
+        audio_path_list.append(audio_path)
+        caption_list.append(caption)
+        aspect_list.append(aspects)
+        audioset_positive_labels.append(audioset_positive_labels)
+
+    assert len(audio_path_list) == len(caption_list) == len(aspect_list) == len(audioset_positive_labels), \
+        f"Data length mismatch: {len(audio_path_list)}, {len(caption_list)}, {len(aspect_list)}, {len(audioset_positive_labels)}"
+    return audio_path_list, caption_list, aspect_list, audioset_positive_labels
+    
 
 def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     """
@@ -11,7 +44,7 @@ def load_SOP(cfg: DictConfig) -> Tuple[List[str], List[str]]:
     Args:
         cfg: configuration file
     Returns:
-        image paths and text descriptions
+        image paths, text descriptions, classes, and object ids
     """
     # load SOP images path
     with open(cfg.paths.dataset_path + "text_descriptions_SOP.pkl", 'rb') as f:
@@ -103,3 +136,18 @@ def shuffle_data_by_indices(data: np.ndarray, filter_idx: Dict[str, np.ndarray],
         np.random.shuffle(c)
         data[val] = c
     return data
+
+def filter_outliers(data: np.ndarray, sim_scores: np.ndarray, threshold: float, right_tail: bool = True) -> np.ndarray:
+    """
+    Show the outliers
+    Args:
+        data: data
+        sim_scores: similarity scores
+        threshold: threshold of similarity score for outliers
+        right_tail: right tail or left tail
+    Return: 
+        outliers
+    """
+    index = np.where(sim_scores > threshold)[0] if right_tail else np.where(sim_scores < threshold)[0]
+    print(f"Number of outliers: {len(index)}")
+    return data[index]

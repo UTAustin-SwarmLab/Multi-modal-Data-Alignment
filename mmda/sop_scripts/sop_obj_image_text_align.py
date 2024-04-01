@@ -23,7 +23,7 @@ from mmda.utils.sim_utils import ROC_points, cosine_sim, weighted_corr_sim
 
 @hydra_main(version_base=None, config_path='../config', config_name='sop')
 def main(cfg: DictConfig):
-    # SOP_obj_align(cfg)
+    SOP_obj_align(cfg)
     SOP_CLIP_obj_align(cfg)
     return
 
@@ -152,7 +152,7 @@ def SOP_CLIP_obj_align(cfg: DictConfig):
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
-    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_obj_CLIP_{cfg.train_test_ratio}.png')
     
     # plot ROC
     threshold_list = [i for i in np.linspace(-1, 1, 40).reshape(-1)]

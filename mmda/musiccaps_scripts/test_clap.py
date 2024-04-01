@@ -61,7 +61,7 @@ def test_pipeline_and_feature_extractor():
     model = ClapModel.from_pretrained("laion/larger_clap_general")
     feature_extractor = ClapFeatureExtractor.from_pretrained("laion/larger_clap_general")
     tokenizer = AutoTokenizer.from_pretrained("laion/larger_clap_general")
-    inputs = feature_extractor(audio, return_tensors="pt", sample_rate=sample_rate, padding=True, max_length_s=60)
+    inputs = feature_extractor(audio, return_tensors="pt", sampling_rate=sample_rate, padding=True, max_length_s=60)
     tokens = tokenizer(input_text, padding=True, return_tensors="pt")
     audio_features = model.get_audio_features(**inputs)
     text_features = model.get_text_features(**tokens)
