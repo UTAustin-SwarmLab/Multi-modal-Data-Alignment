@@ -28,7 +28,7 @@ def download_clip(
     attempts = 0
     while True:
         try:
-            output = subprocess.check_output(command, shell=True,
+            _ = subprocess.check_output(command, shell=True,
                                                 stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as err:
             attempts += 1
