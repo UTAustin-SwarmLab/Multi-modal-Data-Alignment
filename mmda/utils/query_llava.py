@@ -1,7 +1,6 @@
 import multiprocessing as mp
 from io import BytesIO
 from multiprocessing import Pool
-from typing import List, Tuple
 
 import requests
 import torch
@@ -23,13 +22,13 @@ from tqdm import tqdm
 
 
 def load_image(image_file: str) -> Image.Image:
-    '''
-    Load image from file or url
+    """Load image from file or url.
+
     Args:
         image_file: image file path or url
     Returns:
         image: PIL image
-    '''
+    """
     if image_file.startswith("http") or image_file.startswith("https"):
         response = requests.get(image_file)
         image = Image.open(BytesIO(response.content)).convert("RGB")
@@ -37,7 +36,16 @@ def load_image(image_file: str) -> Image.Image:
         image = Image.open(image_file).convert("RGB")
     return image
 
-def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[str]])->List[str]:
+
+def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> list[str]:
+    """Get text descriptions from llava model.
+
+    Args:
+        input_tuple_data: input tuple data: (cfg, img_paths, texts)
+
+    Returns:
+        text_descriptions: list of text descriptions
+    """
     cfg, img_paths, texts = input_tuple_data
     disable_torch_init()
     model_name = get_model_name_from_path(cfg.llava.model_path)
@@ -63,9 +71,8 @@ def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[st
         conv_mode = "llava_v0"
     if cfg.llava.conv_mode is not None and conv_mode != cfg.llava.conv_mode:
         print(
-            "[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}".format(
-                conv_mode, cfg.llava.conv_mode, cfg.llava.conv_mode
-            )
+            f"[WARNING] the auto inferred conversation mode is {conv_mode}, while `--conv-mode` is\
+                  {cfg.llava.conv_mode}, using {cfg.llava.conv_mode}"
         )
     else:
         cfg.llava.conv_mode = conv_mode
@@ -77,7 +84,7 @@ def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[st
     for image_file in tqdm(img_paths):
         count += 1
         conv = conv_templates[cfg.llava.conv_mode].copy()
-        inp = f"Does the following text describe the given image? Answer in yes/no. \"{texts[count]}\""
+        inp = f'Does the following text describe the given image? Answer in yes/no. "{texts[count]}"'
         inp = DEFAULT_IMAGE_TOKEN + "\n" + inp
         conv.append_message(conv.roles[0], inp)
         conv.append_message(conv.roles[1], None)
@@ -85,18 +92,8 @@ def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[st
 
         images = [load_image(image_file)]
         image_sizes = [x.size for x in images]
-        images_tensor = process_images(
-            images,
-            image_processor,
-            model.config
-        ).to(model.device, dtype=torch.float16)
-        input_ids = (
-            tokenizer_image_token(
-                prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-            )
-            .unsqueeze(0)
-            .cuda()
-        )
+        images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
+        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
@@ -115,16 +112,16 @@ def get_text_descriptions(input_tuple_data: Tuple[DictConfig, List[str], List[st
     return text_descriptions
 
 
-def query_llava(cfg, img_paths, text_descriptions) -> List[str]:
-    '''
-    Query llava model
+def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
+    """Query llava model.
+
     Args:
         cfg: config
         img_paths: image file paths
         text_descriptions: text descriptions
     Returns:
         return_data: list of text descriptions
-    '''
+    """
     mp.set_start_method("spawn")
     try:
         num_processes = cfg.llava.num_processes
@@ -136,11 +133,7 @@ def query_llava(cfg, img_paths, text_descriptions) -> List[str]:
             [
                 (
                     cfg,
-                    img_paths[
-                        int(i * len(img_paths) / num_processes) : int(
-                            (i + 1) * len(img_paths) / num_processes
-                        )
-                    ],
+                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
                     text_descriptions[
                         int(i * len(text_descriptions) / num_processes) : int(
                             (i + 1) * len(text_descriptions) / num_processes

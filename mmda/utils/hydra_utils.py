@@ -3,7 +3,7 @@ import functools
 import hydra
 
 
-def hydra_main(*args, **kw):
+def hydra_main(*args, **kw):  # noqa: D103
 
     main = hydra.main(*args, **kw)
 

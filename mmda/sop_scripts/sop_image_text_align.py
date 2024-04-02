@@ -88,9 +88,9 @@ def SOP_align(cfg: DictConfig):
                      ylabel='Frequency', 
                      ax=ax)
     if cfg.equal_weights:
-        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}_noweight.png')
+        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_r{cfg.train_test_ratio}_dim{cfg.sim_dim}_noweight.png')
     else:
-        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+        save_fig(fig, cfg.paths.plots_path + f'similarity_score_dataset_r{cfg.train_test_ratio}_dim{cfg.sim_dim}.png')
 
     # CCA dimensionality reduction
     img_text_CCA_unalign = CCA(latent_dimensions=cfg.CCA_dim)
@@ -110,7 +110,7 @@ def SOP_align(cfg: DictConfig):
         fig.savefig(cfg.paths.plots_path + 'cca_corr.png')
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-0.15, 0.65, 40).reshape(-1)]
+    threshold_list = [i for i in np.linspace(-0.15, 0.65, 25).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
@@ -157,10 +157,10 @@ def SOP_CLIP_align(cfg):
                      xlabel='Similarity Score', 
                      ylabel='Frequency', 
                      ax=ax)
-    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_dataset_CLIP_{cfg.train_test_ratio}.png')
+    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_dataset_r{cfg.train_test_ratio}_CLIP.png')
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-1, 1, 40).reshape(-1)]
+    threshold_list = [i for i in np.linspace(-0.8, 0.8, 30).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)

@@ -14,8 +14,16 @@ from mmda.utils.hydra_utils import hydra_main
 from mmda.utils.query_llava import query_llava
 
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
-def sop_llava_align(cfg: DictConfig):
+@hydra_main(version_base=None, config_path="config", config_name="sop")
+def sop_llava_align(cfg: DictConfig) -> None:
+    """Query llava and save the aligned answer as pickle file.
+
+    Args:
+        cfg (DictConfig): config file
+
+    Returns:
+        None
+    """
     # set random seed
     np.random.seed(cfg.seed)
     # load raw data
@@ -38,8 +46,17 @@ def sop_llava_align(cfg: DictConfig):
 
     return
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
+
+@hydra_main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_dataset_shuffle(cfg: DictConfig):
+    """Query llava and save the dataset level unaligned answer as pickle file.
+
+    Args:
+        cfg (DictConfig): config file
+
+    Returns:
+        None
+    """
     # set random seed
     np.random.seed(cfg.seed)
     # load raw data
@@ -64,8 +81,17 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
 
     return
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
+
+@hydra_main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_class_shuffle(cfg: DictConfig):
+    """Query llava and save the class level unaligned answer as pickle file.
+
+    Args:
+        cfg (DictConfig): config file
+
+    Returns:
+        None
+    """
     # set random seed
     np.random.seed(cfg.seed)
     # load raw data
@@ -93,8 +119,17 @@ def sop_llava_class_shuffle(cfg: DictConfig):
 
     return
 
-@hydra_main(version_base=None, config_path='config', config_name='sop')
+
+@hydra_main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_obj_shuffle(cfg: DictConfig):
+    """Query llava and save the object level unaligned answer as pickle file.
+
+    Args:
+        cfg (DictConfig): config file
+
+    Returns:
+        None
+    """
     # set random seed
     np.random.seed(cfg.seed)
     # load raw data
@@ -122,10 +157,11 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
 
     return
 
+
 if __name__ == "__main__":
-    # sop_llava_align()
+    sop_llava_align()
     sop_llava_dataset_shuffle()
-    # sop_llava_class_shuffle()
-    # sop_llava_obj_shuffle()
+    sop_llava_class_shuffle()
+    sop_llava_obj_shuffle()
 
 # CUDA_VISIBLE_DEVICES=2 poetry run python sop_query_llava.py

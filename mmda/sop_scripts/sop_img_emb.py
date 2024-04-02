@@ -10,18 +10,19 @@ from mmda.utils.hydra_utils import hydra_main
 
 BATCH_SIZE = 64
 
-@hydra_main(version_base=None, config_path='../config', config_name='sop')
-def main(cfg: DictConfig):
+
+@hydra_main(version_base=None, config_path="../config", config_name="sop")
+def main(cfg: DictConfig):  # noqa: D103
     img_files, _ = load_SOP(cfg)
 
     # get img embeddings
-    img_emb = dinov2(img_files, BATCH_SIZE) # batched np array
-    with open(cfg.paths.save_path + 'data/SOP_img_emb_dino.pkl', 'wb') as f:
+    img_emb = dinov2(img_files, BATCH_SIZE)  # batched np array
+    with open(cfg.paths.save_path + "data/SOP_img_emb_dino.pkl", "wb") as f:
         pickle.dump(img_emb, f)
     print("DINO embeddings saved")
 
-    img_emb = clip_imgs(img_files, BATCH_SIZE) # batched np array
-    with open(cfg.paths.save_path + 'data/SOP_img_emb_clip.pkl', 'wb') as f:
+    img_emb = clip_imgs(img_files, BATCH_SIZE)  # batched np array
+    with open(cfg.paths.save_path + "data/SOP_img_emb_clip.pkl", "wb") as f:
         pickle.dump(img_emb, f)
     print("CLIP embeddings saved")
 
@@ -30,6 +31,7 @@ def main(cfg: DictConfig):
     # with open(save_dir + 'data/SOP_img_emb_train_test_vit.pkl', 'wb') as f:
     #     pickle.dump(img_emb, f)
     # print("ViT embeddings saved")
+
 
 if __name__ == "__main__":
     main()

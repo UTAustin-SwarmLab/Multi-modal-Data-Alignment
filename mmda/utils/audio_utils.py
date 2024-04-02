@@ -2,11 +2,12 @@ import numpy as np
 import resampy
 
 
-def convert_to_mono_channel(audio: np.ndarray, normalize: bool=True) -> np.ndarray:
-    """
-    Convert stereo audio to mono channel
+def convert_to_mono_channel(audio: np.ndarray, normalize: bool = True) -> np.ndarray:
+    """Convert stereo audio to mono channel.
+
     Args:
         audio: stereo audio. shape: (N, channels)
+        normalize: normalize the audio. True by default
     Returns:
         mono audio. Range= [-1, 1]. shape: (N, )
     """
@@ -19,9 +20,10 @@ def convert_to_mono_channel(audio: np.ndarray, normalize: bool=True) -> np.ndarr
     # otherwise convert the audio to mono channel
     return audio if len(audio.shape) == 1 else audio.mean(axis=1)
 
-def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int=48_000) -> np.ndarray:
-    """
-    Resample the audio to the target sample rate
+
+def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int = 48_000) -> np.ndarray:
+    """Resample the audio to the target sample rate.
+
     Args:
         audio: audio data. shape: (N, )
         orig_sr: original sample rate

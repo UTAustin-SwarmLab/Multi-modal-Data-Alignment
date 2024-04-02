@@ -1,5 +1,4 @@
 import pickle
-from typing import List
 
 import numpy as np
 from omegaconf import DictConfig
@@ -7,11 +6,13 @@ from omegaconf import DictConfig
 from mmda.utils.hydra_utils import hydra_main
 
 
-def parse_llava_yes_no(llava_output: List[str]) -> np.ndarray:
-    """
-    Parse the llava output to see if the answer is yes or no
-    :param llava_output
-    :return: boolean array
+def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:
+    """Parse the llava output to see if the answer is yes or no.
+
+    Args:
+        llava_output: lsit of llava output
+    Returns:
+        yes_no_array
     """
     yes_no_array = []
     for path_answer in llava_output[0]:
@@ -22,13 +23,15 @@ def parse_llava_yes_no(llava_output: List[str]) -> np.ndarray:
     yes_no_array = np.array(yes_no_array).astype(bool)
     return yes_no_array
 
-def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> List[List[float]]:
-    """
-    Calculate the ROC points for boolean data
-    :param align: boolean outcome of aligned data
-    :param unalign: boolean outcome of unaligned data
-    :param unalign_gt: ground truth of unaligned data
-    :return: ROC points
+
+def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> list[list[float]]:
+    """Calculate the ROC points for boolean data.
+
+    Args:
+        align: boolean outcome of aligned data
+        unalign: boolean outcome of unaligned data
+    Return
+        ROC points
     """
     TP = np.sum(align)
     FP = np.sum(unalign)
@@ -39,19 +42,20 @@ def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> List[Lis
     FPR = FP / (FP + TN)
     return TPR, FPR
 
-@hydra_main(version_base=None, config_path='../config', config_name='sop')
-def SOP_llava_align(cfg: DictConfig):
+
+@hydra_main(version_base=None, config_path="../config", config_name="sop")
+def SOP_llava_align(cfg: DictConfig):  # noqa: D103
     # set random seed
     np.random.seed(cfg.seed)
 
     # load image embeddings and text embeddings
-    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_aligned.pkl", 'rb') as f:
+    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_aligned.pkl", "rb") as f:
         align = pickle.load(f)
-    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_ds_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_ds_unalign.pkl", "rb") as f:
         ds_unalign = pickle.load(f)
-    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_class_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_class_unalign.pkl", "rb") as f:
         class_unalign = pickle.load(f)
-    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_obj_unalign.pkl", 'rb') as f:
+    with open(cfg.paths.save_path + "sop_llava-v1.5-13b_obj_unalign.pkl", "rb") as f:
         obj_unalign = pickle.load(f)
     align = parse_llava_yes_no(align)
     ds_unalign = parse_llava_yes_no(ds_unalign)
@@ -72,5 +76,6 @@ def SOP_llava_align(cfg: DictConfig):
 
     return
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     SOP_llava_align()

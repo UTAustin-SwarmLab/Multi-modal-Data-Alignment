@@ -15,16 +15,15 @@ from transformers.models.clap.processing_clap import ClapProcessor
 
 
 def test_pipeline_and_feature_extractor():
+    """Test the pipeline and feature extractor of CLAP model."""
     dataset = datasets.load_dataset("ashraq/esc50")
     audio = dataset["train"]["audio"][0]["array"]
     print(audio.shape, type(audio), max(audio), min(audio))
     sample_rate = 48000
-    
- 
-    dataset = datasets.load_from_disk("/nas/pohan/datasets/WikiMuTe")
-    audio_url = dataset['train'][0]["audio_url"]
-    print(audio_url)
 
+    dataset = datasets.load_from_disk("/nas/pohan/datasets/WikiMuTe")
+    audio_url = dataset["train"][0]["audio_url"]
+    print(audio_url)
 
     audio_file = wget.download(audio_url)
     print(audio_file)
@@ -45,13 +44,12 @@ def test_pipeline_and_feature_extractor():
     model = ClapModel.from_pretrained("laion/larger_clap_general")
     processor = ClapProcessor.from_pretrained("laion/larger_clap_general")
     input_text = [
-                "Sound of a dog", 
-                "Sound of vaccum cleaner", 
-                "sound as \"monkey punk\"", 
-                "The song is constructed in a verse-chorus form, with a bridge before the third chorus, and its instrumentation comes from keyboards, a rhythm guitar, a cello, and a violin",
-                "The song has been described as a funk, disco and contemporary R&B track, heavily influenced by hip hop",
-                "The song features several layers of funk synthesizers in its instrumentation",
-                ]
+        "Sound of a dog",
+        "Sound of vaccum cleaner",
+        'sound as "monkey punk"',
+        "The song has been described as a funk, disco and contemporary R&B track, heavily influenced by hip hop",
+        "The song features several layers of funk synthesizers in its instrumentation",
+    ]
     inputs = processor(text=input_text, audios=audio, return_tensors="pt", padding=True, sampling_rate=sample_rate)
     outputs = model(**inputs)
     logits_per_audio = outputs.logits_per_audio  # this is the audio-text similarity score
@@ -72,8 +70,13 @@ def test_pipeline_and_feature_extractor():
     _ = torch.matmul(text_features, audio_features.t()) * logit_scale_text
     logits_per_audio = torch.matmul(audio_features, text_features.t()) * logit_scale_audio
     print(logits_per_audio.softmax(dim=-1))
-    assert torch.allclose(text_features, outputs.text_embeds, atol=1e-4), f"{text_features[0, :5]} != {outputs.text_embeds[0, :5]}"
-    assert torch.allclose(audio_features, outputs.audio_embeds, atol=1e-4), f"{audio_features[0, :5]} != {outputs.audio_embeds[0, :5]}"
+    assert torch.allclose(
+        text_features, outputs.text_embeds, atol=1e-4
+    ), f"{text_features[0, :5]} != {outputs.text_embeds[0, :5]}"
+    assert torch.allclose(
+        audio_features, outputs.audio_embeds, atol=1e-4
+    ), f"{audio_features[0, :5]} != {outputs.audio_embeds[0, :5]}"
+
 
 if __name__ == "__main__":
     test_pipeline_and_feature_extractor()
