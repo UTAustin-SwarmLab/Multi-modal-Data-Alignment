@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.stats as stats
 import torch
 from transformers import (
     AutoModel,
@@ -125,6 +126,44 @@ def cal_AUC(ROC_points: list[tuple[float, float]]) -> float:
     for ii in range(1, len(ROC_points)):
         AUC += (ROC_points[ii][0] - ROC_points[ii - 1][0]) * (ROC_points[ii][1] + ROC_points[ii - 1][1]) / 2
     return AUC
+
+
+def Spearman_rank_coefficient(X: np.ndarray, Y: np.ndarray) -> tuple[float, np.ndarray, np.ndarray]:
+    """Calculate the Spearman rank correlation coefficient.
+
+    Args:
+        X: score of data 1. shape: (N,)
+        Y: score of data 2. shape: (N,)
+
+    Return:
+        Spearman rank correlation coefficient
+    """
+    assert X.shape == Y.shape, f"X and Y should have the same number of shape, but got {X.shape} and {Y.shape}"
+    N = X.shape[0]
+    rank_X = np.argsort(X)
+    rank_Y = np.argsort(Y)
+    print(rank_X, rank_Y)
+    d = np.sum((rank_X - rank_Y) ** 2)
+    return 1 - 6 * d / (N * (N**2 - 1)), rank_X, rank_Y
+
+
+def Spearman_to_p_value(r: float, N: int) -> float:
+    """Calculate the p-value from Spearman rank correlation coefficient.
+
+    Note that the calculations assume that the null hypothesis is true, i.e., there is no correlation.
+    If the p-value is less than the chosen significance level (often 0.05), we would reject the null
+    hypothesis and conclude that there is a significant correlation.
+
+    Args:
+        r: Spearman rank correlation coefficient
+        N: number of samples
+
+    Return:
+        p-value
+    """
+    t = r * np.sqrt((N - 2) / (1 - r**2))
+    p_value = stats.t.sf(np.abs(t), N - 2) * 2
+    return p_value
 
 
 if __name__ == "__main__":

@@ -1,5 +1,3 @@
-from typing import list
-
 import numpy as np
 import open_clip
 import torch

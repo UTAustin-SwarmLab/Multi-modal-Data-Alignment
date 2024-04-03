@@ -7,6 +7,7 @@ from mmda.utils.data_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_SOP,
+    load_two_encoder_data,
     shuffle_data_by_indices,
     train_test_split,
 )
@@ -26,10 +27,13 @@ def sop_llava_align(cfg: DictConfig) -> None:
     """
     # set random seed
     np.random.seed(cfg.seed)
+
+    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+
     # load raw data
-    img_paths, text_descriptions, _, _ = load_SOP(cfg)
+    img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
     # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths), cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
     _, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
 
@@ -39,7 +43,7 @@ def sop_llava_align(cfg: DictConfig) -> None:
     aligned_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.paths.save_path + f"sop_{model_name}_aligned.pkl",
+        cfg_dataset.paths.save_path + f"sop_{model_name}_aligned.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -59,10 +63,13 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     """
     # set random seed
     np.random.seed(cfg.seed)
+
+    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+
     # load raw data
-    img_paths, text_descriptions, _, _ = load_SOP(cfg)
+    img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
     # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths), cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
     trainTxt, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
     np.random.shuffle(trainTxt)
@@ -74,7 +81,7 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     aligned_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.paths.save_path + f"sop_{model_name}_ds_unalign.pkl",
+        cfg_dataset.paths.save_path + f"sop_{model_name}_ds_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -94,10 +101,13 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     """
     # set random seed
     np.random.seed(cfg.seed)
+
+    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+
     # load raw data
-    img_paths, text_descriptions, classes, _ = load_SOP(cfg)
+    img_paths, text_descriptions, classes, _ = load_SOP(cfg_dataset)
     # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths), cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
     _, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
     _, valClasses = train_test_split(classes, trainIdx, valIdx)
@@ -112,7 +122,7 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     class_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.paths.save_path + f"sop_{model_name}_class_unalign.pkl",
+        cfg_dataset.paths.save_path + f"sop_{model_name}_class_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(class_unalign_answer, f)
@@ -132,10 +142,13 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
     """
     # set random seed
     np.random.seed(cfg.seed)
+
+    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+
     # load raw data
-    img_paths, text_descriptions, _, obj_ids = load_SOP(cfg)
+    img_paths, text_descriptions, _, obj_ids = load_SOP(cfg_dataset)
     # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths), cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
     _, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
     _, valObjIds = train_test_split(obj_ids, trainIdx, valIdx)
@@ -150,7 +163,7 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
     obj_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg.paths.save_path + f"sop_{model_name}_obj_unalign.pkl",
+        cfg_dataset.paths.save_path + f"sop_{model_name}_obj_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(obj_unalign_answer, f)

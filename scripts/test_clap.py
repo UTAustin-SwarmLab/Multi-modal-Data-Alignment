@@ -23,22 +23,16 @@ def test_pipeline_and_feature_extractor():
 
     dataset = datasets.load_from_disk("/nas/pohan/datasets/WikiMuTe")
     audio_url = dataset["train"][0]["audio_url"]
-    print(audio_url)
 
     audio_file = wget.download(audio_url)
-    print(audio_file)
     audio, sample_rate = sf.read(audio_file)
-    print(audio.shape, sample_rate)
-    print(audio[:10])
     audio = (audio[:, 0] + audio[:, 1]) / 2
     # audio = audio / np.max(np.abs(audio))
     audio = audio.reshape(-1, 1)
-    print(audio.shape)
     wavfile.write("24k.wav", sample_rate=sample_rate, audio_data=audio)
     # upsample to 32->48kHz
     audio = resampy.resample(audio, sample_rate, 48000, axis=0)
     audio = audio.reshape(-1) / np.max(np.abs(audio))
-    print(audio.shape, max(audio), min(audio))
 
     sample_rate = 48000
     model = ClapModel.from_pretrained("laion/larger_clap_general")

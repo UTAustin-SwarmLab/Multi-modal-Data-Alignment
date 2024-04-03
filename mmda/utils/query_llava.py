@@ -41,20 +41,20 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
     """Get text descriptions from llava model.
 
     Args:
-        input_tuple_data: input tuple data: (cfg, img_paths, texts)
+        input_tuple_data: input tuple data: (cfg_llava, img_paths, texts)
 
     Returns:
         text_descriptions: list of text descriptions
     """
-    cfg, img_paths, texts = input_tuple_data
+    cfg_llava, img_paths, texts = input_tuple_data
     disable_torch_init()
-    model_name = get_model_name_from_path(cfg.llava.model_path)
+    model_name = get_model_name_from_path(cfg_llava.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(
-        cfg.llava.model_path,
-        cfg.llava.model_base,
+        cfg_llava.model_path,
+        cfg_llava.model_base,
         model_name,
-        cfg.llava.load_8bit,
-        cfg.llava.load_4bit,
+        cfg_llava.load_8bit,
+        cfg_llava.load_4bit,
     )
 
     if "llama-2" in model_name.lower():
@@ -69,13 +69,13 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
         conv_mode = "mpt"
     else:
         conv_mode = "llava_v0"
-    if cfg.llava.conv_mode is not None and conv_mode != cfg.llava.conv_mode:
+    if cfg_llava.conv_mode is not None and conv_mode != cfg_llava.conv_mode:
         print(
             f"[WARNING] the auto inferred conversation mode is {conv_mode}, while `--conv-mode` is\
-                  {cfg.llava.conv_mode}, using {cfg.llava.conv_mode}"
+                  {cfg_llava.conv_mode}, using {cfg_llava.conv_mode}"
         )
     else:
-        cfg.llava.conv_mode = conv_mode
+        cfg_llava.conv_mode = conv_mode
 
     text_descriptions = []
 
@@ -83,7 +83,7 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
     count = -1
     for image_file in tqdm(img_paths):
         count += 1
-        conv = conv_templates[cfg.llava.conv_mode].copy()
+        conv = conv_templates[cfg_llava.conv_mode].copy()
         inp = f'Does the following text describe the given image? Answer in yes/no. "{texts[count]}"'
         inp = DEFAULT_IMAGE_TOKEN + "\n" + inp
         conv.append_message(conv.roles[0], inp)
@@ -99,8 +99,8 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
                 input_ids,
                 images=images_tensor,
                 image_sizes=image_sizes,
-                do_sample=True if cfg.llava.temperature > 0 else False,
-                temperature=cfg.llava.temperature,
+                do_sample=True if cfg_llava.temperature > 0 else False,
+                temperature=cfg_llava.temperature,
                 max_new_tokens=1024,
                 use_cache=True,
             )
@@ -132,7 +132,7 @@ def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
             get_text_descriptions,
             [
                 (
-                    cfg,
+                    cfg.llava,
                     img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
                     text_descriptions[
                         int(i * len(text_descriptions) / num_processes) : int(
@@ -147,6 +147,6 @@ def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
     except RuntimeError:
         print("-----------------------------------------------")
         print("RuntimeError.")
-        return_data = get_text_descriptions((cfg, img_paths, text_descriptions))
+        return_data = get_text_descriptions((cfg.llava, img_paths, text_descriptions))
 
     return return_data

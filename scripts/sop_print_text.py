@@ -1,3 +1,5 @@
+"""Stanford_Online_Products specific. User can input the image name to query the text description."""
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -7,11 +9,11 @@ from mmda.utils.data_utils import (
 from mmda.utils.hydra_utils import hydra_main
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="sop")
+@hydra_main(version_base=None, config_path="../config", config_name="main")
 def SOP_print_text(cfg: DictConfig):  # noqa: D103
     while True:
         # load raw data
-        img_paths, text_descriptions, classes, obj_ids = load_SOP(cfg)
+        img_paths, text_descriptions, classes, obj_ids = load_SOP(cfg.sop)
         img_names = [img_path.split("/")[-1].replace(".JPG", "") for img_path in img_paths]
         img_text_dict = {img_name: text for img_name, text in zip(img_names, text_descriptions)}
         print(np.unique(classes))

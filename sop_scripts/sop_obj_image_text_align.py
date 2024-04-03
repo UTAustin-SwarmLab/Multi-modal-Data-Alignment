@@ -21,26 +21,27 @@ from mmda.utils.hydra_utils import hydra_main
 from mmda.utils.sim_utils import ROC_points, cosine_sim, weighted_corr_sim
 
 
-@hydra_main(version_base=None, config_path='../config', config_name='sop')
-def main(cfg: DictConfig):
-    SOP_class_align(cfg)
-    SOP_CLIP_class_align(cfg)
+@hydra_main(version_base=None, config_path="../config", config_name="sop")
+def main(cfg: DictConfig):  # noqa: D103
+    SOP_obj_align(cfg)
+    SOP_CLIP_obj_align(cfg)
     return
 
-def SOP_class_align(cfg: DictConfig):
+
+def SOP_obj_align(cfg: DictConfig):  # noqa: D103
     # set random seed
     np.random.seed(cfg.seed)
 
     # load raw data
-    _, __, classes, obj_ids = load_SOP(cfg)
+    _, _, classes, obj_ids = load_SOP(cfg)
 
     # load image embeddings and text embeddings
-    with open(cfg.paths.save_path + f'data/SOP_img_emb_{cfg.img_encoder}.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + f"data/SOP_img_emb_{cfg.img_encoder}.pkl", "rb") as f:
         Img = pickle.load(f)
-    with open(cfg.paths.save_path + f'data/SOP_text_emb_{cfg.text_encoder}.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + f"data/SOP_text_emb_{cfg.text_encoder}.pkl", "rb") as f:
         Txt = pickle.load(f)
 
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0])
     trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
     trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
     trainClasses, valClasses = train_test_split(classes, trainIdx, valIdx)
@@ -62,8 +63,8 @@ def SOP_class_align(cfg: DictConfig):
     _, valTxtUnalign = trainTxt.copy(), valTxt.copy()
 
     # filter and shuffle data by classes or object ids
-    val_class_dict_filter = filter_str_label(valClasses)
-    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter, seed=cfg.seed)
+    val_obj_dict_filter = filter_str_label(valObjIds)
+    valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_obj_dict_filter, seed=cfg.seed)
     assert not np.allclose(valTxtUnalign, valTxt, atol=1e-4), "valTxtUnalign not shuffled correctly"
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
 
@@ -71,9 +72,9 @@ def SOP_class_align(cfg: DictConfig):
     img_text_CCA = CCA(latent_dimensions=cfg.sim_dim)
     trainImgAlign, trainTxtAlign = img_text_CCA.fit_transform((trainImgAlign, trainTxtAlign))
     if cfg.equal_weights:
-        corr = np.ones((trainTxtAlign.shape[1],)) # dim,
+        corr = np.ones((trainTxtAlign.shape[1],))  # dim,
     else:
-        corr = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0] # dim,
+        corr = np.diag(trainImgAlign.T @ trainTxtAlign) / trainImgAlign.shape[0]  # dim,
 
     # calculate the similarity score
     valImgAlign, valTxtAlign = img_text_CCA.transform((valImgAlign, valTxtAlign))
@@ -84,19 +85,23 @@ def SOP_class_align(cfg: DictConfig):
     sim_unalign = weighted_corr_sim(valImgUnalign, valTxtUnalign, corr, dim=cfg.sim_dim)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
-                     legend=['Aligned', 'Class level shuffle'], 
-                     title_str='Similarity Score Distribution', 
-                     xlabel='Similarity Score', 
-                     ylabel='Frequency', 
-                     ax=ax)
+    plot_several_pdf(
+        data_vector_list=[sim_align, sim_unalign],
+        legend=["Aligned", "Object level shuffle"],
+        title_str="Similarity Score Distribution",
+        xlabel="Similarity Score",
+        ylabel="Frequency",
+        ax=ax,
+    )
     if cfg.equal_weights:
-        save_fig(fig, cfg.paths.plots_path + f'similarity_score_class_r{cfg.train_test_ratio}_dim{cfg.sim_dim}_noweight.png')
+        save_fig(
+            fig, cfg.paths.plots_path + f"similarity_score_obj_r{cfg.train_test_ratio}_dim{cfg.sim_dim}_noweight.png"
+        )
     else:
-        save_fig(fig, cfg.paths.plots_path + f'similarity_score_class_r{cfg.train_test_ratio}_dim{cfg.sim_dim}.png')
+        save_fig(fig, cfg.paths.plots_path + f"similarity_score_obj_r{cfg.train_test_ratio}_dim{cfg.sim_dim}.png")
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-0.15, 0.65, 30).reshape(-1)]
+    threshold_list = [i for i in np.linspace(0.0, 0.75, 30).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
@@ -109,27 +114,28 @@ def SOP_class_align(cfg: DictConfig):
     # ax.set_ylabel('True Positive Rate')
     # ax.set_xlim(0, 1)
     # ax.set_ylim(0, 1)
-    # fig.savefig(cfg.paths.plots_path + f'ROC_class_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
+    # fig.savefig(cfg.paths.plots_path + f'ROC_obj_dim{cfg.sim_dim}_{cfg.train_test_ratio}.png')
 
     return ROC_points_list
 
-def SOP_CLIP_class_align(cfg: DictConfig):
+
+def SOP_CLIP_obj_align(cfg: DictConfig):  # noqa: D103
     # set random seed
     np.random.seed(cfg.seed)
 
     # load raw data
-    _, __, classes, obj_ids = load_SOP(cfg)
+    _, _, classes, obj_ids = load_SOP(cfg)
 
     # load image embeddings and text embeddings
-    with open(cfg.paths.save_path + 'data/SOP_img_emb_clip.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + "data/SOP_img_emb_clip.pkl", "rb") as f:
         Img = pickle.load(f)
-    with open(cfg.paths.save_path + 'data/SOP_text_emb_clip.pkl', 'rb') as f:
+    with open(cfg.paths.save_path + "data/SOP_text_emb_clip.pkl", "rb") as f:
         Txt = pickle.load(f)
 
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0], cfg.seed)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Img.shape[0])
     trainImg, valImg = train_test_split(Img, trainIdx, valIdx)
     trainTxt, valTxt = train_test_split(Txt, trainIdx, valIdx)
-    _, valClasses = train_test_split(classes, trainIdx, valIdx)
+    _, valObjIds = train_test_split(obj_ids, trainIdx, valIdx)
 
     # copy data
     _, valImgAlign = trainImg.copy(), valImg.copy()
@@ -137,7 +143,7 @@ def SOP_CLIP_class_align(cfg: DictConfig):
     _, valTxtUnalign = trainTxt.copy(), valTxt.copy()
 
     # filter and shuffle data by classes or object ids
-    val_class_dict_filter = filter_str_label(valClasses)
+    val_class_dict_filter = filter_str_label(valObjIds)
     valTxtUnalign = shuffle_data_by_indices(valTxtUnalign, val_class_dict_filter, seed=cfg.seed)
     assert not np.allclose(valTxtUnalign, valTxt, atol=1e-4), "valTxtUnalign not shuffled correctly"
     assert np.allclose(valTxtUnalign.mean(axis=0), valTxt.mean(axis=0), atol=1e-4), "valTxtUnalign not zero mean"
@@ -146,13 +152,15 @@ def SOP_CLIP_class_align(cfg: DictConfig):
     sim_unalign = cosine_sim(valImgAlign, valTxtUnalign)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    plot_several_pdf(data_vector_list=[sim_align, sim_unalign], 
-                     legend=['Aligned', 'Class level shuffle'], 
-                     title_str='Similarity Score Distribution', 
-                     xlabel='Similarity Score', 
-                     ylabel='Frequency', 
-                     ax=ax)
-    save_fig(fig, cfg.paths.plots_path + f'cos_similarity_class_r{cfg.train_test_ratio}_CLIP.png')
+    plot_several_pdf(
+        data_vector_list=[sim_align, sim_unalign],
+        legend=["Aligned", "Class level shuffle"],
+        title_str="Similarity Score Distribution",
+        xlabel="Similarity Score",
+        ylabel="Frequency",
+        ax=ax,
+    )
+    save_fig(fig, cfg.paths.plots_path + f"cos_similarity_obj_r{cfg.train_test_ratio}_CLIP.png")
 
     # plot ROC
     threshold_list = [i for i in np.linspace(-0.5, 0.5, 30).reshape(-1)]
@@ -161,5 +169,6 @@ def SOP_CLIP_class_align(cfg: DictConfig):
     ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
     return ROC_points_list
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

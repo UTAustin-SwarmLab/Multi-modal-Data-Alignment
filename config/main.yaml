@@ -1,0 +1,50 @@
+defaults:
+  - override hydra/launcher: joblib
+
+seed: 42
+train_test_ratio: 0.7
+dataset: "sop" # sop or musiccaps
+repo_root: "/home/pl22767/Project/MMDA/"
+
+sop:
+  CCA_dim: 700 # dimension of the CCA transformation
+  sim_dim: 150 # dimension of the similarity score
+  # shuffle_level: "dataset" # "obj", "class", or "dataset"
+  equal_weights: False
+  text_encoder: "gtr"
+  img_encoder: "clip"
+  paths:
+    # repo_root: "/home/po-han/Desktop/Projects/MMDA/"
+    dataset_path: "/nas/omama/datasets/Stanford_Online_Products/"
+    # dataset_path: "/home/po-han/Downloads/datasets/Stanford_Online_Products/"
+    save_path: "/nas/tirr/SOP/"
+    # save_path: "/home/po-han/Downloads/SOP/"
+    plots_path: ${repo_root}plots/Stanford_Online_Products/
+  work_dir: ${repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+musiccaps:
+  CCA_dim: 512 # dimension of the CCA transformation
+  sim_dim: 25 # dimension of the similarity score
+  equal_weights: False
+  audio_encoder: "clap"
+  text_encoder: "gtr"
+  paths:
+    dataset_path: "/nas/pohan/datasets/MusicCaps/wav_files/"
+    save_path: ${musiccaps.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/MusicCaps/
+
+hydra:
+  run:
+    dir: ${repo_root}hydra/${dataset}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+llava:
+  model_path: '/nas/omama/llava-v1.5-13b'
+  model_base: null
+  num_gpus: 4
+  conv_mode: null
+  temperature: 0.2
+  max_new_tokens: 512
+  load_8bit: True
+  load_4bit: False
+  debug: False
+  num_processes: 4
