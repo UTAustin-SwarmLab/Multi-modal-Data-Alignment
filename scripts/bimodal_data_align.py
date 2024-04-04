@@ -111,7 +111,7 @@ def main(cfg: DictConfig):  # noqa: D103
     ax.set_ylabel("True Positive Rate")
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)
-    ax.legend()
+    ax.legend(loc="lower right")
     ax.grid()
     if cfg_dataset.equal_weights:
         fig.savefig(

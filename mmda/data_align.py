@@ -76,7 +76,9 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
     trainData1Unalign, valData1Unalign = trainData1.copy(), valData1.copy()
     trainData2Unalign, valData2Unalign = trainData2.copy(), valData2.copy()
 
-    valData2Unalign = shuffle_by_level(cfg_dataset, cfg.dataset, shuffle_level, valData2Unalign, trainIdx, valIdx)
+    trainData2Unalign, valData2Unalign = shuffle_by_level(
+        cfg_dataset, cfg.dataset, shuffle_level, trainData2Unalign, valData2Unalign, trainIdx, valIdx
+    )
 
     # zero mean data
     trainData1Unalign, trainData1_mean_ = origin_centered(trainData1Unalign)
@@ -157,14 +159,17 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     _, valData1 = train_test_split(Data1, trainIdx, valIdx)
-    _, valData2 = train_test_split(Data2, trainIdx, valIdx)
+    trainData2, valData2 = train_test_split(Data2, trainIdx, valIdx)
 
     # copy data
     valData1Align = valData1.copy()
     valData2Align = valData2.copy()
+    trainData2Unalign = trainData2.copy()
     valData2Unalign = valData2.copy()
 
-    valData2Unalign = shuffle_by_level(cfg_dataset, cfg.dataset, shuffle_level, valData2Unalign, trainIdx, valIdx)
+    trainData2Unalign, valData2Unalign = shuffle_by_level(
+        cfg_dataset, cfg.dataset, shuffle_level, trainData2Unalign, valData2Unalign, trainIdx, valIdx
+    )
 
     sim_align = cosine_sim(valData1Align, valData2Align)
     sim_unalign = cosine_sim(valData1Align, valData2Unalign)
@@ -192,6 +197,7 @@ def shuffle_by_level(
     cfg_dataset: DictConfig,
     dataset: str,
     shuffle_level: str,
+    trainData2Unalign: np.ndarray,
     valData2Unalign: np.ndarray,
     trainIdx: list[int],
     valIdx: list[int],
@@ -202,6 +208,7 @@ def shuffle_by_level(
         cfg_dataset: configuration file
         dataset: dataset name
         shuffle_level: shuffle level. It can be "dataset", "class", or "object".
+        trainData2Unalign: unaligned data
         valData2Unalign: unaligned data
         trainIdx: training indices
         valIdx: validation indices
@@ -213,18 +220,23 @@ def shuffle_by_level(
     if dataset == "sop":
         _, _, classes, obj_ids = load_SOP(cfg_dataset)
         if shuffle_level == "class":
-            _, valClasses = train_test_split(classes, trainIdx, valIdx)
+            trainClasses, valClasses = train_test_split(classes, trainIdx, valIdx)
             # filter and shuffle data by classes or object ids
             val_class_dict_filter = filter_str_label(valClasses)
             valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_class_dict_filter)
+            train_class_dict_filter = filter_str_label(trainClasses)
+            trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_class_dict_filter)
 
         elif shuffle_level == "object":
-            _, valObjIds = train_test_split(obj_ids, trainIdx, valIdx)
+            trainObjIds, valObjIds = train_test_split(obj_ids, trainIdx, valIdx)
             # filter and shuffle data by classes or object ids
             val_obj_dict_filter = filter_str_label(valObjIds)
             valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_obj_dict_filter)
+            train_obj_dict_filter = filter_str_label(trainObjIds)
+            trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_obj_dict_filter)
 
     if dataset != "sop" or shuffle_level == "dataset":
+        np.random.shuffle(trainData2Unalign)
         np.random.shuffle(valData2Unalign)
 
-    return valData2Unalign
+    return trainData2Unalign, valData2Unalign

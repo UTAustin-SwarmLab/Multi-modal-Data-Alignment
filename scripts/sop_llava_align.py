@@ -12,7 +12,7 @@ def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:
     Args:
         llava_output: lsit of llava output
     Returns:
-        yes_no_array
+        yes_no_array: numpy array of boolean values
     """
     yes_no_array = []
     for path_answer in llava_output[0]:
@@ -43,7 +43,7 @@ def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> list[lis
     return TPR, FPR
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="sop")
+@hydra_main(version_base=None, config_path="../config", config_name="main")
 def SOP_llava_align(cfg: DictConfig):  # noqa: D103
     # set random seed
     np.random.seed(cfg.seed)
