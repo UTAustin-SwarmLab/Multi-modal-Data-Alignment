@@ -123,7 +123,7 @@ def load_MusicCaps(cfg_dataset: DictConfig) -> tuple[list[str], list[str]]:
             "audio_path": audio_path,
             "caption": data["caption"],
             "aspect_list": data["aspect_list"],
-            "audioset_positive_labels": data["audioset_positive_labels"],
+            "audioset_positive_labels": data["audioset_positive_labels"][0],
             "start_s": data["start_s"],
             "end_s": data["end_s"],
         }

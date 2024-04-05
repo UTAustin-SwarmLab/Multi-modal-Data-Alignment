@@ -11,6 +11,7 @@ from mmda.utils.data_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_CLIP_like_data,
+    load_MusicCaps,
     load_SOP,
     load_two_encoder_data,
     origin_centered,
@@ -207,7 +208,7 @@ def shuffle_by_level(
     Args:
         cfg_dataset: configuration file
         dataset: dataset name
-        shuffle_level: shuffle level. It can be "dataset", "class", or "object".
+        shuffle_level: shuffle level. It can only be "dataset", "class", or "object".
         trainData2Unalign: unaligned data
         valData2Unalign: unaligned data
         trainIdx: training indices
@@ -217,26 +218,29 @@ def shuffle_by_level(
     """
     assert shuffle_level in ["dataset", "class", "object"], f"shuffle_level {shuffle_level} not supported."
     # sop shuffle by class or object
+    if shuffle_level == "dataset":
+        np.random.shuffle(trainData2Unalign)
+        np.random.shuffle(valData2Unalign)
+        return trainData2Unalign, valData2Unalign
     if dataset == "sop":
         _, _, classes, obj_ids = load_SOP(cfg_dataset)
         if shuffle_level == "class":
-            trainClasses, valClasses = train_test_split(classes, trainIdx, valIdx)
-            # filter and shuffle data by classes or object ids
-            val_class_dict_filter = filter_str_label(valClasses)
-            valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_class_dict_filter)
-            train_class_dict_filter = filter_str_label(trainClasses)
-            trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_class_dict_filter)
-
+            train_gts, val_gts = train_test_split(classes, trainIdx, valIdx)
         elif shuffle_level == "object":
-            trainObjIds, valObjIds = train_test_split(obj_ids, trainIdx, valIdx)
-            # filter and shuffle data by classes or object ids
-            val_obj_dict_filter = filter_str_label(valObjIds)
-            valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_obj_dict_filter)
-            train_obj_dict_filter = filter_str_label(trainObjIds)
-            trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_obj_dict_filter)
-
-    if dataset != "sop" or shuffle_level == "dataset":
-        np.random.shuffle(trainData2Unalign)
-        np.random.shuffle(valData2Unalign)
-
+            train_gts, val_gts = train_test_split(obj_ids, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    elif dataset == "musiccaps":
+        dataframe = load_MusicCaps(cfg_dataset)
+        if shuffle_level == "class":
+            gts = dataframe["audioset_positive_labels"].tolist()
+            train_gts, val_gts = train_test_split(gts, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    else:
+        raise ValueError(f"Dataset {dataset} not supported.")
+    val_dict_filter = filter_str_label(val_gts)
+    valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_dict_filter)
+    train_dict_filter = filter_str_label(train_gts)
+    trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_dict_filter)
     return trainData2Unalign, valData2Unalign

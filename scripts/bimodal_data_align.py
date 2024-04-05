@@ -26,35 +26,27 @@ def main(cfg: DictConfig):  # noqa: D103
 
     cfg_dataset, _, _ = load_two_encoder_data(cfg)
 
-    # plot different ROC curves for different shuffle levels (SOP only)
+    # dataset level shuffle ROC curve
+    roc_points = CCA_data_align(cfg, "dataset")
+    ds_auc = cal_AUC(roc_points)
+    clip_roc_ds_points = CLIP_like_data_align(cfg, "dataset")
+    clip_ds_auc = cal_AUC(clip_roc_ds_points)
+    # class level shuffle ROC curve
+    roc_class_points = CCA_data_align(cfg, "class")
+    class_auc = cal_AUC(roc_class_points)
+    clip_roc_class_points = CLIP_like_data_align(cfg, "class")
+    clip_class_auc = cal_AUC(clip_roc_class_points)
+
+    # plot different ROC curves for obj shuffle levels (SOP only)
     if cfg.dataset == "sop":
-        # dataset level shuffle ROC curve
-        roc_points = CCA_data_align(cfg, "dataset")
-        ds_auc = cal_AUC(roc_points)
-        clip_roc_ds_points = CLIP_like_data_align(cfg, "dataset")
-        clip_ds_auc = cal_AUC(clip_roc_ds_points)
-
-        # class level shuffle ROC curve
-        roc_class_points = CCA_data_align(cfg, "class")
-        class_auc = cal_AUC(roc_class_points)
-        clip_roc_class_points = CLIP_like_data_align(cfg, "class")
-        clip_class_auc = cal_AUC(clip_roc_class_points)
-
         # object level shuffle ROC curve
         roc_obj_points = CCA_data_align(cfg, "object")
         obj_auc = cal_AUC(roc_obj_points)
         clip_obj_roc_points = CLIP_like_data_align(cfg, "object")
         clip_obj_auc = cal_AUC(clip_obj_roc_points)
 
-    else:
-        roc_points = CCA_data_align(cfg, "dataset")
-        ds_auc = cal_AUC(roc_points)
-        clip_roc_ds_points = CLIP_like_data_align(cfg, "dataset")
-        clip_ds_auc = cal_AUC(clip_roc_ds_points)
-
     # plot the ROC curve
     fig, ax = plt.subplots()
-    # Ours
     ax.plot(
         [x[0] for x in roc_points],
         [x[1] for x in roc_points],
@@ -62,7 +54,6 @@ def main(cfg: DictConfig):  # noqa: D103
         label=f"Random shuffle (ours). AUC={ds_auc:.3f}",
         color="blue",
     )
-    # CLIP encoders
     ax.plot(
         [x[0] for x in clip_roc_ds_points],
         [x[1] for x in clip_roc_ds_points],
@@ -70,23 +61,22 @@ def main(cfg: DictConfig):  # noqa: D103
         label=f"Random shuffle (CLAP). AUC={clip_ds_auc:.3f}",
         color="blue",
     )
+    ax.plot(
+        [x[0] for x in roc_class_points],
+        [x[1] for x in roc_class_points],
+        "o-",
+        label=f"Class level shuffle (ours). AUC={class_auc:.3f}",
+        color="red",
+    )
+    ax.plot(
+        [x[0] for x in clip_roc_class_points],
+        [x[1] for x in clip_roc_class_points],
+        "+-",
+        label=f"Class level shuffle (CLAP). AUC={clip_class_auc:.3f}",
+        color="red",
+    )
     # SOP only
     if cfg.dataset == "sop":
-        # CCA and CLIP like models
-        ax.plot(
-            [x[0] for x in roc_class_points],
-            [x[1] for x in roc_class_points],
-            "o-",
-            label=f"Class level shuffle (ours). AUC={class_auc:.3f}",
-            color="red",
-        )
-        ax.plot(
-            [x[0] for x in clip_roc_class_points],
-            [x[1] for x in clip_roc_class_points],
-            "+-",
-            label=f"Class level shuffle (CLAP). AUC={clip_class_auc:.3f}",
-            color="red",
-        )
         ax.plot(
             [x[0] for x in roc_obj_points],
             [x[1] for x in roc_obj_points],
