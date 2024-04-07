@@ -7,7 +7,7 @@ from pathlib import Path
 from datasets import Audio, load_dataset
 from omegaconf import DictConfig
 
-from mmda.utils.hydra_utils import hydra_main
+import hydra
 
 
 def download_clip(
@@ -103,7 +103,7 @@ def load_dataset_and_download(
     )
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="main")
+@hydra.main(version_base=None, config_path="../config", config_name="main")
 def main(cfg: DictConfig):  # noqa: D103
     cfg_dataset = cfg.musiccaps
     ds = load_dataset_and_download(cfg_dataset.paths.dataset_path, num_proc=10)

@@ -2,13 +2,15 @@ import numpy as np
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.data_utils import (
-    filter_outliers,
-    load_MusicCaps,
     load_two_encoder_data,
     origin_centered,
 )
-from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.dataset_utils import (
+    filter_outliers,
+    load_MusicCaps,
+)
 from mmda.utils.sim_utils import (
     cosine_sim,
     weighted_corr_sim,
@@ -95,7 +97,7 @@ def CCA_inspect_outliers(cfg: DictConfig, Data1: np.ndarray, Data2: np.ndarray):
     return
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="main")
+@hydra.main(version_base=None, config_path="../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
     """Inspect outliers in the given dataset using the CLAP model and the proposed CCA method.
 

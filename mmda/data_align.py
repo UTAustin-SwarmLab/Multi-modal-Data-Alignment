@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 from swarm_visualizer.histogram import (
@@ -7,14 +8,18 @@ from swarm_visualizer.histogram import (
 )
 from swarm_visualizer.utility.general_utils import save_fig
 
+from mmda.benchmark.asif_core import zero_shot_classification
 from mmda.utils.data_utils import (
-    filter_str_label,
-    get_train_test_split_index,
     load_CLIP_like_data,
-    load_MusicCaps,
-    load_SOP,
     load_two_encoder_data,
     origin_centered,
+)
+from mmda.utils.dataset_utils import (
+    filter_str_label,
+    get_train_test_split_index,
+    load_ImageNet,
+    load_MusicCaps,
+    load_SOP,
     shuffle_data_by_indices,
     train_test_split,
 )
@@ -137,10 +142,7 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         fig.savefig(cfg_dataset.paths.plots_path + "cca_corr.png")
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-0.15, 0.65, 40).reshape(-1)]
-    threshold_list += [-1, 1]
-    threshold_list.sort()
-    ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
+    ROC_points_list = ROC_points(sim_align, sim_unalign, (-0.15, 0.65, 40))
     return ROC_points_list
 
 
@@ -157,6 +159,7 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_CLIP_like_data(cfg)
+    clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     _, valData1 = train_test_split(Data1, trainIdx, valIdx)
@@ -184,13 +187,91 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
         ylabel="Frequency",
         ax=ax,
     )
-    save_fig(fig, cfg_dataset.paths.plots_path + f"cos_similarity_{shuffle_level}_CLIP_r{cfg.train_test_ratio}.png")
+    save_fig(
+        fig,
+        cfg_dataset.paths.plots_path + f"cos_similarity_{shuffle_level}_{clip_model_name}_r{cfg.train_test_ratio}.png",
+    )
 
     # plot ROC
-    threshold_list = [i for i in np.linspace(-1, 1, 40).reshape(-1)]
-    threshold_list += [-1, 1]
-    threshold_list.sort()
-    ROC_points_list = ROC_points(sim_align, sim_unalign, threshold_list)
+    ROC_points_list = ROC_points(sim_align, sim_unalign, (-1, 1, 40))
+    return ROC_points_list
+
+
+def AsIf_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
+    """Align the audio and text data and calculate the similarity score using the ASIF method.
+
+    Paper: https://openreview.net/pdf?id=YAxV_Krcdjm
+    Args:
+        cfg: configuration file
+        shuffle_level: shuffle level. It can be "dataset", "class", or "object".
+
+    Returns:
+        ROC points
+    """
+    # load embeddings from the two encoders
+    cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
+    trainData1, valData1 = train_test_split(Data1, trainIdx, valIdx)
+    trainData2, valData2 = train_test_split(Data2, trainIdx, valIdx)
+
+    # normalization to perform cosine similarity with a simple matmul
+    trainData1 /= np.linalg.norm(trainData1, axis=1, keepdims=True)
+    trainData2 /= np.linalg.norm(trainData2, axis=1, keepdims=True)
+    valData1 /= np.linalg.norm(valData1, axis=1, keepdims=True)
+    valData2 /= np.linalg.norm(valData2, axis=1, keepdims=True)
+
+    # set parameters
+    non_zeros = cfg.asif.non_zeros
+    range_anch = [2**i for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(trainData1))) + 2)]
+    range_anch = range_anch[-1:]  # run just last anchor to be quick
+    val_exps = cfg.asif.val_exps
+    max_gpu_mem_gb = cfg.asif.max_gpu_mem_gb
+
+    # copy data
+    valData1Align = valData1.copy()
+    valData2Align = valData2.copy()
+    trainData2Unalign = trainData2.copy()
+    valData2Unalign = valData2.copy()
+    trainData2Unalign, valData2Unalign = shuffle_by_level(
+        cfg_dataset, cfg.dataset, shuffle_level, trainData2Unalign, valData2Unalign, trainIdx, valIdx
+    )
+
+    # convert to torch tensors
+    val_labels = torch.zeros(valData1.shape[0])  # dummy labels. Unused because this is not zero-shot classification.
+    valData1Align, valData2Align = torch.tensor(valData1Align), torch.tensor(valData2Align)
+    valData2Unalign = torch.tensor(valData2Unalign)
+    trainData1, trainData2 = torch.tensor(trainData1), torch.tensor(trainData2)
+
+    # similarity score of aligned data
+    n_anchors, scores, sims = zero_shot_classification(
+        valData1Align,
+        valData2Align,
+        trainData1,
+        trainData2,
+        val_labels,
+        non_zeros,
+        range_anch,
+        val_exps,
+        max_gpu_mem_gb=max_gpu_mem_gb,
+    )
+    sim_align = np.diag(sims.detach().cpu().numpy())
+
+    # similarity score of unaligned data
+    n_anchors, scores, sims = zero_shot_classification(
+        valData1Align,
+        valData2Unalign,
+        trainData1,
+        trainData2,
+        val_labels,
+        non_zeros,
+        range_anch,
+        val_exps,
+        max_gpu_mem_gb=max_gpu_mem_gb,
+    )
+    sim_unalign = np.diag(sims.detach().cpu().numpy())
+
+    # plot ROC
+    ROC_points_list = ROC_points(sim_align, sim_unalign, (-1, 1, 40))
     return ROC_points_list
 
 
@@ -235,6 +316,13 @@ def shuffle_by_level(
         if shuffle_level == "class":
             gts = dataframe["audioset_positive_labels"].tolist()
             train_gts, val_gts = train_test_split(gts, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    elif dataset == "imagenet":
+        _, _, orig_idx, clsidx_to_labels = load_ImageNet(cfg_dataset)
+        orig_labels = [clsidx_to_labels[i] for i in orig_idx]
+        if shuffle_level == "class":
+            train_gts, val_gts = train_test_split(orig_labels, trainIdx, valIdx)
         else:
             raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
     else:

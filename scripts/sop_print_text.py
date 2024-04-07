@@ -3,13 +3,13 @@
 import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.data_utils import (
+import hydra
+from mmda.utils.dataset_utils import (
     load_SOP,
 )
-from mmda.utils.hydra_utils import hydra_main
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="main")
+@hydra.main(version_base=None, config_path="../config", config_name="main")
 def SOP_print_text(cfg: DictConfig):  # noqa: D103
     while True:
         # load raw data

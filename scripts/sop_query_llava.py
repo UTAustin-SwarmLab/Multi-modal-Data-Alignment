@@ -3,19 +3,21 @@ import pickle
 import numpy as np
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.data_utils import (
+    load_two_encoder_data,
+)
+from mmda.utils.dataset_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_SOP,
-    load_two_encoder_data,
     shuffle_data_by_indices,
     train_test_split,
 )
-from mmda.utils.hydra_utils import hydra_main
 from mmda.utils.query_llava import query_llava
 
 
-@hydra_main(version_base=None, config_path="config", config_name="sop")
+@hydra.main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_align(cfg: DictConfig) -> None:
     """Query llava and save the aligned answer as pickle file.
 
@@ -51,7 +53,7 @@ def sop_llava_align(cfg: DictConfig) -> None:
     return
 
 
-@hydra_main(version_base=None, config_path="config", config_name="sop")
+@hydra.main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_dataset_shuffle(cfg: DictConfig):
     """Query llava and save the dataset level unaligned answer as pickle file.
 
@@ -89,7 +91,7 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     return
 
 
-@hydra_main(version_base=None, config_path="config", config_name="sop")
+@hydra.main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_class_shuffle(cfg: DictConfig):
     """Query llava and save the class level unaligned answer as pickle file.
 
@@ -130,7 +132,7 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     return
 
 
-@hydra_main(version_base=None, config_path="config", config_name="sop")
+@hydra.main(version_base=None, config_path="config", config_name="sop")
 def sop_llava_obj_shuffle(cfg: DictConfig):
     """Query llava and save the object level unaligned answer as pickle file.
 

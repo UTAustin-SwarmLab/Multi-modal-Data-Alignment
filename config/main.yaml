@@ -3,7 +3,7 @@ defaults:
 
 seed: 42
 train_test_ratio: 0.7
-dataset: "musiccaps" # sop or musiccaps
+dataset: "musiccaps" # imagenet, sop, or musiccaps
 repo_root: "/home/pl22767/Project/MMDA/"
 
 sop:
@@ -34,8 +34,14 @@ musiccaps:
     plots_path: ${repo_root}plots/MusicCaps/
 
 imagenet:
+  CCA_dim: 512 # dimension of the CCA transformation
+  sim_dim: 200 # dimension of the similarity score
+  equal_weights: False
+  img_encoder: "clip"
+  text_encoder: "gtr"
   paths:
-    dataset_path: "/nas/pohan/datasets/ImageNet"
+    dataset_path: "/nas/pohan/datasets/ImageNet/"
+    save_path: ${imagenet.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/ImageNet/
 
 hydra:
@@ -53,3 +59,9 @@ llava:
   load_4bit: False
   debug: False
   num_processes: 4
+
+# Hyperparameters of asif benchmark
+asif:
+  non_zeros: 800
+  val_exps: [8]
+  max_gpu_mem_gb: 23

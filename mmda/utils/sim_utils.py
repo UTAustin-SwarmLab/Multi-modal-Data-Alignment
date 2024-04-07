@@ -93,18 +93,22 @@ def cal_ROC_components(
 
 
 def ROC_points(
-    sim_align: np.ndarray, sim_unalign: np.ndarray, threshold_list: list[float]
+    sim_align: np.ndarray, sim_unalign: np.ndarray, threshold_range: tuple[float, float, float] = (-1, 1, 40)
 ) -> list[tuple[float, float]]:
     """Calculate the ROC points.
 
     Args:
         sim_align: similarity score of aligned case. shape: (N, )
         sim_unalign: similarity score of unaligned case. shape: (N, )
-        threshold_list: list of thresholds
+        threshold_range: threshold range. (start, end, points)
+
     Return:
         list of ROC points
     """
     ROC = []
+    threshold_list = [i for i in np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(-1)]
+    threshold_list += [-1, 1]
+    threshold_list.sort()
     for threshold in threshold_list:
         TP, FP, FN, TN = cal_ROC_components(sim_align, sim_unalign, threshold)
         TPR = TP / (TP + FN)  # y axis

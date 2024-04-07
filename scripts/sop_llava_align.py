@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.hydra_utils import hydra_main
+import hydra
 
 
 def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:
@@ -43,7 +43,7 @@ def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> list[lis
     return TPR, FPR
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="main")
+@hydra.main(version_base=None, config_path="../config", config_name="main")
 def SOP_llava_align(cfg: DictConfig):  # noqa: D103
     # set random seed
     np.random.seed(cfg.seed)

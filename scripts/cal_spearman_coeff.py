@@ -3,12 +3,12 @@ from omegaconf import DictConfig
 from swarm_visualizer.scatterplot import plot_basic_scatterplot
 from swarm_visualizer.utility.general_utils import save_fig
 
+import hydra
 from mmda.spearman_coeff import cal_spearman_coeff
-from mmda.utils.data_utils import load_dataset_config
-from mmda.utils.hydra_utils import hydra_main
+from mmda.utils.dataset_utils import load_dataset_config
 
 
-@hydra_main(version_base=None, config_path="../config", config_name="main")
+@hydra.main(version_base=None, config_path="../config", config_name="main")
 def Spearman_coeff(cfg: DictConfig):
     """Calculate the Spearman's rank coeff of MusicCaps with CLAP model and CCA similarity score.
 
