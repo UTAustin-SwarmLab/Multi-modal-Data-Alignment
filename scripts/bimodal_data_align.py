@@ -3,7 +3,7 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.data_align import (
-    AsIf_data_align,
+    ASIF_data_align,
     CCA_data_align,
     CLIP_like_data_align,
 )
@@ -40,7 +40,7 @@ def main(cfg: DictConfig):  # noqa: D103
     ds_auc = cal_AUC(roc_points)
     clip_roc_ds_points = CLIP_like_data_align(cfg, "dataset")
     clip_ds_auc = cal_AUC(clip_roc_ds_points)
-    asif_roc_points = AsIf_data_align(cfg, "dataset")
+    asif_roc_points = ASIF_data_align(cfg, "dataset")
     asif_ds_auc = cal_AUC(asif_roc_points)
     ax.plot(
         [x[0] for x in roc_points],
@@ -70,7 +70,7 @@ def main(cfg: DictConfig):  # noqa: D103
         class_auc = cal_AUC(roc_class_points)
         clip_roc_class_points = CLIP_like_data_align(cfg, "class")
         clip_class_auc = cal_AUC(clip_roc_class_points)
-        asif_roc_class_points = AsIf_data_align(cfg, "class")
+        asif_roc_class_points = ASIF_data_align(cfg, "class")
         asif_class_auc = cal_AUC(asif_roc_class_points)
         ax.plot(
             [x[0] for x in roc_class_points],
@@ -101,7 +101,7 @@ def main(cfg: DictConfig):  # noqa: D103
         obj_auc = cal_AUC(roc_obj_points)
         clip_obj_roc_points = CLIP_like_data_align(cfg, "object")
         clip_obj_auc = cal_AUC(clip_obj_roc_points)
-        asif_obj_roc_points = AsIf_data_align(cfg, "object")
+        asif_obj_roc_points = ASIF_data_align(cfg, "object")
         asif_obj_auc = cal_AUC(asif_obj_roc_points)
         ax.plot(
             [x[0] for x in roc_obj_points],

@@ -197,7 +197,7 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     return ROC_points_list
 
 
-def AsIf_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
+def ASIF_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
     """Align the audio and text data and calculate the similarity score using the ASIF method.
 
     Paper: https://openreview.net/pdf?id=YAxV_Krcdjm
@@ -221,7 +221,7 @@ def AsIf_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
     valData2 /= np.linalg.norm(valData2, axis=1, keepdims=True)
 
     # set parameters
-    non_zeros = cfg.asif.non_zeros
+    non_zeros = min(cfg.asif.non_zeros, trainData1.shape[0])
     range_anch = [2**i for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(trainData1))) + 2)]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
     val_exps = cfg.asif.val_exps
@@ -238,9 +238,9 @@ def AsIf_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
 
     # convert to torch tensors
     val_labels = torch.zeros(valData1.shape[0])  # dummy labels. Unused because this is not zero-shot classification.
-    valData1Align, valData2Align = torch.tensor(valData1Align), torch.tensor(valData2Align)
-    valData2Unalign = torch.tensor(valData2Unalign)
-    trainData1, trainData2 = torch.tensor(trainData1), torch.tensor(trainData2)
+    valData1Align, valData2Align = torch.tensor(valData1Align).cuda(), torch.tensor(valData2Align).cuda()
+    valData2Unalign = torch.tensor(valData2Unalign).cuda()
+    trainData1, trainData2 = torch.tensor(trainData1).cuda(), torch.tensor(trainData2).cuda()
 
     # similarity score of aligned data
     n_anchors, scores, sims = zero_shot_classification(

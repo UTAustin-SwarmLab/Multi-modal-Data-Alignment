@@ -1,5 +1,6 @@
-"""Code modified from the original implementation by the authors of the paper: ASIF: Coupled Data Turns Unimodal Models to Multimodal Without Training.
+"""Code modified from the original implementation by the authors of the ASIF paper.
 
+Paper title: ASIF: Coupled Data Turns Unimodal Models to Multimodal Without Training.
 Github:
 https://colab.research.google.com/github/noranta4/ASIF/blob/main/ASIF_colab_demo.ipynb#scrollTo=x51O0Ndmj1Sy
 """
