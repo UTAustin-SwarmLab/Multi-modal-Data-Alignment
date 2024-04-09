@@ -4,11 +4,11 @@ defaults:
 seed: 42
 train_test_ratio: 0.7
 noisy_train_set: True
-dataset: "imagenet" # imagenet, sop, or musiccaps
+dataset: "tiil" # imagenet, sop, tiil, or musiccaps
 repo_root: "/home/pl22767/Project/MMDA/"
 
 sop:
-  CCA_dim: 700 # dimension of the CCA transformation
+  CCA_dim: 500 # dimension of the CCA transformation
   sim_dim: 150 # dimension of the similarity score
   # shuffle_level: "dataset" # "obj", "class", or "dataset"
   equal_weights: False
@@ -35,7 +35,7 @@ musiccaps:
     plots_path: ${repo_root}plots/MusicCaps/
 
 imagenet:
-  CCA_dim: 768 # dimension of the CCA transformation
+  CCA_dim: 750 # dimension of the CCA transformation
   sim_dim: 200 # dimension of the similarity score
   equal_weights: False
   img_encoder: "clip"
@@ -46,7 +46,7 @@ imagenet:
     plots_path: ${repo_root}plots/ImageNet/
 
 tiil:
-  CCA_dim: 768 # dimension of the CCA transformation
+  CCA_dim: 750 # dimension of the CCA transformation
   sim_dim: 200 # dimension of the similarity score
   equal_weights: False
   img_encoder: "clip"
@@ -54,7 +54,7 @@ tiil:
   paths:
     dataset_path: "/nas/pohan/datasets/tiil/"
     save_path: ${tiil.paths.dataset_path}embeddings/
-    plots_path: ${repo_root}plots/tiil/
+    plots_path: ${repo_root}plots/TIIL/
 
 hydra:
   run:

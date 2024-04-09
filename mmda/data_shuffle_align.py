@@ -42,6 +42,7 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
+    os.mkdir(cfg_dataset.paths.plots_path) if not os.path.exists(cfg_dataset.paths.plots_path) else None
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "shuffle_align/")
     os.mkdir(plots_path) if not os.path.exists(plots_path) else None
 
