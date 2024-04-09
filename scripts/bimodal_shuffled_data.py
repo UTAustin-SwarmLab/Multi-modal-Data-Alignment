@@ -1,8 +1,10 @@
+import os
+
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
 import hydra
-from mmda.data_align import (
+from mmda.data_shuffle_align import (
     ASIF_data_align,
     CCA_data_align,
     CLIP_like_data_align,
@@ -138,10 +140,18 @@ def main(cfg: DictConfig):  # noqa: D103
     ax.grid()
     if cfg_dataset.equal_weights:
         fig.savefig(
-            cfg_dataset.paths.plots_path + f"ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}_noweight.png"
+            os.path.join(
+                cfg_dataset.paths.plots_path,
+                f"shuffle_align/ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}_noweight.png",
+            )
         )
     else:
-        fig.savefig(cfg_dataset.paths.plots_path + f"ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}.png")
+        fig.savefig(
+            os.path.join(
+                cfg_dataset.paths.plots_path,
+                f"shuffle_align/ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}.png",
+            )
+        )
     return
 
 

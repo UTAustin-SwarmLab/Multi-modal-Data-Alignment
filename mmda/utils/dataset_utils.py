@@ -248,6 +248,65 @@ def filter_outliers(scores: np.ndarray, threshold: float, right_tail: bool = Fal
     return index
 
 
+def shuffle_by_level(
+    cfg_dataset: DictConfig,
+    dataset: str,
+    shuffle_level: str,
+    trainData2Unalign: np.ndarray,
+    valData2Unalign: np.ndarray,
+    trainIdx: list[int],
+    valIdx: list[int],
+):
+    """Shuffle the data by dataset, class, or object level.
+
+    Args:
+        cfg_dataset: configuration file
+        dataset: dataset name
+        shuffle_level: shuffle level. It can only be "dataset", "class", or "object".
+        trainData2Unalign: unaligned data
+        valData2Unalign: unaligned data
+        trainIdx: training indices
+        valIdx: validation indices
+    Returns:
+        shuffled Data2
+    """
+    assert shuffle_level in ["dataset", "class", "object"], f"shuffle_level {shuffle_level} not supported."
+    # sop shuffle by class or object
+    if shuffle_level == "dataset":
+        np.random.shuffle(trainData2Unalign)
+        np.random.shuffle(valData2Unalign)
+        return trainData2Unalign, valData2Unalign
+    if dataset == "sop":
+        _, _, classes, obj_ids = load_SOP(cfg_dataset)
+        if shuffle_level == "class":
+            train_gts, val_gts = train_test_split(classes, trainIdx, valIdx)
+        elif shuffle_level == "object":
+            train_gts, val_gts = train_test_split(obj_ids, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    elif dataset == "musiccaps":
+        dataframe = load_MusicCaps(cfg_dataset)
+        if shuffle_level == "class":
+            gts = dataframe["audioset_positive_labels"].tolist()
+            train_gts, val_gts = train_test_split(gts, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    elif dataset == "imagenet":
+        _, _, orig_idx, clsidx_to_labels = load_ImageNet(cfg_dataset)
+        orig_labels = [clsidx_to_labels[i] for i in orig_idx]
+        if shuffle_level == "class":
+            train_gts, val_gts = train_test_split(orig_labels, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    else:
+        raise ValueError(f"Dataset {dataset} not supported.")
+    val_dict_filter = filter_str_label(val_gts)
+    valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_dict_filter)
+    train_dict_filter = filter_str_label(train_gts)
+    trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_dict_filter)
+    return trainData2Unalign, valData2Unalign
+
+
 # import hydra
 # @hydra.main(version_base=None, config_path="../../config", config_name="main")
 # def test(cfg: DictConfig):
