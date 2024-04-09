@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -15,16 +17,12 @@ from mmda.utils.data_utils import (
     origin_centered,
 )
 from mmda.utils.dataset_utils import (
-    filter_str_label,
     get_train_test_split_index,
-    load_ImageNet,
-    load_MusicCaps,
-    load_SOP,
-    shuffle_data_by_indices,
+    shuffle_by_level,
     train_test_split,
 )
 from mmda.utils.sim_utils import (
-    ROC_points,
+    ROC_align_unalign_points,
     cosine_sim,
     weighted_corr_sim,
 )
@@ -44,6 +42,8 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
+    plots_path = os.path.join(cfg_dataset.paths.plots_path + "shuffle_align/")
+    os.mkdir(plots_path) if not os.path.exists(plots_path) else None
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     trainData1, valData1 = train_test_split(Data1, trainIdx, valIdx)
@@ -111,18 +111,14 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         ylabel="Frequency",
         ax=ax,
     )
-    if cfg_dataset.equal_weights:
-        save_fig(
-            fig,
-            cfg_dataset.paths.plots_path
-            + f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}_noweight.png",
-        )
-    else:
-        save_fig(
-            fig,
-            cfg_dataset.paths.plots_path
-            + f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}.png",
-        )
+    eq_label = "_noweight" if cfg_dataset.equal_weights else ""
+    save_fig(
+        fig,
+        os.path.join(
+            plots_path
+            + f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}{eq_label}.png"
+        ),
+    )
 
     # CCA dimensionality reduction
     cca_unalign = CCA(latent_dimensions=cfg_dataset.CCA_dim)
@@ -139,10 +135,10 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         ax.set_ylabel("Correlation Coefficients")
         ax.legend(["Aligned", "Unaligned"])
         ax.set_ylim(0, 1)
-        fig.savefig(cfg_dataset.paths.plots_path + "cca_corr.png")
+        fig.savefig(os.path.join(plots_path, "cca_corr.png"))
 
     # plot ROC
-    ROC_points_list = ROC_points(sim_align, sim_unalign, (-0.15, 0.65, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-0.15, 0.65, 40))
     return ROC_points_list
 
 
@@ -160,6 +156,7 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_CLIP_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
+    plots_path = os.path.join(cfg_dataset.paths.plots_path + "shuffle_align/")
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     _, valData1 = train_test_split(Data1, trainIdx, valIdx)
@@ -189,11 +186,11 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     )
     save_fig(
         fig,
-        cfg_dataset.paths.plots_path + f"cos_similarity_{shuffle_level}_{clip_model_name}_r{cfg.train_test_ratio}.png",
+        os.path.join(plots_path, f"cos_similarity_{shuffle_level}_{clip_model_name}_r{cfg.train_test_ratio}.png"),
     )
 
     # plot ROC
-    ROC_points_list = ROC_points(sim_align, sim_unalign, (-1, 1, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 40))
     return ROC_points_list
 
 
@@ -224,8 +221,6 @@ def ASIF_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
     non_zeros = min(cfg.asif.non_zeros, trainData1.shape[0])
     range_anch = [2**i for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(trainData1))) + 2)]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
-    val_exps = cfg.asif.val_exps
-    max_gpu_mem_gb = cfg.asif.max_gpu_mem_gb
 
     # copy data
     valData1Align = valData1.copy()
@@ -251,8 +246,8 @@ def ASIF_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
         val_labels,
         non_zeros,
         range_anch,
-        val_exps,
-        max_gpu_mem_gb=max_gpu_mem_gb,
+        cfg.asif.val_exps,
+        max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
     )
     sim_align = np.diag(sims.detach().cpu().numpy())
 
@@ -265,70 +260,11 @@ def ASIF_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
         val_labels,
         non_zeros,
         range_anch,
-        val_exps,
-        max_gpu_mem_gb=max_gpu_mem_gb,
+        cfg.asif.val_exps,
+        max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
     )
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    ROC_points_list = ROC_points(sim_align, sim_unalign, (-1, 1, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 40))
     return ROC_points_list
-
-
-def shuffle_by_level(
-    cfg_dataset: DictConfig,
-    dataset: str,
-    shuffle_level: str,
-    trainData2Unalign: np.ndarray,
-    valData2Unalign: np.ndarray,
-    trainIdx: list[int],
-    valIdx: list[int],
-):
-    """Shuffle the data by dataset, class, or object level.
-
-    Args:
-        cfg_dataset: configuration file
-        dataset: dataset name
-        shuffle_level: shuffle level. It can only be "dataset", "class", or "object".
-        trainData2Unalign: unaligned data
-        valData2Unalign: unaligned data
-        trainIdx: training indices
-        valIdx: validation indices
-    Returns:
-        shuffled Data2
-    """
-    assert shuffle_level in ["dataset", "class", "object"], f"shuffle_level {shuffle_level} not supported."
-    # sop shuffle by class or object
-    if shuffle_level == "dataset":
-        np.random.shuffle(trainData2Unalign)
-        np.random.shuffle(valData2Unalign)
-        return trainData2Unalign, valData2Unalign
-    if dataset == "sop":
-        _, _, classes, obj_ids = load_SOP(cfg_dataset)
-        if shuffle_level == "class":
-            train_gts, val_gts = train_test_split(classes, trainIdx, valIdx)
-        elif shuffle_level == "object":
-            train_gts, val_gts = train_test_split(obj_ids, trainIdx, valIdx)
-        else:
-            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
-    elif dataset == "musiccaps":
-        dataframe = load_MusicCaps(cfg_dataset)
-        if shuffle_level == "class":
-            gts = dataframe["audioset_positive_labels"].tolist()
-            train_gts, val_gts = train_test_split(gts, trainIdx, valIdx)
-        else:
-            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
-    elif dataset == "imagenet":
-        _, _, orig_idx, clsidx_to_labels = load_ImageNet(cfg_dataset)
-        orig_labels = [clsidx_to_labels[i] for i in orig_idx]
-        if shuffle_level == "class":
-            train_gts, val_gts = train_test_split(orig_labels, trainIdx, valIdx)
-        else:
-            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
-    else:
-        raise ValueError(f"Dataset {dataset} not supported.")
-    val_dict_filter = filter_str_label(val_gts)
-    valData2Unalign = shuffle_data_by_indices(valData2Unalign, val_dict_filter)
-    train_dict_filter = filter_str_label(train_gts)
-    trainData2Unalign = shuffle_data_by_indices(trainData2Unalign, train_dict_filter)
-    return trainData2Unalign, valData2Unalign

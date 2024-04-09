@@ -92,10 +92,10 @@ def cal_ROC_components(
     return TP, FP, FN, TN
 
 
-def ROC_points(
+def ROC_align_unalign_points(
     sim_align: np.ndarray, sim_unalign: np.ndarray, threshold_range: tuple[float, float, float] = (-1, 1, 40)
 ) -> list[tuple[float, float]]:
-    """Calculate the ROC points.
+    """Calculate the roc points.
 
     Args:
         sim_align: similarity score of aligned case. shape: (N, )
@@ -103,9 +103,9 @@ def ROC_points(
         threshold_range: threshold range. (start, end, points)
 
     Return:
-        list of ROC points
+        list of roc points
     """
-    ROC = []
+    roc = []
     threshold_list = [i for i in np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(-1)]
     threshold_list += [-1, 1]
     threshold_list.sort()
@@ -113,22 +113,22 @@ def ROC_points(
         TP, FP, FN, TN = cal_ROC_components(sim_align, sim_unalign, threshold)
         TPR = TP / (TP + FN)  # y axis
         FPR = FP / (FP + TN)  # x axis
-        ROC.append((FPR, TPR))
-    return ROC
+        roc.append((FPR, TPR))
+    return roc
 
 
-def cal_AUC(ROC_points: list[tuple[float, float]]) -> float:
+def cal_AUC(roc_points: list[tuple[float, float]]) -> float:
     """Calculate the AUC.
 
     Args:
-        ROC_points: list of ROC points
+        roc_points: list of roc points
     Return:
         AUC (Area Under Curve)
     """
-    ROC_points = sorted(ROC_points, key=lambda x: x[0])
+    roc_points = sorted(roc_points, key=lambda x: x[0])
     AUC = 0
-    for ii in range(1, len(ROC_points)):
-        AUC += (ROC_points[ii][0] - ROC_points[ii - 1][0]) * (ROC_points[ii][1] + ROC_points[ii - 1][1]) / 2
+    for ii in range(1, len(roc_points)):
+        AUC += (roc_points[ii][0] - roc_points[ii - 1][0]) * (roc_points[ii][1] + roc_points[ii - 1][1]) / 2
     return AUC
 
 
