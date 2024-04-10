@@ -23,8 +23,7 @@ def main(cfg: DictConfig):  # noqa: D103
         cfg_dataset = cfg.sop
         img_files, text_descriptions = load_SOP(cfg_dataset)
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)  # batched np array
@@ -55,8 +54,7 @@ def main(cfg: DictConfig):  # noqa: D103
         caption_list = dataframe["caption"].tolist()
         print(f"Number of audio files: {len(audio_list)}. Number of captions: {len(caption_list)}")
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         clap_text_features = clap_text(caption_list, batch_size=BATCH_SIZE)
         print(clap_text_features.shape)
@@ -85,8 +83,7 @@ def main(cfg: DictConfig):  # noqa: D103
         print(f"Number of images: {len(img_path)}. Number of labels: {len(orig_labels)}")
         text_descriptions = ["An image of " + label + "." for label in orig_labels]
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)
@@ -114,8 +111,7 @@ def main(cfg: DictConfig):  # noqa: D103
         cfg_dataset = cfg.tiil
         img_files, text_descriptions, _, _ = load_TIIL(cfg_dataset)
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)

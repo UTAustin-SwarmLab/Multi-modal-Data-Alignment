@@ -22,6 +22,10 @@ def main(cfg: DictConfig):  # noqa: D103
     if cfg.dataset == "imagenet":
         num_train_data = int(50_000 * cfg.train_test_ratio)
         clip_model_name = "CLIP"
+    elif cfg.dataset == "tiil":
+        num_train_data = int(7138 * 2 * cfg.train_test_ratio)
+        clip_model_name = "CLIP"
+    # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
     print("number of training data", num_train_data)

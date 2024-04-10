@@ -42,9 +42,9 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
-    os.mkdir(cfg_dataset.paths.plots_path) if not os.path.exists(cfg_dataset.paths.plots_path) else None
+    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "shuffle_align/")
-    os.mkdir(plots_path) if not os.path.exists(plots_path) else None
+    os.mkdir(plots_path, exist_ok=True)
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     trainData1, valData1 = train_test_split(Data1, trainIdx, valIdx)
@@ -157,7 +157,9 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_CLIP_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
+    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "shuffle_align/")
+    os.mkdir(plots_path, exist_ok=True)
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
     _, valData1 = train_test_split(Data1, trainIdx, valIdx)

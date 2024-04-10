@@ -1,3 +1,4 @@
+import os
 import pickle
 
 import numpy as np
@@ -11,14 +12,15 @@ from mmda.utils.dataset_utils import (
     filter_str_label,
     get_train_test_split_index,
     load_SOP,
+    load_TIIL,
     shuffle_data_by_indices,
     train_test_split,
 )
 from mmda.utils.query_llava import query_llava
 
 
-@hydra.main(version_base=None, config_path="config", config_name="sop")
-def sop_llava_align(cfg: DictConfig) -> None:
+@hydra.main(version_base=None, config_path="../config", config_name="main")
+def llava_align(cfg: DictConfig) -> None:
     """Query llava and save the aligned answer as pickle file.
 
     Args:
@@ -33,19 +35,27 @@ def sop_llava_align(cfg: DictConfig) -> None:
     cfg_dataset, _, _ = load_two_encoder_data(cfg)
 
     # load raw data
-    img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
-    # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
-    _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
-    _, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
+    if cfg.dataset == "sop":
+        img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+    elif cfg.dataset == "tiil":
+        img_paths, text_descriptions, _, _ = load_TIIL(cfg_dataset)
+    else:
+        raise NotImplementedError(f"Dataset {cfg.dataset} not implemented")
 
-    model_name = cfg.llava.model_path.split("/")[-1]
+    # split data
+    if cfg.dataset == "sop":
+        trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
+        _, img_paths = train_test_split(img_paths, trainIdx, valIdx)
+        _, text_descriptions = train_test_split(text_descriptions, trainIdx, valIdx)
 
     # query llava without shuffling
-    aligned_answer = query_llava(cfg, valImgPath, valTxt)
+    aligned_answer = query_llava(cfg, img_paths, text_descriptions)
+    model_name = cfg.llava.model_path.split("/")[-1]
+
+    os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
     # Save text_descriptions pickle
     with open(
-        cfg_dataset.paths.save_path + f"sop_{model_name}_aligned.pkl",
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -53,8 +63,8 @@ def sop_llava_align(cfg: DictConfig) -> None:
     return
 
 
-@hydra.main(version_base=None, config_path="config", config_name="sop")
-def sop_llava_dataset_shuffle(cfg: DictConfig):
+@hydra.main(version_base=None, config_path="../config", config_name="main")
+def llava_dataset_shuffle(cfg: DictConfig):
     """Query llava and save the dataset level unaligned answer as pickle file.
 
     Args:
@@ -69,7 +79,9 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     cfg_dataset, _, _ = load_two_encoder_data(cfg)
 
     # load raw data
-    img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+    if cfg.dataset == "sop":
+        img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+
     # split data
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
@@ -83,7 +95,7 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     aligned_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg_dataset.paths.save_path + f"sop_{model_name}_ds_unalign.pkl",
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_ds_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
@@ -91,8 +103,8 @@ def sop_llava_dataset_shuffle(cfg: DictConfig):
     return
 
 
-@hydra.main(version_base=None, config_path="config", config_name="sop")
-def sop_llava_class_shuffle(cfg: DictConfig):
+@hydra.main(version_base=None, config_path="../config", config_name="main")
+def llava_class_shuffle(cfg: DictConfig):
     """Query llava and save the class level unaligned answer as pickle file.
 
     Args:
@@ -107,7 +119,9 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     cfg_dataset, _, _ = load_two_encoder_data(cfg)
 
     # load raw data
-    img_paths, text_descriptions, classes, _ = load_SOP(cfg_dataset)
+    if cfg.dataset == "sop":
+        img_paths, text_descriptions, classes, _ = load_SOP(cfg_dataset)
+
     # split data
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
@@ -124,7 +138,7 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     class_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg_dataset.paths.save_path + f"sop_{model_name}_class_unalign.pkl",
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_class_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(class_unalign_answer, f)
@@ -132,8 +146,8 @@ def sop_llava_class_shuffle(cfg: DictConfig):
     return
 
 
-@hydra.main(version_base=None, config_path="config", config_name="sop")
-def sop_llava_obj_shuffle(cfg: DictConfig):
+@hydra.main(version_base=None, config_path="../config", config_name="main")
+def llava_obj_shuffle(cfg: DictConfig):
     """Query llava and save the object level unaligned answer as pickle file.
 
     Args:
@@ -148,7 +162,8 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
     cfg_dataset, _, _ = load_two_encoder_data(cfg)
 
     # load raw data
-    img_paths, text_descriptions, _, obj_ids = load_SOP(cfg_dataset)
+    if cfg.dataset == "sop":
+        img_paths, text_descriptions, _, obj_ids = load_SOP(cfg_dataset)
     # split data
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
@@ -165,7 +180,7 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
     obj_unalign_answer = query_llava(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
-        cfg_dataset.paths.save_path + f"sop_{model_name}_obj_unalign.pkl",
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_obj_unalign.pkl",
         "wb",
     ) as f:
         pickle.dump(obj_unalign_answer, f)
@@ -174,9 +189,9 @@ def sop_llava_obj_shuffle(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    sop_llava_align()
-    sop_llava_dataset_shuffle()
-    sop_llava_class_shuffle()
-    sop_llava_obj_shuffle()
+    llava_align()
+    # llava_dataset_shuffle()
+    # llava_class_shuffle()
+    # llava_obj_shuffle()
 
-# CUDA_VISIBLE_DEVICES=2 poetry run python sop_query_llava.py
+# CUDA_VISIBLE_DEVICES=2 poetry run scripts/python query_llava.py

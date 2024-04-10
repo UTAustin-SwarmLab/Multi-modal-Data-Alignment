@@ -19,6 +19,7 @@ from mmda.utils.data_utils import (
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_ImageNet,
+    load_TIIL,
     train_test_split,
 )
 from mmda.utils.sim_utils import (
@@ -41,8 +42,9 @@ def CCA_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
+    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "mislabeled/")
-    os.mkdir(plots_path) if not os.path.exists(plots_path) else None
+    os.mkdir(plots_path, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
@@ -137,7 +139,9 @@ def CLIP_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_CLIP_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
+    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "mislabeled/")
+    os.mkdir(plots_path, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
@@ -274,6 +278,10 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
         for mturks_label_idx, orig_label_idx in zip(mturks_idx, orig_idx):
             wrong_labels_bool.append(True) if mturks_label_idx != orig_label_idx else wrong_labels_bool.append(False)
         wrong_labels_bool = np.array(wrong_labels_bool, dtype=bool)
-    elif cfg.dataset == "tiil":
+    if cfg.dataset == "tiil":
+        cfg_dataset = cfg.tiil
+        img_paths, text_desciption, wrong_labels_bool, _ = load_TIIL(cfg_dataset)
+    # TODO: add more datasets
+    else:
         raise NotImplementedError
     return wrong_labels_bool
