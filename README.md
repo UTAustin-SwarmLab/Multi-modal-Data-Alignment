@@ -1,5 +1,7 @@
 # Multi-modal Data Alignment (MMDA)
 
+To add more dataset, just add the dataset configs in `configs/main.yaml` and fill in the code with the "TODO: add more dataset" comment.
+
 <!-- This is a template repository. Please initialize your python project using this template.
 
 1. Make sure you have a right python version installed locally and change the version of python from the files below
