@@ -55,7 +55,6 @@ jupyter = "^1.0.0"
 gpustat = "*"
 datasets = "^2.18.0"
 LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"}
-# torch = "2.1.1"
 transformers = "^4.13.0"
 soundfile = "*"
 librosa = "*"

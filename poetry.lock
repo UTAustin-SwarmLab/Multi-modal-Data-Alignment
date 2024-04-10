@@ -5180,7 +5180,7 @@ test = ["pytest", "pytest-cov", "pytest-mock"]
 type = "git"
 url = "https://github.com/UTAustin-SwarmLab/Swarm-Visualization"
 reference = "HEAD"
-resolved_reference = "68c06d7276fd4a13dcee03ae75f9813de51edda0"
+resolved_reference = "cdcd151d486bff5314b9032ea70bafec2a8d7527"
 
 [[package]]
 name = "sympy"
