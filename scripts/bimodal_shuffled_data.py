@@ -28,6 +28,9 @@ def main(cfg: DictConfig):  # noqa: D103
     elif cfg.dataset == "imagenet":
         num_train_data = int(50_000 * cfg.train_test_ratio)
         clip_model_name = "CLIP"
+    elif cfg.dataset == "tiil":
+        num_train_data = int(7138 * 2 * cfg.train_test_ratio)
+        clip_model_name = "CLIP"
     else:
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
     print("number of training data", num_train_data)
@@ -66,7 +69,7 @@ def main(cfg: DictConfig):  # noqa: D103
         color="blue",
     )
 
-    if cfg.dataset != "imagenet":
+    if cfg.dataset != "imagenet" and cfg.dataset != "tiil":
         # class level shuffle ROC curve
         roc_class_points = CCA_data_align(cfg, "class")
         class_auc = cal_AUC(roc_class_points)

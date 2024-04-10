@@ -8,6 +8,7 @@ from mmda.utils.dataset_utils import (
     load_ImageNet,
     load_MusicCaps,
     load_SOP,
+    load_TIIL,
 )
 from mmda.utils.embed_data import clap_audio, clap_text, clip_imgs, clip_text, dinov2, gtr_text
 
@@ -22,8 +23,7 @@ def main(cfg: DictConfig):  # noqa: D103
         cfg_dataset = cfg.sop
         img_files, text_descriptions = load_SOP(cfg_dataset)
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)  # batched np array
@@ -54,8 +54,7 @@ def main(cfg: DictConfig):  # noqa: D103
         caption_list = dataframe["caption"].tolist()
         print(f"Number of audio files: {len(audio_list)}. Number of captions: {len(caption_list)}")
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         clap_text_features = clap_text(caption_list, batch_size=BATCH_SIZE)
         print(clap_text_features.shape)
@@ -84,8 +83,7 @@ def main(cfg: DictConfig):  # noqa: D103
         print(f"Number of images: {len(img_path)}. Number of labels: {len(orig_labels)}")
         text_descriptions = ["An image of " + label + "." for label in orig_labels]
 
-        if not os.path.exists(cfg_dataset.paths.save_path):
-            os.makedirs(cfg_dataset.paths.save_path)
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
 
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)
@@ -108,6 +106,35 @@ def main(cfg: DictConfig):  # noqa: D103
         with open(os.path.join(cfg_dataset.paths.save_path, "ImageNet_img_emb_clip.pkl"), "wb") as f:
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
+
+    elif dataset == "tiil":
+        cfg_dataset = cfg.tiil
+        img_files, text_descriptions, _, _ = load_TIIL(cfg_dataset)
+
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "TIIL_text_emb_clip.pkl"), "wb") as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text_descriptions)
+        with open(os.path.join(cfg_dataset.paths.save_path, "TIIL_text_emb_gtr.pkl"), "wb") as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
+
+        # get img embeddings
+        img_emb = dinov2(img_files, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "TIIL_img_emb_dino.pkl"), "wb") as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(img_files, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "TIIL_img_emb_clip.pkl"), "wb") as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+    # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
 

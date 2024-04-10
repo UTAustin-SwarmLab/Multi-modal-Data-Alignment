@@ -108,8 +108,7 @@ def main(cfg: DictConfig):  # noqa: D103
     cfg_dataset = cfg.musiccaps
     ds = load_dataset_and_download(cfg_dataset.paths.dataset_path, num_proc=10)
 
-    if not os.path.exists(cfg_dataset.paths.dataset_path):
-        os.makedirs(cfg_dataset.paths.dataset_path)
+    os.makedirs(cfg_dataset.paths.dataset_path, exist_ok=True)
     print(f"Saving dataset to {cfg_dataset.paths.dataset_path}")
     ds.save_to_disk(cfg_dataset.paths.dataset_path)
 

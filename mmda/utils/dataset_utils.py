@@ -23,9 +23,63 @@ def load_dataset_config(cfg: DictConfig) -> DictConfig:
         cfg_dataset = cfg.musiccaps
     elif dataset == "imagenet":
         cfg_dataset = cfg.imagenet
+    elif dataset == "tiil":
+        cfg_dataset = cfg.tiil
+    # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
     return cfg_dataset
+
+
+def load_TIIL(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray, list[str | None]]:
+    """Load the TIIL dataset.
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        text_descriptions: list of text descriptions
+        inconsistent_labels: list of labels (True: inconsistent, False: consistent)
+        original words:
+    """
+    # load TIIL json files
+    with open(cfg_dataset.paths.dataset_path + "consistent.json", "rb") as f:
+        consistent_json = json.load(f)
+    with open(cfg_dataset.paths.dataset_path + "inconsistent.json", "rb") as f:
+        inconsistent_json = json.load(f)
+    dataset_size = len(consistent_json["images"]) + len(inconsistent_json["images"])
+
+    # load TIIL images path
+    img_paths = [None] * dataset_size
+    text_descriptions = [None] * dataset_size
+    inconsistent_labels = [None] * dataset_size
+    original_words = [None] * dataset_size
+
+    # load the data from the json files
+    for idx, (img_dict, annot_dict) in enumerate(zip(consistent_json["images"], consistent_json["annotations"])):
+        img_paths[idx] = os.path.join(cfg_dataset.paths.dataset_path, img_dict["file_name"])
+        text_descriptions[idx] = annot_dict["caption"]
+        inconsistent_labels[idx] = False
+        assert img_dict["id"] == annot_dict["image_id"], f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
+        assert img_dict["id"] == idx + 1, f"ID mismatch: {img_dict['id']} != {idx}"
+
+    for idx, (img_dict, annot_dict) in enumerate(zip(inconsistent_json["images"], inconsistent_json["annotations"])):
+        idx += len(consistent_json["images"])
+        img_paths[idx] = os.path.join(cfg_dataset.paths.dataset_path, img_dict["file_name"])
+        text_descriptions[idx] = annot_dict["caption"]
+        inconsistent_labels[idx] = True
+        original_words[idx] = annot_dict["ori_word"]
+        assert img_dict["id"] == annot_dict["image_id"], f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
+        assert img_dict["id"] == idx + 1 - len(consistent_json["images"]), f"ID mismatch: {img_dict['id']} != {idx}"
+
+    # # print some statistics
+    # print(f"TIIL dataset size: {dataset_size}")
+    # print(f"Consistent: {len(consistent_json['images'])}, Inconsistent: {len(inconsistent_json['images'])}")
+    # # print the dataset entries
+    # for i in range(5):
+    #     print(f"Image path: {img_paths[i]}, Text: {text_descriptions[i]}, Inconsistent: {inconsistent_labels[i]}")
+    return img_paths, text_descriptions, np.array(inconsistent_labels, dtype=bool), original_words
 
 
 def load_ImageNet(cfg_dataset: DictConfig) -> tuple[list[str], list[int], list[int], dict[int, str]]:
@@ -34,7 +88,10 @@ def load_ImageNet(cfg_dataset: DictConfig) -> tuple[list[str], list[int], list[i
     Args:
         cfg_dataset: configuration file
     Returns:
-        image paths, MTurk verified classe indices, ground truth class indices, and dict of class idx to str.
+        img_path: list of image absolute paths
+        mturks_idx: MTurk verified classe indices (int)
+        orig_idx: ground truth class indices (int)
+        clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
     with open(os.path.join(cfg_dataset.paths.dataset_path, "imagenet_mturk.json")) as f:
@@ -86,13 +143,20 @@ def load_ImageNet(cfg_dataset: DictConfig) -> tuple[list[str], list[int], list[i
     return img_path, mturks_idx, orig_idx, clsidx_to_labels
 
 
-def load_MusicCaps(cfg_dataset: DictConfig) -> tuple[list[str], list[str]]:
+def load_MusicCaps(cfg_dataset: DictConfig) -> pd.DataFrame:
     """Load the Google MusicCaps dataset.
 
     Args:
         cfg_dataset: configuration file
     Returns:
-        audio paths, text descriptions, aspect_list, and audioset_positive_labels
+        A dataframe containing the following columns:
+        youtube id: list of youtube ids
+        audio paths: list of audio absolute paths
+        caption: list of text descriptions
+        aspect_list: list of aspects (str)
+        audioset_positive_labels (str)
+        start_time: list of start time (int, sec)
+        end_time: list of end time (int, sec)
     """
     parent_dir = os.path.abspath(os.path.join(cfg_dataset.paths.dataset_path, os.pardir))
     df_path = os.path.join(parent_dir, "MusicCaps_parsed.csv")
@@ -136,13 +200,16 @@ def load_MusicCaps(cfg_dataset: DictConfig) -> tuple[list[str], list[str]]:
     return dataframe
 
 
-def load_SOP(cfg_dataset: DictConfig) -> tuple[list[str], list[str]]:
+def load_SOP(cfg_dataset: DictConfig) -> tuple[list[str], list[str], list[str], list[str]]:
     """Load the Stanford Online Products dataset.
 
     Args:
         cfg_dataset: configuration file
     Returns:
-        image paths, text descriptions, classes, and object ids
+        image paths: list of image absolute paths
+        text descriptions: list of text descriptions
+        classes: list of classes (str)
+        object ids: list of object ids (str)
     """
     # load SOP images path
     with open(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl", "rb") as f:
@@ -268,14 +335,17 @@ def shuffle_by_level(
         trainIdx: training indices
         valIdx: validation indices
     Returns:
-        shuffled Data2
+        trainData2Unalign: shuffled training data for modal 2
+        valData2Unalign: shuffled validation data for modal 2
     """
     assert shuffle_level in ["dataset", "class", "object"], f"shuffle_level {shuffle_level} not supported."
-    # sop shuffle by class or object
+    # all datasets can shuffle by dataset level
     if shuffle_level == "dataset":
         np.random.shuffle(trainData2Unalign)
         np.random.shuffle(valData2Unalign)
         return trainData2Unalign, valData2Unalign
+
+    # shuffle by class or object level
     if dataset == "sop":
         _, _, classes, obj_ids = load_SOP(cfg_dataset)
         if shuffle_level == "class":
@@ -298,6 +368,7 @@ def shuffle_by_level(
             train_gts, val_gts = train_test_split(orig_labels, trainIdx, valIdx)
         else:
             raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
     val_dict_filter = filter_str_label(val_gts)
@@ -310,6 +381,6 @@ def shuffle_by_level(
 # import hydra
 # @hydra.main(version_base=None, config_path="../../config", config_name="main")
 # def test(cfg: DictConfig):
-#     idx2path, mturks_idx, orig_idx, clsidx_to_labels = load_ImageNet(cfg.imagenet)
+#     paths, annots, inconsistency, orig_words = load_TIIL(cfg.tiil)
 # if __name__ == "__main__":
 #     test()
