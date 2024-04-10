@@ -42,9 +42,8 @@ def CCA_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
-    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "mislabeled/")
-    os.mkdir(plots_path, exist_ok=True)
+    os.makedirs(plots_path, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
@@ -139,9 +138,8 @@ def CLIP_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     np.random.seed(cfg.seed)
     cfg_dataset, Data1, Data2 = load_CLIP_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
-    os.mkdir(cfg_dataset.paths.plots_path, exist_ok=True)
     plots_path = os.path.join(cfg_dataset.paths.plots_path + "mislabeled/")
-    os.mkdir(plots_path, exist_ok=True)
+    os.makedirs(plots_path, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
