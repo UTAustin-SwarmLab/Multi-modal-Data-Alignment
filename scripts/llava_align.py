@@ -77,7 +77,6 @@ def llava_align(cfg: DictConfig):  # noqa: D103
         ds_unalign = parse_llava_yes_no(ds_unalign)
         class_unalign = parse_llava_yes_no(class_unalign)
         obj_unalign = parse_llava_yes_no(obj_unalign)
-        print(obj_unalign)
 
         # print ROC
         print("Aligned vs Unaligned")
@@ -89,24 +88,26 @@ def llava_align(cfg: DictConfig):  # noqa: D103
         print("Object Aligned vs Unaligned")
         TPR, FPR = boolean_binary_detection(align, obj_unalign)
         print(f"TPR: {TPR}, FPR: {FPR}")
-
-    elif cfg.dataset == "tiil":
+        return
+    # TODO: add more datasets
+    elif cfg.dataset == "imagenet" or cfg.dataset == "tiil":
         with open(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl", "rb") as f:
             llava_results = pickle.load(f)
-        llava_results = parse_llava_yes_no(llava_results)
-        wrong_labels_bool = parse_wrong_label(cfg)
-        trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
-        train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, trainIdx, valIdx)
-        train_llava_results, val_llava_results = train_test_split(llava_results, trainIdx, valIdx)
+    llava_results = parse_llava_yes_no(llava_results)
+    wrong_labels_bool = parse_wrong_label(cfg)
 
-        # separate aligned data and unaligned data
-        val_llava_resultsAlign = val_llava_results[~val_wrong_labels_bool]
-        val_llava_resultsUnalign = val_llava_results[val_wrong_labels_bool]
+    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, Data1.shape[0])
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, trainIdx, valIdx)
+    train_llava_results, val_llava_results = train_test_split(llava_results, trainIdx, valIdx)
 
-        # print ROC
-        print("Aligned vs Unaligned")
-        TPR, FPR = boolean_binary_detection(val_llava_resultsAlign, val_llava_resultsUnalign)
-        print(f"TPR: {TPR}, FPR: {FPR}")
+    # separate aligned data and unaligned data
+    val_llava_resultsAlign = val_llava_results[~val_wrong_labels_bool]
+    val_llava_resultsUnalign = val_llava_results[val_wrong_labels_bool]
+
+    # print ROC
+    print("Aligned vs Unaligned")
+    TPR, FPR = boolean_binary_detection(val_llava_resultsAlign, val_llava_resultsUnalign)
+    print(f"TPR: {TPR}, FPR: {FPR}")
     return
 
 

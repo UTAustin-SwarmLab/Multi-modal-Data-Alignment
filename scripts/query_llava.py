@@ -11,6 +11,7 @@ from mmda.utils.data_utils import (
 from mmda.utils.dataset_utils import (
     filter_str_label,
     get_train_test_split_index,
+    load_ImageNet,
     load_SOP,
     load_TIIL,
     shuffle_data_by_indices,
@@ -37,8 +38,14 @@ def llava_align(cfg: DictConfig) -> None:
     # load raw data
     if cfg.dataset == "sop":
         img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+    if cfg.dataset == "imagenet":
+        img_paths, Mturks, orig_idx, clsidx_to_labels = load_ImageNet(cfg_dataset)
+        text_descriptions = []
+        for i in range(len(orig_idx)):
+            description = "An image of " + clsidx_to_labels[orig_idx[i]]
+            text_descriptions.append(description)
     elif cfg.dataset == "tiil":
-        img_paths, text_descriptions, _, _ = load_TIIL(cfg_dataset)
+        img_paths, text_descriptions, _, _ = load_TIIL(cfg_dataset)  # TODO: add more datasets
     else:
         raise NotImplementedError(f"Dataset {cfg.dataset} not implemented")
 

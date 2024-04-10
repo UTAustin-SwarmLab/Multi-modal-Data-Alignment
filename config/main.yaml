@@ -4,7 +4,7 @@ defaults:
 seed: 42
 train_test_ratio: 0.7
 noisy_train_set: True
-dataset: "tiil" # imagenet, sop, tiil, or musiccaps
+dataset: "imagenet" # imagenet, sop, tiil, or musiccaps
 repo_root: "/home/pl22767/Project/MMDA/"
 
 sop:
@@ -55,6 +55,17 @@ tiil:
     dataset_path: "/nas/pohan/datasets/tiil/"
     save_path: ${tiil.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/TIIL/
+
+cosmos:
+  CCA_dim: 750 # dimension of the CCA transformation
+  sim_dim: 200 # dimension of the similarity score
+  equal_weights: False
+  img_encoder: "clip"
+  text_encoder: "gtr"
+  paths:
+    dataset_path: "/nas/pohan/datasets/COSMOS/"
+    save_path: ${cosmos.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/COSMOS/
 
 hydra:
   run:
