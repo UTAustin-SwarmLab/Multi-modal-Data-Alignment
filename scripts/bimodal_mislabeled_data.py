@@ -64,6 +64,10 @@ def main(cfg: DictConfig):  # noqa: D103
         color="blue",
     )
 
+    # plot LLaVA result. TPR: 0.29880668257756565, FPR: 0.09780621572212066
+    if cfg.dataset == "tiil":
+        ax.plot(0.09780621572212066, 0.29880668257756565, "x", markersize=12, mew=3, label="LLaVA", color="blue")
+
     ax.set_title("ROC Curves of Detecting Mislabeled Data")
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")

@@ -63,14 +63,14 @@ hydra:
 llava:
   model_path: '/nas/omama/llava-v1.5-13b'
   model_base: null
-  num_gpus: 4
+  num_gpus: 6
   conv_mode: null
   temperature: 0.2
   max_new_tokens: 512
   load_8bit: True
   load_4bit: False
   debug: False
-  num_processes: 4
+  num_processes: 6
 
 # Hyperparameters of asif benchmark
 asif:
