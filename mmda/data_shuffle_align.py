@@ -3,7 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 from swarm_visualizer.histogram import (
     plot_several_pdf,
@@ -11,6 +10,7 @@ from swarm_visualizer.histogram import (
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.benchmark.asif_core import zero_shot_classification
+from mmda.utils.cca import CCA_fit_train_data
 from mmda.utils.data_utils import (
     load_CLIP_like_data,
     load_two_encoder_data,
@@ -65,13 +65,9 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         trainData2Align.mean(axis=0), 0, atol=1e-4
     ), f"trainData2Align not zero mean: {trainData2Align.mean(axis=0)}"
 
-    # CCA dimensionality reduction
-    cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
-    trainData1Align, trainData2Align = cca.fit_transform((trainData1Align, trainData2Align))
-    if cfg_dataset.equal_weights:
-        corr_align = np.ones((trainData2Align.shape[1],))  # dim,
-    else:
-        corr_align = np.diag(trainData1Align.T @ trainData2Align) / trainData1Align.shape[0]  # dim,
+    cca, trainData1Align, trainData2Align, corr_align = CCA_fit_train_data(
+        cfg_dataset, trainData1Align, trainData2Align
+    )
 
     # calculate the similarity score
     valData1Align, valData2Align = cca.transform((valData1Align, valData2Align))
@@ -120,10 +116,9 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         ),
     )
 
-    # CCA dimensionality reduction
-    cca_unalign = CCA(latent_dimensions=cfg_dataset.CCA_dim)
-    trainData1Unalign, trainData2Unalign = cca_unalign.fit_transform((trainData1Unalign, trainData2Unalign))
-    corr_unalign = np.diag(trainData1Unalign.T @ trainData2Unalign) / trainData1Unalign.shape[0]
+    cca_unalign, trainData1Unalign, trainData2Unalign, corr_unalign = CCA_fit_train_data(
+        cfg_dataset, trainData1Unalign, trainData2Unalign
+    )
 
     # plot the correlation coefficients
     if not cfg_dataset.equal_weights:

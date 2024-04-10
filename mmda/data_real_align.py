@@ -3,7 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 from swarm_visualizer.histogram import (
     plot_several_pdf,
@@ -11,6 +10,7 @@ from swarm_visualizer.histogram import (
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.benchmark.asif_core import zero_shot_classification
+from mmda.utils.cca import CCA_fit_train_data
 from mmda.utils.data_utils import (
     load_CLIP_like_data,
     load_two_encoder_data,
@@ -18,6 +18,7 @@ from mmda.utils.data_utils import (
 )
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
+    load_COSMOS,
     load_ImageNet,
     load_TIIL,
     train_test_split,
@@ -82,13 +83,7 @@ def CCA_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         trainData2.mean(axis=0), 0, atol=1e-4
     ), f"trainData2Align not zero mean: {trainData2.mean(axis=0)}"
 
-    # CCA dimensionality reduction
-    cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
-    trainData1, trainData2 = cca.fit_transform((trainData1, trainData2))
-    if cfg_dataset.equal_weights:
-        corr_align = np.ones((trainData2.shape[1],))  # dim,
-    else:
-        corr_align = np.diag(trainData1.T @ trainData2) / trainData1.shape[0]  # dim,
+    cca, trainData1, trainData2, corr_align = CCA_fit_train_data(cfg_dataset, trainData1, trainData2)
 
     # calculate the similarity score
     valData1Align, valData2Align = cca.transform((valData1Align, valData2Align))
@@ -101,7 +96,6 @@ def CCA_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     valData1Unalign, valData2Unalign = cca.transform((valData1Unalign, valData2Unalign))
     sim_unalign = weighted_corr_sim(valData1Unalign, valData2Unalign, corr_align, dim=cfg_dataset.sim_dim)
-
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
         data_list=[sim_align, sim_unalign],
@@ -121,7 +115,7 @@ def CCA_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     )
 
     # plot ROC
-    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-0.25, 1, 50))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1.0, 1.0, 80))
     return ROC_points_list
 
 
@@ -276,9 +270,12 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
         for mturks_label_idx, orig_label_idx in zip(mturks_idx, orig_idx):
             wrong_labels_bool.append(True) if mturks_label_idx != orig_label_idx else wrong_labels_bool.append(False)
         wrong_labels_bool = np.array(wrong_labels_bool, dtype=bool)
-    if cfg.dataset == "tiil":
+    elif cfg.dataset == "tiil":
         cfg_dataset = cfg.tiil
         img_paths, text_desciption, wrong_labels_bool, _ = load_TIIL(cfg_dataset)
+    elif cfg.dataset == "cosmos":
+        cfg_dataset = cfg.cosmos
+        img_paths, text_desciption, wrong_labels_bool, _ = load_COSMOS(cfg_dataset)
     # TODO: add more datasets
     else:
         raise NotImplementedError
