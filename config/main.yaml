@@ -4,7 +4,7 @@ defaults:
 seed: 42
 train_test_ratio: 0.7
 noisy_train_set: True
-dataset: "imagenet" # imagenet, sop, tiil, or musiccaps
+dataset: "imagenet" # imagenet, cosmos, sop, tiil, or musiccaps
 repo_root: "/home/pl22767/Project/MMDA/"
 
 sop:

@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import pickle
@@ -25,10 +26,45 @@ def load_dataset_config(cfg: DictConfig) -> DictConfig:
         cfg_dataset = cfg.imagenet
     elif dataset == "tiil":
         cfg_dataset = cfg.tiil
+    elif dataset == "cosmos":
+        cfg_dataset = cfg.cosmos
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
     return cfg_dataset
+
+
+def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray]:
+    """Load the COSMOS dataset.
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        text_descriptions: list of text descriptions
+        inconsistency: list of labels (True: inconsistent, False: consistent)
+    """
+    img_paths = []
+    text_descriptions = []
+    inconsistency = []
+    article_urls = []
+    # load COSMOS json files
+    with open(cfg_dataset.paths.dataset_path + "test_data.json") as f:
+        for line in f:
+            data = ast.literal_eval(line)
+            # caption 1
+            img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
+            text_descriptions.append(data["caption1_modified"])
+            inconsistency.append(data["context_label"])  # (1=Out-of-Context, 0=Not-Out-of-Context )
+            article_urls.append(data["article_url"])
+            # caption 2
+            img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
+            text_descriptions.append(data["caption2_modified"])
+            inconsistency.append(data["context_label"])
+            article_urls.append(data["article_url"])
+    inconsistency = np.array(inconsistency, dtype=bool)
+    return img_paths, text_descriptions, inconsistency, None
 
 
 def load_TIIL(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray, list[str | None]]:
@@ -72,13 +108,6 @@ def load_TIIL(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray
         original_words[idx] = annot_dict["ori_word"]
         assert img_dict["id"] == annot_dict["image_id"], f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
         assert img_dict["id"] == idx + 1 - len(consistent_json["images"]), f"ID mismatch: {img_dict['id']} != {idx}"
-
-    # # print some statistics
-    # print(f"TIIL dataset size: {dataset_size}")
-    # print(f"Consistent: {len(consistent_json['images'])}, Inconsistent: {len(inconsistent_json['images'])}")
-    # # print the dataset entries
-    # for i in range(5):
-    #     print(f"Image path: {img_paths[i]}, Text: {text_descriptions[i]}, Inconsistent: {inconsistent_labels[i]}")
     return img_paths, text_descriptions, np.array(inconsistent_labels, dtype=bool), original_words
 
 
@@ -381,6 +410,6 @@ def shuffle_by_level(
 # import hydra
 # @hydra.main(version_base=None, config_path="../../config", config_name="main")
 # def test(cfg: DictConfig):
-#     paths, annots, inconsistency, orig_words = load_TIIL(cfg.tiil)
+#     paths, annots, inconsistency, orig_words = load_COSMOS(cfg.cosmos)
 # if __name__ == "__main__":
 #     test()
