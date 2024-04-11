@@ -465,13 +465,13 @@ def shuffle_by_level(
     return trainData2Unalign, valData2Unalign
 
 
-import hydra
+# import hydra
 
 
-@hydra.main(version_base=None, config_path="../../config", config_name="main")
-def test(cfg: DictConfig):
-    paths, annots, inconsistency, orig_words = load_PITTS(cfg.pitts)
+# @hydra.main(version_base=None, config_path="../../config", config_name="main")
+# def test(cfg: DictConfig):
+#     paths, annots, inconsistency, orig_words = load_PITTS(cfg.pitts)
 
 
-if __name__ == "__main__":
-    test()
+# if __name__ == "__main__":
+#     test()

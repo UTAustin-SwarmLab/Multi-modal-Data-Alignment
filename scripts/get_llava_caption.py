@@ -19,6 +19,8 @@ def get_caption(cfg: DictConfig):
     if cfg.dataset == "sop":
         with open(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl", "rb") as f:
             path_text_descriptions = pickle.load(f)
+        for path_text in path_text_descriptions:
+            path_text[0] = path_text[0].replace("/store/", "/nas/")
     elif cfg.dataset == "pitts":
         # # train set
         # with open(cfg_dataset.paths.dataset_path + "text_descriptions_pitts30k_train.pkl", "rb") as f:
@@ -26,17 +28,15 @@ def get_caption(cfg: DictConfig):
         # val set
         with open(cfg_dataset.paths.dataset_path + "text_descriptions_pitts30k.pkl", "rb") as f:
             val_path_text_descriptions = pickle.load(f)
+        # /store/omama/TextMapReduce/pitts250k/000/000000_pitch1_yaw1.jpg
+        for path_text in val_path_text_descriptions:
+            path_text[0] = path_text[0].replace("/store/", "/nas/").replace("TextMapReduce", "datasets")
         path_text_descriptions = val_path_text_descriptions
-        print("Number of images in the dataset:", len(path_text_descriptions))
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
 
-    for path_text in path_text_descriptions:
-        # /store/omama/datasets/sop/000/000426_pitch1_yaw1.jpg
-        path_text[0] = path_text[0].replace("/store/", "/nas/")
     img_paths = [path_text[0] for path_text in path_text_descriptions]
-
     # query llava without shuffling
     llava_captions = llava_caption(cfg, img_paths)
     model_name = cfg.llava.model_path.split("/")[-1]
