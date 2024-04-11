@@ -3,6 +3,7 @@ import open_clip
 import torch
 from PIL import Image, ImageFilter
 from sentence_transformers import SentenceTransformer
+from torchvision import transforms
 from tqdm import tqdm
 from transformers import (
     AutoFeatureExtractor,
@@ -12,6 +13,39 @@ from transformers import (
     ViTImageProcessor,
     ViTModel,
 )
+
+
+def cosplace_img(img_files: list, batch_size: int = 32) -> np.ndarray:
+    """Extract image features using CosPlace model specifically trained for the Pittsburgh dataset.
+
+    Args:
+        img_files: list of image files
+        batch_size: batch size
+    Returns:
+        image features
+    """
+    transforms_list = []
+    # transforms_list += [transforms.Resize(image_size, antialias=True)]
+    transforms_list += [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+    transform = transforms.Compose(transforms_list)
+    model = torch.hub.load("gmberton/cosplace", "get_trained_model", backbone="ResNet50", fc_output_dim=2048)
+    model = model.cuda()
+    img_embeddings = []
+    with torch.no_grad():
+        for i in tqdm(range(0, len(img_files), batch_size)):
+            images = []
+            for img_file in img_files[i : i + batch_size]:
+                image = Image.open(img_file).convert("RGB")
+                image = transform(image).unsqueeze(0)
+                images.append(image)
+            batch = torch.cat(images, dim=0).cuda()
+            outputs = model(batch)
+            img_embeddings.append(outputs.detach().cpu().numpy())
+    img_embeddings = np.concatenate(img_embeddings, axis=0)
+    return img_embeddings
 
 
 def clap_audio(

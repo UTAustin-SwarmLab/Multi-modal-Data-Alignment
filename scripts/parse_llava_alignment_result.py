@@ -89,10 +89,12 @@ def llava_align(cfg: DictConfig):  # noqa: D103
         TPR, FPR = boolean_binary_detection(align, obj_unalign)
         print(f"TPR: {TPR}, FPR: {FPR}")
         return
-    # TODO: add more datasets
-    elif cfg.dataset == "imagenet" or cfg.dataset == "tiil":
+    elif cfg.dataset == "imagenet" or cfg.dataset == "tiil" or cfg.dataset == "pitts":
         with open(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl", "rb") as f:
             llava_results = pickle.load(f)
+    # TODO: add more datasets
+    else:
+        raise ValueError(f"Dataset {cfg.dataset} not supported.")
     llava_results = parse_llava_yes_no(llava_results)
     wrong_labels_bool = parse_wrong_label(cfg)
 

@@ -37,16 +37,16 @@ def load_image(image_file: str) -> Image.Image:
     return image
 
 
-def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> list[str]:
+def query_llava(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> list[str]:
     """Get text descriptions from llava model.
 
     Args:
-        input_tuple_data: input tuple data: (cfg_llava, img_paths, texts)
+        input_tuple_data: input tuple data: (cfg_llava, img_paths, prompt_list)
 
     Returns:
         text_descriptions: list of text descriptions
     """
-    cfg_llava, img_paths, texts = input_tuple_data
+    cfg_llava, img_paths, prompt_list = input_tuple_data
     disable_torch_init()
     model_name = get_model_name_from_path(cfg_llava.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(
@@ -84,9 +84,9 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
     for image_file in tqdm(img_paths):
         count += 1
         conv = conv_templates[cfg_llava.conv_mode].copy()
-        inp = f'Does the following text describe the given image? Answer in yes/no. "{texts[count]}"'
-        inp = DEFAULT_IMAGE_TOKEN + "\n" + inp
-        conv.append_message(conv.roles[0], inp)
+        llava_imput = prompt_list[count]
+        llava_imput = DEFAULT_IMAGE_TOKEN + "\n" + llava_imput
+        conv.append_message(conv.roles[0], llava_imput)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
@@ -107,13 +107,77 @@ def get_text_descriptions(input_tuple_data: tuple[DictConfig, list[str], list[st
 
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
         text_descriptions.append([image_file, outputs])
-        # print(count, image_file, outputs)
-
     return text_descriptions
 
 
-def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
-    """Query llava model.
+def llava_caption(cfg, img_paths) -> list[str]:
+    """Query llava model to get text descriptions of images.
+
+    Args:
+        cfg: config
+        img_paths: image file paths
+    Returns:
+        return_data: list of text descriptions
+    """
+    mp.set_start_method("spawn")
+    if cfg.dataset == "pitts":
+        prompt_list = (
+            [
+                "Describe the static objects in the image like buildings. \
+                Do not include dynamic objects such as people, cars, or animals."
+            ]
+            * len(img_paths)
+        )
+    elif cfg.dataset == "sop":
+        prompt_list = ["Describe the object in the image."] * len(img_paths)
+    # TODO: Add more datasets
+    else:
+        raise ValueError(f"Dataset {cfg.dataset} not supported.")
+    try:
+        num_processes = cfg.llava.num_processes
+        p = Pool(processes=num_processes)
+        print("num_processes:", num_processes)
+        data = p.map(
+            query_llava,
+            [
+                (
+                    cfg.llava,
+                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
+                    prompt_list[
+                        int(i * len(prompt_list) / num_processes) : int((i + 1) * len(prompt_list) / num_processes)
+                    ],
+                )
+                for i in range(num_processes)
+            ],
+        )
+        return_data = data.copy()
+    except RuntimeError:
+        print("-----------------------------------------------")
+        print("RuntimeError.")
+        return_data = query_llava((cfg.llava, img_paths, prompt_list))
+    return return_data
+
+
+def align_img_text(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> list[str]:
+    """Align image and text data.
+
+    Args:
+        input_tuple_data: input tuple data: (cfg_llava, img_paths, texts)
+
+    Returns:
+        text_descriptions: list of text descriptions
+    """
+    cfg_llava, img_paths, texts = input_tuple_data
+    prompt_list = []
+    for i in range(len(texts)):
+        prompt = f'Does the following text describe the given image? Answer in yes/no. "{texts[i]}"'
+        prompt_list.append(prompt)
+    text_descriptions = llava_img_text_align((cfg_llava, img_paths, prompt_list))
+    return text_descriptions
+
+
+def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
+    """Query llava model to see if the texts are aligned with the provided images.
 
     Args:
         cfg: config
@@ -127,9 +191,8 @@ def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
         num_processes = cfg.llava.num_processes
         p = Pool(processes=num_processes)
         print("num_processes:", num_processes)
-
         data = p.map(
-            get_text_descriptions,
+            align_img_text,
             [
                 (
                     cfg.llava,
@@ -147,6 +210,5 @@ def query_llava(cfg, img_paths, text_descriptions) -> list[str]:
     except RuntimeError:
         print("-----------------------------------------------")
         print("RuntimeError.")
-        return_data = get_text_descriptions((cfg.llava, img_paths, text_descriptions))
-
+        return_data = align_img_text((cfg.llava, img_paths, text_descriptions))
     return return_data

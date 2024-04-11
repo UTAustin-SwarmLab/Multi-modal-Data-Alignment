@@ -13,12 +13,13 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_COSMOS,
     load_ImageNet,
+    load_PITTS,
     load_SOP,
     load_TIIL,
     shuffle_data_by_indices,
     train_test_split,
 )
-from mmda.utils.query_llava import query_llava
+from mmda.utils.llava_utils import llava_img_text_align
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -49,6 +50,8 @@ def llava_align(cfg: DictConfig) -> None:
         img_paths, text_descriptions, _, _ = load_TIIL(cfg_dataset)
     elif cfg.dataset == "cosmos":
         img_paths, text_descriptions, _, _ = load_COSMOS(cfg_dataset)
+    elif cfg.dataset == "pitts":
+        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
     # TODO: add more datasets
     else:
         raise NotImplementedError(f"Dataset {cfg.dataset} not implemented")
@@ -60,7 +63,7 @@ def llava_align(cfg: DictConfig) -> None:
         _, text_descriptions = train_test_split(text_descriptions, trainIdx, valIdx)
 
     # query llava without shuffling
-    aligned_answer = query_llava(cfg, img_paths, text_descriptions)
+    aligned_answer = llava_img_text_align(cfg, img_paths, text_descriptions)
     model_name = cfg.llava.model_path.split("/")[-1]
 
     os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
@@ -103,7 +106,7 @@ def llava_dataset_shuffle(cfg: DictConfig):
     model_name = cfg.llava.model_path.split("/")[-1]
 
     # query llava without shuffling
-    aligned_answer = query_llava(cfg, valImgPath, valTxt)
+    aligned_answer = llava_img_text_align(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
         cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_ds_unalign.pkl",
@@ -146,7 +149,7 @@ def llava_class_shuffle(cfg: DictConfig):
     model_name = cfg.llava.model_path.split("/")[-1]
 
     # query llava without shuffling
-    class_unalign_answer = query_llava(cfg, valImgPath, valTxt)
+    class_unalign_answer = llava_img_text_align(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
         cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_class_unalign.pkl",
@@ -188,7 +191,7 @@ def llava_obj_shuffle(cfg: DictConfig):
     model_name = cfg.llava.model_path.split("/")[-1]
 
     # query llava without shuffling
-    obj_unalign_answer = query_llava(cfg, valImgPath, valTxt)
+    obj_unalign_answer = llava_img_text_align(cfg, valImgPath, valTxt)
     # Save text_descriptions pickle
     with open(
         cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_obj_unalign.pkl",

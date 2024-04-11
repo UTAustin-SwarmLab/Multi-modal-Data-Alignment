@@ -8,10 +8,11 @@ from mmda.utils.dataset_utils import (
     load_COSMOS,
     load_ImageNet,
     load_MusicCaps,
+    load_PITTS,
     load_SOP,
     load_TIIL,
 )
-from mmda.utils.embed_data import clap_audio, clap_text, clip_imgs, clip_text, dinov2, gtr_text
+from mmda.utils.embed_data import clap_audio, clap_text, clip_imgs, clip_text, cosplace_img, dinov2, gtr_text
 
 BATCH_SIZE = 128
 
@@ -164,6 +165,38 @@ def main(cfg: DictConfig):  # noqa: D103
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
 
+    elif dataset == "pitts":
+        cfg_dataset = cfg.pitts
+        img_files, text_descriptions, _ = load_PITTS(cfg_dataset)
+
+        os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "PITTS_text_emb_clip.pkl"), "wb") as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text_descriptions)
+        with open(os.path.join(cfg_dataset.paths.save_path, "PITTS_text_emb_gtr.pkl"), "wb") as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
+
+        # get img embeddings
+        img_emb = dinov2(img_files, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "PITTS_img_emb_dino.pkl"), "wb") as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(img_files, BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "PITTS_img_emb_clip.pkl"), "wb") as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+
+        img_emb = cosplace_img(img_files, batch_size=BATCH_SIZE)
+        with open(os.path.join(cfg_dataset.paths.save_path, "PITTS_img_emb_cosplace.pkl"), "wb") as f:
+            pickle.dump(img_emb, f)
+        print("Cosplace embeddings saved")
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")

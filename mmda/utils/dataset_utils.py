@@ -28,13 +28,45 @@ def load_dataset_config(cfg: DictConfig) -> DictConfig:
         cfg_dataset = cfg.tiil
     elif dataset == "cosmos":
         cfg_dataset = cfg.cosmos
+    elif dataset == "pitts":
+        cfg_dataset = cfg.pitts
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
     return cfg_dataset
 
 
-def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray]:
+def load_PITTS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the PITTS dataset.
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        text_descriptions: list of text descriptions
+        obj_ids: list of object ids
+    """
+    # load PITTS train json files
+    # train set
+    with open(cfg_dataset.paths.save_path + "pitts_llava-v1.5-13b_captions.pkl", "rb") as f:
+        path_text_descriptions_threads = pickle.load(f)
+    path_text_descriptions = []
+    for i in range(len(path_text_descriptions_threads)):
+        path_text_descriptions.extend(path_text_descriptions_threads[i])
+    for path_text in path_text_descriptions:
+        # /store/omama/datasets/pitts250k/000/000426_pitch1_yaw1.jpg
+        print(path_text[0], path_text[1])
+        input()
+        path_text[0] = path_text[0].replace("/store/", "/nas/")
+        path_text[1] = path_text[1].replace("</s>", "")
+    img_paths = [x[0] for x in path_text_descriptions]
+    text_descriptions = [x[1] for x in path_text_descriptions]
+    obj_ids = [img_path.split("/")[-1].split("_")[0] for img_path in img_paths]
+    return img_paths, text_descriptions, obj_ids
+
+
+def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray, list[str]]:
     """Load the COSMOS dataset.
 
     Args:
@@ -44,27 +76,47 @@ def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarr
         img_paths: list of image absolute paths
         text_descriptions: list of text descriptions
         inconsistency: list of labels (True: inconsistent, False: consistent)
+        article_urls: list of article urls
     """
     img_paths = []
     text_descriptions = []
     inconsistency = []
     article_urls = []
-    # load COSMOS json files
+
+    # load COSMOS val data json files
+    with open(cfg_dataset.paths.dataset_path + "train_data.json") as f:
+        for line in f:
+            data = ast.literal_eval(line)
+            # caption 1
+            # since the first caption is the original caption from the website, thus inconsistency is always False
+            # and since we do not have labels for the val/train data, we do not consider the other captions
+            img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
+            text_descriptions.append(data["articles"][0]["caption_modified"])
+            inconsistency.append(0)
+            article_urls.append(data["articles"][0]["article_url"])
+
+    # load COSMOS test data json files
     with open(cfg_dataset.paths.dataset_path + "test_data.json") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1
+            # the first caption is the original caption from the website, thus inconsistency is always False
             img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
             text_descriptions.append(data["caption1_modified"])
-            inconsistency.append(data["context_label"])  # (1=Out-of-Context, 0=Not-Out-of-Context )
+            inconsistency.append(0)
             article_urls.append(data["article_url"])
             # caption 2
+            # the second caption is the google-searched caption, thus inconsistency can be True
             img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
             text_descriptions.append(data["caption2_modified"])
-            inconsistency.append(data["context_label"])
+            inconsistency.append(data["context_label"])  # (1=Out-of-Context, 0=Not-Out-of-Context )
             article_urls.append(data["article_url"])
+    print(f"Number of COSMOS data: {len(img_paths)}")
+    print(f"Number of COSMOS inconsistency: {np.sum(inconsistency)}")
+    print(f"Number of COSMOS consistency: {len(inconsistency) - np.sum(inconsistency)}")
+    print(f"Number of COSMOS article urls: {len(article_urls)}")
     inconsistency = np.array(inconsistency, dtype=bool)
-    return img_paths, text_descriptions, inconsistency, None
+    return img_paths, text_descriptions, inconsistency, article_urls
 
 
 def load_TIIL(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarray, list[str | None]]:
@@ -397,6 +449,12 @@ def shuffle_by_level(
             train_gts, val_gts = train_test_split(orig_labels, trainIdx, valIdx)
         else:
             raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
+    elif dataset == "pitts":
+        _, _, obj_ids = load_PITTS(cfg_dataset)
+        if shuffle_level == "obj":
+            train_gts, val_gts = train_test_split(obj_ids, trainIdx, valIdx)
+        else:
+            raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
@@ -407,9 +465,13 @@ def shuffle_by_level(
     return trainData2Unalign, valData2Unalign
 
 
-# import hydra
-# @hydra.main(version_base=None, config_path="../../config", config_name="main")
-# def test(cfg: DictConfig):
-#     paths, annots, inconsistency, orig_words = load_COSMOS(cfg.cosmos)
-# if __name__ == "__main__":
-#     test()
+import hydra
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="main")
+def test(cfg: DictConfig):
+    paths, annots, inconsistency, orig_words = load_PITTS(cfg.pitts)
+
+
+if __name__ == "__main__":
+    test()

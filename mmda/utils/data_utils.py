@@ -44,6 +44,11 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
             Data1 = pickle.load(f)
         with open(cfg_dataset.paths.save_path + f"COSMOS_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
             Data2 = pickle.load(f)
+    elif dataset == "pitts":
+        with open(cfg_dataset.paths.save_path + f"PITTS_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
+            Data1 = pickle.load(f)
+        with open(cfg_dataset.paths.save_path + f"PITTS_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
+            Data2 = pickle.load(f)
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {dataset} not supported.")
@@ -87,6 +92,11 @@ def load_CLIP_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         with open(cfg_dataset.paths.save_path + "COSMOS_img_emb_clip.pkl", "rb") as f:
             Data1 = pickle.load(f)
         with open(cfg_dataset.paths.save_path + "COSMOS_text_emb_clip.pkl", "rb") as f:
+            Data2 = pickle.load(f)
+    elif dataset == "pitts":
+        with open(cfg_dataset.paths.save_path + "PITTS_img_emb_clip.pkl", "rb") as f:
+            Data1 = pickle.load(f)
+        with open(cfg_dataset.paths.save_path + "PITTS_text_emb_clip.pkl", "rb") as f:
             Data2 = pickle.load(f)
     # TODO: add more datasets
     else:

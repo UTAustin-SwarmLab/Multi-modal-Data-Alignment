@@ -28,6 +28,9 @@ def main(cfg: DictConfig):  # noqa: D103
     elif cfg.dataset == "cosmos":
         num_train_data = int(3400 * cfg.train_test_ratio)
         clip_model_name = "CLIP"
+    elif cfg.dataset == "pitts":
+        num_train_data = int(17608 * cfg.train_test_ratio)
+        clip_model_name = "CLIP"
     # TODO: add more datasets
     else:
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
