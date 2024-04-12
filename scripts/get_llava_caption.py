@@ -23,10 +23,10 @@ def get_caption(cfg: DictConfig):
             path_text[0] = path_text[0].replace("/store/", "/nas/")
     elif cfg.dataset == "pitts":
         # # train set
-        # with open(cfg_dataset.paths.dataset_path + "text_descriptions_pitts30k_train.pkl", "rb") as f:
+        # with open("/nas/omama/datasets/pitts250k/text_descriptions_pitts30k_train.pkl", "rb") as f:
         #     train_path_text_descriptions = pickle.load(f)
         # val set
-        with open(cfg_dataset.paths.dataset_path + "text_descriptions_pitts30k.pkl", "rb") as f:
+        with open("/nas/omama/datasets/pitts250k/text_descriptions_pitts30k.pkl", "rb") as f:
             val_path_text_descriptions = pickle.load(f)
         # /store/omama/TextMapReduce/pitts250k/000/000000_pitch1_yaw1.jpg
         for path_text in val_path_text_descriptions:

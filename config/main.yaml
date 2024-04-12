@@ -74,7 +74,7 @@ pitts:
   img_encoder: "cosplace"
   text_encoder: "gtr"
   paths:
-    dataset_path: "/nas/omama/datasets/pitts250k/"
+    dataset_path: "/nas/pohan/datasets/pitts250k/"
     save_path: ${pitts.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/PITTS/
 
