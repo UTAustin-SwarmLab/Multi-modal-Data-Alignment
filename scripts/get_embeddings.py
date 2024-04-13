@@ -204,4 +204,4 @@ def main(cfg: DictConfig):  # noqa: D103
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=0 poetry run python scripts/get_embeddings.py
+# CUDA_VISIBLE_DEVICES=6 poetry run python scripts/get_embeddings.py

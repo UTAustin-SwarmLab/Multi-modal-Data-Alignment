@@ -49,17 +49,12 @@ def load_PITTS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarra
     """
     # load PITTS train json files
     # train set
-    with open(cfg_dataset.paths.save_path + "pitts_llava-v1.5-13b_captions.pkl", "rb") as f:
+    with open(cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl", "rb") as f:
         path_text_descriptions_threads = pickle.load(f)
+    # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
     for i in range(len(path_text_descriptions_threads)):
         path_text_descriptions.extend(path_text_descriptions_threads[i])
-    for path_text in path_text_descriptions:
-        # /store/omama/datasets/pitts250k/000/000426_pitch1_yaw1.jpg
-        print(path_text[0], path_text[1])
-        input()
-        path_text[0] = path_text[0].replace("/store/", "/nas/")
-        path_text[1] = path_text[1].replace("</s>", "")
     img_paths = [x[0] for x in path_text_descriptions]
     text_descriptions = [x[1] for x in path_text_descriptions]
     obj_ids = [img_path.split("/")[-1].split("_")[0] for img_path in img_paths]
@@ -451,7 +446,7 @@ def shuffle_by_level(
             raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")
     elif dataset == "pitts":
         _, _, obj_ids = load_PITTS(cfg_dataset)
-        if shuffle_level == "obj":
+        if shuffle_level == "object":
             train_gts, val_gts = train_test_split(obj_ids, trainIdx, valIdx)
         else:
             raise ValueError(f"Dataset {dataset} does not have {shuffle_level} information.")

@@ -117,7 +117,7 @@ def llava_caption(cfg, img_paths) -> list[str]:
         cfg: config
         img_paths: image file paths
     Returns:
-        return_data: list of text descriptions
+        img_captions: list of text descriptions
     """
     mp.set_start_method("spawn")
     if cfg.dataset == "pitts":
@@ -150,30 +150,12 @@ def llava_caption(cfg, img_paths) -> list[str]:
                 for i in range(num_processes)
             ],
         )
-        return_data = data.copy()
+        img_captions = data.copy()
     except RuntimeError:
         print("-----------------------------------------------")
         print("RuntimeError.")
-        return_data = query_llava((cfg.llava, img_paths, prompt_list))
-    return return_data
-
-
-def align_img_text(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> list[str]:
-    """Align image and text data.
-
-    Args:
-        input_tuple_data: input tuple data: (cfg_llava, img_paths, texts)
-
-    Returns:
-        text_descriptions: list of text descriptions
-    """
-    cfg_llava, img_paths, texts = input_tuple_data
-    prompt_list = []
-    for i in range(len(texts)):
-        prompt = f'Does the following text describe the given image? Answer in yes/no. "{texts[i]}"'
-        prompt_list.append(prompt)
-    text_descriptions = llava_img_text_align((cfg_llava, img_paths, prompt_list))
-    return text_descriptions
+        img_captions = query_llava((cfg.llava, img_paths, prompt_list))
+    return img_captions
 
 
 def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
@@ -182,17 +164,23 @@ def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
     Args:
         cfg: config
         img_paths: image file paths
-        text_descriptions: text descriptions
+        text_descriptions: text descriptions (captions) of images
     Returns:
-        return_data: list of text descriptions
+        llava_yes_no_answer: list of text descriptions
     """
+    prompt_list = []
+    for i in range(len(text_descriptions)):
+        prompt = f'Does the following text describe the given image? Answer in yes/no. "{text_descriptions[i]}"'
+        prompt_list.append(prompt)
+    # text_descriptions = query_llava(cfg.llava, img_paths, prompt_list)
+
     mp.set_start_method("spawn")
     try:
         num_processes = cfg.llava.num_processes
         p = Pool(processes=num_processes)
         print("num_processes:", num_processes)
         data = p.map(
-            align_img_text,
+            query_llava,
             [
                 (
                     cfg.llava,
@@ -206,9 +194,9 @@ def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
                 for i in range(num_processes)
             ],
         )
-        return_data = data.copy()
+        llava_yes_no_answer = data.copy()
     except RuntimeError:
         print("-----------------------------------------------")
         print("RuntimeError.")
-        return_data = align_img_text((cfg.llava, img_paths, text_descriptions))
-    return return_data
+        llava_yes_no_answer = query_llava((cfg.llava, img_paths, text_descriptions))
+    return llava_yes_no_answer

@@ -22,7 +22,7 @@ def CCA_fit_train_data(
     # CCA dimensionality reduction
     assert trainData1.shape[0] >= trainData1.shape[1], "The number of samples should be larger than features"
     assert trainData2.shape[0] >= trainData2.shape[1], "The number of samples should be larger than features"
-    cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
+    cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
     trainData1, trainData2 = cca.fit_transform((trainData1, trainData2))
     if cfg_dataset.equal_weights:
         corr_align = np.ones((trainData2.shape[1],))  # dim,

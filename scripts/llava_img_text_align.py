@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.utils.data_utils import (
-    load_two_encoder_data,
+    load_dataset_config,
 )
 from mmda.utils.dataset_utils import (
     filter_str_label,
@@ -35,7 +35,7 @@ def llava_align(cfg: DictConfig) -> None:
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+    cfg_dataset = load_dataset_config(cfg)
 
     # load raw data
     if cfg.dataset == "sop":
@@ -90,11 +90,13 @@ def llava_dataset_shuffle(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+    cfg_dataset = load_dataset_config(cfg)
 
     # load raw data
     if cfg.dataset == "sop":
         img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+    elif cfg.dataset == "pitts":
+        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
 
     # split data
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
@@ -130,11 +132,13 @@ def llava_class_shuffle(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+    cfg_dataset = load_dataset_config(cfg)
 
     # load raw data
     if cfg.dataset == "sop":
         img_paths, text_descriptions, classes, _ = load_SOP(cfg_dataset)
+    elif cfg.dataset == "pitts":
+        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
 
     # split data
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
@@ -173,12 +177,15 @@ def llava_obj_shuffle(cfg: DictConfig):
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+    cfg_dataset = load_dataset_config(cfg)
 
     # load raw data
     if cfg.dataset == "sop":
         img_paths, text_descriptions, _, obj_ids = load_SOP(cfg_dataset)
     # split data
+    elif cfg.dataset == "pitts":
+        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
+
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
     _, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
@@ -204,8 +211,8 @@ def llava_obj_shuffle(cfg: DictConfig):
 
 if __name__ == "__main__":
     llava_align()
-    # llava_dataset_shuffle()
-    # llava_class_shuffle()
-    # llava_obj_shuffle()
+    llava_dataset_shuffle()
+    llava_class_shuffle()
+    llava_obj_shuffle()
 
 # CUDA_VISIBLE_DEVICES=2 poetry run scripts/python query_llava.py

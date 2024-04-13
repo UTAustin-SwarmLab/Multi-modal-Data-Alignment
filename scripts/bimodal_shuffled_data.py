@@ -9,9 +9,7 @@ from mmda.data_shuffle_align import (
     CCA_data_align,
     CLIP_like_data_align,
 )
-from mmda.utils.data_utils import (
-    load_two_encoder_data,
-)
+from mmda.utils.dataset_utils import load_dataset_config
 from mmda.utils.sim_utils import (
     cal_AUC,
 )
@@ -39,7 +37,7 @@ def main(cfg: DictConfig):  # noqa: D103
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
     print("number of training data", num_train_data)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
+    cfg_dataset = load_dataset_config(cfg)
 
     # plot the ROC curve
     fig, ax = plt.subplots()
@@ -73,8 +71,8 @@ def main(cfg: DictConfig):  # noqa: D103
         color="blue",
     )
 
-    if cfg.dataset != "imagenet" and cfg.dataset != "tiil":
-        # class level shuffle ROC curve
+    # class level shuffle ROC curve
+    if cfg.dataset != "imagenet" and cfg.dataset != "tiil" and cfg.dataset != "pitts":
         roc_class_points = CCA_data_align(cfg, "class")
         class_auc = cal_AUC(roc_class_points)
         clip_roc_class_points = CLIP_like_data_align(cfg, "class")
@@ -103,8 +101,8 @@ def main(cfg: DictConfig):  # noqa: D103
             color="red",
         )
 
-    # plot different ROC curves for obj shuffle levels (SOP only)
-    if cfg.dataset == "sop":
+    # obj shuffle levels
+    if cfg.dataset == "sop" or cfg.dataset == "pitts":
         # object level shuffle ROC curve
         roc_obj_points = CCA_data_align(cfg, "object")
         obj_auc = cal_AUC(roc_obj_points)
