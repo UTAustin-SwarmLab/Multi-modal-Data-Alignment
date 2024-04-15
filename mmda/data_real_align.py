@@ -20,6 +20,7 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_COSMOS,
     load_ImageNet,
+    load_PITTS,
     load_TIIL,
     train_test_split,
 )
@@ -276,6 +277,9 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
     elif cfg.dataset == "cosmos":
         cfg_dataset = cfg.cosmos
         img_paths, text_desciption, wrong_labels_bool, _ = load_COSMOS(cfg_dataset)
+    elif cfg.dataset == "pitts":
+        cfg_dataset = cfg.pitts
+        img_paths, text_desciption, wrong_labels_bool = load_PITTS(cfg_dataset)
     # TODO: add more datasets
     else:
         raise NotImplementedError

@@ -19,9 +19,15 @@ def CCA_fit_train_data(
         trainData2: the second training data after CCA. shape: (num_samples, dim)
         corr_align: the correlation alignment. shape: (dim,)
     """
+    # Check the shape of the training data9
+    assert (
+        trainData1.shape[0] >= trainData1.shape[1]
+    ), f"The number of samples {trainData1.shape[0]} should be larger than features {trainData1.shape[1]}"
+    assert (
+        trainData2.shape[0] >= trainData2.shape[1]
+    ), f"The number of samples {trainData2.shape[0]} should be larger than features {trainData2.shape[1]}"
+
     # CCA dimensionality reduction
-    assert trainData1.shape[0] >= trainData1.shape[1], "The number of samples should be larger than features"
-    assert trainData2.shape[0] >= trainData2.shape[1], "The number of samples should be larger than features"
     cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
     trainData1, trainData2 = cca.fit_transform((trainData1, trainData2))
     if cfg_dataset.equal_weights:

@@ -133,7 +133,7 @@ def CCA_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tupl
         fig.savefig(os.path.join(plots_path, "cca_corr.png"))
 
     # plot ROC
-    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-0.15, 0.65, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1.0, 1.0, 80))
     return ROC_points_list
 
 
@@ -186,7 +186,7 @@ def CLIP_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> lis
     )
 
     # plot ROC
-    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
     return ROC_points_list
 
 
@@ -262,5 +262,5 @@ def ASIF_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tup
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 40))
+    ROC_points_list = ROC_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
     return ROC_points_list

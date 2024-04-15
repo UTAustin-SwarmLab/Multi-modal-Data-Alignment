@@ -4,8 +4,14 @@ defaults:
 seed: 42
 train_test_ratio: 0.7
 noisy_train_set: True
-dataset: "pitts" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
 repo_root: "/home/pl22767/Project/MMDA/"
+
+# TODO: add more datasets
+dataset: "tiil" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
+dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
+class_level_datasets: [sop, musiccaps]
+object_level_datasets: [pitts, sop]
+mislabeled_datasets: [imagenet, cosmos, tiil]
 
 sop:
   CCA_dim: 500 # dimension of the CCA transformation

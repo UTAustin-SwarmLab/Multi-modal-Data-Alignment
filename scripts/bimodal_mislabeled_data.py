@@ -15,6 +15,7 @@ from mmda.utils.data_utils import (
 from mmda.utils.sim_utils import (
     cal_AUC,
 )
+from scripts.parse_llava_alignment_result import llava_mislabeled_align
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -27,9 +28,6 @@ def main(cfg: DictConfig):  # noqa: D103
         clip_model_name = "CLIP"
     elif cfg.dataset == "cosmos":
         num_train_data = int(3400 * cfg.train_test_ratio)
-        clip_model_name = "CLIP"
-    elif cfg.dataset == "pitts":
-        num_train_data = int(17608 * cfg.train_test_ratio)
         clip_model_name = "CLIP"
     # TODO: add more datasets
     else:
@@ -71,12 +69,8 @@ def main(cfg: DictConfig):  # noqa: D103
     )
 
     # plot LLaVA result.
-    if cfg.dataset == "tiil":
-        # TPR: 0.29880668257756565, FPR: 0.09780621572212066
-        ax.plot(0.09780621572212066, 0.29880668257756565, "x", markersize=12, mew=3, label="LLaVA", color="blue")
-    elif cfg.dataset == "imagenet":
-        # TPR: 0.7694610778443114, FPR: 0.6378048780487805
-        ax.plot(0.6378048780487805, 0.7694610778443114, "x", markersize=12, mew=3, label="LLaVA", color="blue")
+    llava_FPR, llava_TPR = llava_mislabeled_align(cfg)
+    ax.plot(llava_FPR, llava_TPR, "s-", label="LLaVA", c="blue")
 
     ax.set_title("ROC Curves of Detecting Mislabeled Data")
     ax.set_xlabel("False Positive Rate")

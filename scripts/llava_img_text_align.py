@@ -23,6 +23,24 @@ from mmda.utils.llava_utils import llava_img_text_align
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
+def main(cfg: DictConfig) -> None:
+    """Main function to query llava and save the aligned answer as pickle file.
+
+    Args:
+        cfg (DictConfig): config file
+
+    Returns:
+        None
+    """
+    llava_align(cfg)
+    if cfg.dataset in cfg.dataset_level_datasets:
+        llava_dataset_shuffle(cfg)
+    if cfg.dataset in cfg.class_level_datasets:
+        llava_class_shuffle(cfg)
+    if cfg.dataset in cfg.object_level_datasets:
+        llava_obj_shuffle(cfg)
+
+
 def llava_align(cfg: DictConfig) -> None:
     """Query llava and save the aligned answer as pickle file.
 
@@ -57,7 +75,7 @@ def llava_align(cfg: DictConfig) -> None:
         raise NotImplementedError(f"Dataset {cfg.dataset} not implemented")
 
     # split data
-    if cfg.dataset == "sop":
+    if cfg.dataset == "sop" or cfg.dataset == "pitts":
         trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
         _, img_paths = train_test_split(img_paths, trainIdx, valIdx)
         _, text_descriptions = train_test_split(text_descriptions, trainIdx, valIdx)
@@ -184,7 +202,7 @@ def llava_obj_shuffle(cfg: DictConfig):
         img_paths, text_descriptions, _, obj_ids = load_SOP(cfg_dataset)
     # split data
     elif cfg.dataset == "pitts":
-        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
+        img_paths, text_descriptions, obj_ids = load_PITTS(cfg_dataset)
 
     trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
     _, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
@@ -210,9 +228,6 @@ def llava_obj_shuffle(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    llava_align()
-    llava_dataset_shuffle()
-    llava_class_shuffle()
-    llava_obj_shuffle()
+    main()
 
 # CUDA_VISIBLE_DEVICES=2 poetry run scripts/python query_llava.py
