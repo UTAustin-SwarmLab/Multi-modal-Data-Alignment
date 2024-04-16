@@ -42,7 +42,6 @@ def Spearman_coeff(cfg: DictConfig):
         ylabel="CCA similarity score",
     )
     save_fig(fig, cfg_dataset.paths.plots_path + "sim_scatter_plot.png", dpi=400)
-    return
 
 
 if __name__ == "__main__":

@@ -12,9 +12,17 @@ from mmda.utils.dataset_utils import (
     load_SOP,
     load_TIIL,
 )
-from mmda.utils.embed_data import clap_audio, clap_text, clip_imgs, clip_text, cosplace_img, dinov2, gtr_text
+from mmda.utils.embed_data import (
+    clap_audio,
+    clap_text,
+    clip_imgs,
+    clip_text,
+    cosplace_img,
+    dinov2,
+    gtr_text,
+)
 
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -204,4 +212,4 @@ def main(cfg: DictConfig):  # noqa: D103
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=6 poetry run python scripts/get_embeddings.py
+# CUDA_VISIBLE_DEVICES=0 poetry run python scripts/get_embeddings.py

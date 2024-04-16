@@ -64,7 +64,6 @@ def CLIP_like_model_inspect_outliers(cfg: DictConfig, Data1: np.ndarray, Data2: 
     # calculate the similarity score
     sim_score = cosine_sim(Data1, Data2)
     inspect_youtube_data(cfg, sim_score)
-    return
 
 
 def CCA_inspect_outliers(cfg: DictConfig, Data1: np.ndarray, Data2: np.ndarray):
@@ -94,11 +93,10 @@ def CCA_inspect_outliers(cfg: DictConfig, Data1: np.ndarray, Data2: np.ndarray):
     # calculate the similarity score
     sim_score = weighted_corr_sim(Data1, Data2, corr_align, dim=cfg.sim_dim)
     inspect_youtube_data(cfg, sim_score)
-    return
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: D103
+def main(cfg: DictConfig) -> None:
     """Inspect outliers in the given dataset using the CLAP model and the proposed CCA method.
 
     Args:
@@ -110,7 +108,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     cfg_dataset, Data1, Data2 = load_two_encoder_data(cfg)
     CLIP_like_model_inspect_outliers(cfg_dataset, Data1, Data2)
     CCA_inspect_outliers(cfg_dataset, Data1, Data2)
-    return
 
 
 if __name__ == "__main__":

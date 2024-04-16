@@ -68,22 +68,3 @@ yt-dlp = "*"
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
 test = ["pytest", "pytest-cov", "pytest-mock"]
-
-[tool.black]
-line-length = 120
-
-[tool.ruff]
-select = [
-  "E",   # pycodestyle
-  "F",   # pyflakes
-  "UP",  # pyupgrade
-  "D",   # pydocstyle
-]
-line-length = 120
-
-ignore = ["ANN101", "ANN102", "D100"]
-
-extend-exclude = [".venv", "venv", "vscode"]
-
-[tool.ruff.pydocstyle]
-convention = "google"

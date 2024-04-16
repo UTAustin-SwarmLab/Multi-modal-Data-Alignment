@@ -7,7 +7,7 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "pitts" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
+dataset: "cosmos" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]

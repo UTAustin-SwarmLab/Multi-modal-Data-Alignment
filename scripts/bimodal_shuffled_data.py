@@ -167,7 +167,6 @@ def main(cfg: DictConfig):  # noqa: D103
                 f"shuffle_align/ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}.png",
             )
         )
-    return
 
 
 if __name__ == "__main__":

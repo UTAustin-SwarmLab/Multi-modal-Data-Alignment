@@ -79,10 +79,10 @@ def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarr
     article_urls = []
 
     # load COSMOS val data json files
-    with open(cfg_dataset.paths.dataset_path + "train_data.json") as f:
+    with open(cfg_dataset.paths.dataset_path + "val_data.json") as f:
         for line in f:
             data = ast.literal_eval(line)
-            # caption 1
+            # caption 1: 41,006
             # since the first caption is the original caption from the website, thus inconsistency is always False
             # and since we do not have labels for the val/train data, we do not consider the other captions
             img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
@@ -94,13 +94,13 @@ def load_COSMOS(cfg_dataset: DictConfig) -> tuple[list[str], list[str], np.ndarr
     with open(cfg_dataset.paths.dataset_path + "test_data.json") as f:
         for line in f:
             data = ast.literal_eval(line)
-            # caption 1
+            # caption 1: 1700
             # the first caption is the original caption from the website, thus inconsistency is always False
             img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
             text_descriptions.append(data["caption1_modified"])
             inconsistency.append(0)
             article_urls.append(data["article_url"])
-            # caption 2
+            # caption 2: 1700
             # the second caption is the google-searched caption, thus inconsistency can be True
             img_paths.append(os.path.join(cfg_dataset.paths.dataset_path, data["img_local_path"]))
             text_descriptions.append(data["caption2_modified"])

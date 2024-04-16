@@ -91,7 +91,6 @@ def llava_align(cfg: DictConfig) -> None:
     ) as f:
         pickle.dump(aligned_answer, f)
 
-    return
 
 
 def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset"):
@@ -133,7 +132,6 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset"):
         "wb",
     ) as f:
         pickle.dump(aligned_answer, f)
-    return
 
 
 if __name__ == "__main__":

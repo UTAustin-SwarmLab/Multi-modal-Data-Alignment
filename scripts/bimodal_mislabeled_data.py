@@ -10,7 +10,7 @@ from mmda.data_real_align import (
     CLIP_like_detect_mislabeled_data,
 )
 from mmda.utils.data_utils import (
-    load_two_encoder_data,
+    load_dataset_config,
 )
 from mmda.utils.sim_utils import (
     cal_AUC,
@@ -34,8 +34,7 @@ def main(cfg: DictConfig):  # noqa: D103
         raise ValueError(f"Dataset {cfg.dataset} not supported.")
     print("number of training data", num_train_data)
 
-    cfg_dataset, _, _ = load_two_encoder_data(cfg)
-
+    cfg_dataset = load_dataset_config(cfg)
     # plot the ROC curve
     fig, ax = plt.subplots()
 
@@ -88,7 +87,6 @@ def main(cfg: DictConfig):  # noqa: D103
             f"mislabeled/ROC_mislabeled_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}{eq_label}{train_label}.png",
         )
     )
-    return
 
 
 if __name__ == "__main__":

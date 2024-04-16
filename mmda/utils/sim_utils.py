@@ -1,6 +1,6 @@
 import numpy as np
-import scipy.stats as stats
 import torch
+from scipy import stats
 from transformers import (
     AutoModel,
 )
@@ -86,7 +86,7 @@ def cal_ROC_components(
     FN = np.sum(sim_align <= threshold)
     TN = np.sum(sim_unalign <= threshold)
     assert (
-        TP + FP + FN + TN == sim_align.shape[0] + sim_unalign.shape[0]
+        sim_align.shape[0] + sim_unalign.shape[0] == TP + FP + FN + TN
     ), f"TP + FP + FN + TN should be the number of samples, but got {TP + FP + FN + TN} \
         and {sim_align.shape[0] + sim_unalign.shape[0]}"
     return TP, FP, FN, TN

@@ -85,7 +85,7 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list
     return (FPR, TPR)
 
 
-def llava_mislabeled_align(cfg: DictConfig):
+def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
     """Return llava's mislabeled answer."""
     # set random seed
     np.random.seed(cfg.seed)

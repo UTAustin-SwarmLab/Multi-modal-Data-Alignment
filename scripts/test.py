@@ -13,7 +13,6 @@ def main(cfg: DictConfig):  # noqa: D103
     import pdb
 
     pdb.set_trace()
-    return
 
 
 if __name__ == "__main__":
