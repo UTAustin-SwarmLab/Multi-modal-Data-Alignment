@@ -73,8 +73,9 @@ def main(cfg: DictConfig):  # noqa: D103
             color="blue",
         )
         # LLaVA
-        llava_FPR, llava_TPR = llava_shuffle_align(cfg, "dataset")
-        ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA random shuffle.", c="blue")
+        if cfg.dataset in cfg.llava_datasets:
+            llava_FPR, llava_TPR = llava_shuffle_align(cfg, "dataset")
+            ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA random shuffle.", c="blue")
 
     # class level shuffle ROC curve
     if cfg.dataset in cfg.class_level_datasets:
@@ -106,8 +107,9 @@ def main(cfg: DictConfig):  # noqa: D103
             color="red",
         )
         # LLAVA
-        llava_FPR, llava_TPR = llava_shuffle_align(cfg, "class")
-        ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA class level shuffle.", c="red")
+        if cfg.dataset in cfg.llava_datasets:
+            llava_FPR, llava_TPR = llava_shuffle_align(cfg, "class")
+            ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA class level shuffle.", c="red")
 
     # obj shuffle levels
     if cfg.dataset in cfg.object_level_datasets:
@@ -140,8 +142,9 @@ def main(cfg: DictConfig):  # noqa: D103
             color="green",
         )
         # LLAVA
-        llava_FPR, llava_TPR = llava_shuffle_align(cfg, "object")
-        ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA object level shuffle.", c="green")
+        if cfg.dataset in cfg.llava_datasets:
+            llava_FPR, llava_TPR = llava_shuffle_align(cfg, "object")
+            ax.plot(llava_FPR, llava_TPR, "x", ms=12, mew=3, label="LLaVA object level shuffle.", c="green")
 
     ax.set_title("ROC Curves of Detecting Modality Alignment")
     ax.set_xlabel("False Positive Rate")

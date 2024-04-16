@@ -12,6 +12,7 @@ dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
+llava_datasets: [pitts, sop, imagenet]
 
 sop:
   CCA_dim: 500 # dimension of the CCA transformation
