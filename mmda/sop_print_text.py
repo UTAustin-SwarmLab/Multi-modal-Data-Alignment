@@ -14,9 +14,7 @@ def sop_print_text(cfg: DictConfig) -> None:  # noqa: D103
     while True:
         # load raw data
         img_paths, text_descriptions, classes, obj_ids = load_sop(cfg.sop)
-        img_names = [
-            img_path.split("/")[-1].replace(".JPG", "") for img_path in img_paths
-        ]
+        img_names = [img_path.split("/")[-1].replace(".JPG", "") for img_path in img_paths]
         img_text_dict = dict(zip(img_names, text_descriptions))
         print(np.unique(classes))
 

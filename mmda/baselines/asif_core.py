@@ -23,9 +23,7 @@ def relative_represent(
         indices (torch.Tensor): Indices of the nonzero entries in each relative representation of y.
         values (torch.Tensor): Corresponding coefficients of the entries.
     """
-    values, indices = torch.zeros((y.shape[0], non_zeros)), torch.zeros(
-        (y.shape[0], non_zeros), dtype=torch.long
-    )
+    values, indices = torch.zeros((y.shape[0], non_zeros)), torch.zeros((y.shape[0], non_zeros), dtype=torch.long)
 
     free_gpu_mem = max_gpu_mem_gb * 1024**3
     max_floats_in_mem = free_gpu_mem / 4
@@ -35,9 +33,7 @@ def relative_represent(
 
     with torch.no_grad():
         for c in range(n_chunks):
-            in_prods = torch.einsum(
-                "ik, jk -> ij", y[c * chunk_y : (c + 1) * chunk_y], basis
-            )
+            in_prods = torch.einsum("ik, jk -> ij", y[c * chunk_y : (c + 1) * chunk_y], basis)
             (
                 values[c * chunk_y : (c + 1) * chunk_y],
                 indices[c * chunk_y : (c + 1) * chunk_y],
@@ -47,9 +43,7 @@ def relative_represent(
     return indices.to("cpu"), values.to("cpu")
 
 
-def sparsify(
-    i: torch.Tensor, v: torch.Tensor, size: torch.Size
-) -> torch.sparse.FloatTensor:
+def sparsify(i: torch.Tensor, v: torch.Tensor, size: torch.Size) -> torch.sparse.FloatTensor:
     """Organize indices and values of n vectors into a single sparse tensor.
 
     Args:
@@ -61,18 +55,12 @@ def sparsify(
         torch.sparse.FloatTensor: sparse tensor of shape "size" (n_vectors, zero + nonzero elements)
     """
     flat_dim = len(i.flatten())
-    coo_first_row_idxs = torch.div(
-        torch.arange(flat_dim), i.shape[1], rounding_mode="floor"
-    )
-    stacked_idxs = torch.cat(
-        (coo_first_row_idxs.unsqueeze(0), i.flatten().unsqueeze(0)), 0
-    )
+    coo_first_row_idxs = torch.div(torch.arange(flat_dim), i.shape[1], rounding_mode="floor")
+    stacked_idxs = torch.cat((coo_first_row_idxs.unsqueeze(0), i.flatten().unsqueeze(0)), 0)
     return torch.sparse_coo_tensor(stacked_idxs, v.flatten(), size)
 
 
-def normalize_sparse(
-    tensor: torch.sparse.FloatTensor, nnz_per_row: int
-) -> torch.sparse.FloatTensor:
+def normalize_sparse(tensor: torch.sparse.FloatTensor, nnz_per_row: int) -> torch.sparse.FloatTensor:
     """Normalize a sparse tensor by row.
 
     Args:
@@ -121,9 +109,7 @@ def zero_shot_classification(  # noqa: PLR0913
     """
     n_anchors = []
     scores = {ve: [] for ve in val_exps}
-    n_templates = max(
-        int(ztxts.shape[0] / (max(test_labels) - min(test_labels) + 1)), 1
-    )
+    n_templates = max(int(ztxts.shape[0] / (max(test_labels) - min(test_labels) + 1)), 1)
 
     for i in range_anch:
         sims = torch.zeros((len(zimgs), len(ztxts)))
@@ -161,20 +147,12 @@ def zero_shot_classification(  # noqa: PLR0913
             vals_txts[:, non_zeros:] = top_valst
 
         for val_exp in val_exps:
-            ztxts_t = sparsify(
-                top_idxst, top_valst**val_exp, (len(ztxts), min(len(aimgs), i))
-            ).to(zimgs.device)
+            ztxts_t = sparsify(top_idxst, top_valst**val_exp, (len(ztxts), min(len(aimgs), i))).to(zimgs.device)
             ztxts_t = normalize_sparse(ztxts_t, non_zeros)
 
-            if (
-                i < max_gpu_mem_gb * 1024**3 / 4 / zimgs.shape[0]
-            ):  # einsum until it fits in GPU memory
-                zimgs_t = sparsify(
-                    top_idxsi, top_valsi**val_exp, (len(zimgs), min(len(aimgs), i))
-                ).to(zimgs.device)
-                sims = torch.einsum(
-                    "ij, kj -> ik", zimgs_t.to_dense(), ztxts_t.to_dense()
-                ).to("cpu")
+            if i < max_gpu_mem_gb * 1024**3 / 4 / zimgs.shape[0]:  # einsum until it fits in GPU memory
+                zimgs_t = sparsify(top_idxsi, top_valsi**val_exp, (len(zimgs), min(len(aimgs), i))).to(zimgs.device)
+                sims = torch.einsum("ij, kj -> ik", zimgs_t.to_dense(), ztxts_t.to_dense()).to("cpu")
             else:
                 n_chunks = 6
                 zs = zimgs.shape[0]
@@ -185,13 +163,10 @@ def zero_shot_classification(  # noqa: PLR0913
                         top_valsi[chunks[ci] : chunks[ci + 1]] ** val_exp,
                         (chunks[ci + 1] - chunks[ci], min(len(aimgs), i)),
                     ).to(zimgs.device)
-                    sims[chunks[ci] : chunks[ci + 1]] = (
-                        torch.sparse.mm(zimgs_t, ztxts_t.t()).to("cpu").to_dense()
-                    )
+                    sims[chunks[ci] : chunks[ci + 1]] = torch.sparse.mm(zimgs_t, ztxts_t.t()).to("cpu").to_dense()
             score = float(
                 (
-                    torch.div(sims.argmax(axis=1), n_templates, rounding_mode="floor")
-                    == test_labels.clone().detach()
+                    torch.div(sims.argmax(axis=1), n_templates, rounding_mode="floor") == test_labels.clone().detach()
                 ).sum()
                 / len(zimgs)
             )

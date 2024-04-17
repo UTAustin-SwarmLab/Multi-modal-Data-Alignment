@@ -25,9 +25,7 @@ def clip_like_sim(
     logit_scale_text = model.logit_scale_t.exp()
     logit_scale_audio = model.logit_scale_a.exp()
     logits_per_text = torch.matmul(text_features, other_features.t()) * logit_scale_text
-    logits_per_audio = (
-        torch.matmul(other_features, text_features.t()) * logit_scale_audio
-    )
+    logits_per_audio = torch.matmul(other_features, text_features.t()) * logit_scale_audio
     return logits_per_text, logits_per_audio
 
 
@@ -41,17 +39,13 @@ def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     Return:
         cos similarity between x and y. shape: (N, )
     """
-    assert (
-        x.shape == y.shape
-    ), f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
+    assert x.shape == y.shape, f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
     x = x / np.linalg.norm(x, axis=1, keepdims=True)
     y = y / np.linalg.norm(y, axis=1, keepdims=True)
     return np.sum(x * y, axis=1)
 
 
-def weighted_corr_sim(
-    x: np.ndarray, y: np.ndarray, corr: np.ndarray, dim: int = 150
-) -> np.ndarray:
+def weighted_corr_sim(x: np.ndarray, y: np.ndarray, corr: np.ndarray, dim: int = 150) -> np.ndarray:
     """Compute the weighted correlation similarity.
 
     Args:
@@ -63,9 +57,7 @@ def weighted_corr_sim(
     Return:
         similarity matrix between x and y. shape: (N, )
     """
-    assert (
-        x.shape == y.shape
-    ), f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
+    assert x.shape == y.shape, f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
     # select the first dim dimensions
     x, y, corr = x[:, :dim], y[:, :dim], corr[:dim]
     # normalize x and y with L2 norm
@@ -118,11 +110,7 @@ def roc_align_unalign_points(
         list of roc points
     """
     roc = []
-    threshold_list = list(
-        np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(
-            -1
-        )
-    )
+    threshold_list = list(np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(-1))
     threshold_list += [-1, 1]
     threshold_list.sort()
     for threshold in threshold_list:
@@ -144,17 +132,11 @@ def cal_auc(roc_points: list[tuple[float, float]]) -> float:
     roc_points = sorted(roc_points, key=lambda x: x[0])
     auc = 0
     for ii in range(1, len(roc_points)):
-        auc += (
-            (roc_points[ii][0] - roc_points[ii - 1][0])
-            * (roc_points[ii][1] + roc_points[ii - 1][1])
-            / 2
-        )
+        auc += (roc_points[ii][0] - roc_points[ii - 1][0]) * (roc_points[ii][1] + roc_points[ii - 1][1]) / 2
     return auc
 
 
-def spearman_rank_coefficient(
-    x: np.ndarray, y: np.ndarray
-) -> tuple[float, np.ndarray, np.ndarray]:
+def spearman_rank_coefficient(x: np.ndarray, y: np.ndarray) -> tuple[float, np.ndarray, np.ndarray]:
     """Calculate the Spearman rank correlation coefficient.
 
     Args:
@@ -164,9 +146,7 @@ def spearman_rank_coefficient(
     Return:
         Spearman rank correlation coefficient
     """
-    assert (
-        x.shape == y.shape
-    ), f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
+    assert x.shape == y.shape, f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
     n = x.shape[0]
     rank_x = np.argsort(x)
     rank_y = np.argsort(y)

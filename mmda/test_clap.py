@@ -52,18 +52,12 @@ def test_pipeline_and_feature_extractor() -> None:
         sampling_rate=sample_rate,
     )
     outputs = model(**inputs)
-    logits_per_audio = (
-        outputs.logits_per_audio
-    )  # this is the audio-text similarity score
-    probs = logits_per_audio.softmax(
-        dim=-1
-    )  # we can take the softmax to get the label probabilities
+    logits_per_audio = outputs.logits_per_audio  # this is the audio-text similarity score
+    probs = logits_per_audio.softmax(dim=-1)  # we can take the softmax to get the label probabilities
     print(probs)
 
     model = ClapModel.from_pretrained("laion/larger_clap_general")
-    feature_extractor = ClapFeatureExtractor.from_pretrained(
-        "laion/larger_clap_general"
-    )
+    feature_extractor = ClapFeatureExtractor.from_pretrained("laion/larger_clap_general")
     tokenizer = AutoTokenizer.from_pretrained("laion/larger_clap_general")
     inputs = feature_extractor(
         audio,
@@ -80,9 +74,7 @@ def test_pipeline_and_feature_extractor() -> None:
     logit_scale_text = model.logit_scale_t.exp()
     logit_scale_audio = model.logit_scale_a.exp()
     _ = torch.matmul(text_features, audio_features.t()) * logit_scale_text
-    logits_per_audio = (
-        torch.matmul(audio_features, text_features.t()) * logit_scale_audio
-    )
+    logits_per_audio = torch.matmul(audio_features, text_features.t()) * logit_scale_audio
     print(logits_per_audio.softmax(dim=-1))
     assert torch.allclose(
         text_features, outputs.text_embeds, atol=1e-4

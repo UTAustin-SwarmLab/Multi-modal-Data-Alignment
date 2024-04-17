@@ -50,14 +50,10 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, train_idx, val_idx)
 
     # separate aligned data and unaligned data
     traindata1align, traindata2align = (
@@ -92,15 +88,11 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         traindata2.mean(axis=0), 0, atol=1e-4
     ), f"traindata2align not zero mean: {traindata2.mean(axis=0)}"
 
-    cca, traindata1, traindata2, corr_align = cca_fit_train_data(
-        cfg_dataset, traindata1, traindata2
-    )
+    cca, traindata1, traindata2, corr_align = cca_fit_train_data(cfg_dataset, traindata1, traindata2)
 
     # calculate the similarity score
     valdata1align, valdata2align = cca.transform((valdata1align, valdata2align))
-    sim_align = weighted_corr_sim(
-        valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
-    )
+    sim_align = weighted_corr_sim(valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim)
 
     ### unaligned case: shuffle the data
     # zero mean data
@@ -108,9 +100,7 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     valdata2unalign = valdata2unalign - traindata2_mean
 
     valdata1unalign, valdata2unalign = cca.transform((valdata1unalign, valdata2unalign))
-    sim_unalign = weighted_corr_sim(
-        valdata1unalign, valdata2unalign, corr_align, dim=cfg_dataset.sim_dim
-    )
+    sim_unalign = weighted_corr_sim(valdata1unalign, valdata2unalign, corr_align, dim=cfg_dataset.sim_dim)
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
         data_list=[sim_align, sim_unalign],
@@ -149,14 +139,10 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
 
     wrong_labels_bool = parse_wrong_label(cfg)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, train_idx, val_idx)
 
     # separate aligned data and unaligned data
     valdata1align, valdata2align = (
@@ -182,8 +168,7 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     )
     save_fig(
         fig,
-        plots_path
-        / f"cos_similarity_mislabeled_{clip_model_name}_r{cfg.train_test_ratio}.png",
+        plots_path / f"cos_similarity_mislabeled_{clip_model_name}_r{cfg.train_test_ratio}.png",
     )
 
     # plot ROC
@@ -204,14 +189,10 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     # load embeddings from the two encoders
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, train_idx, val_idx)
 
     # normalization to perform cosine similarity with a simple matmul
     traindata1 /= np.linalg.norm(traindata1, axis=1, keepdims=True)
@@ -221,10 +202,7 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     # set parameters
     non_zeros = min(cfg.asif.non_zeros, traindata1.shape[0])
-    range_anch = [
-        2**i
-        for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(traindata1))) + 2)
-    ]
+    range_anch = [2**i for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(traindata1))) + 2)]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
     # convert to torch tensors
@@ -297,15 +275,9 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
     if cfg.dataset == "imagenet":
         cfg_dataset = cfg.imagenet
         img_path, mturks_idx, orig_idx, clsidx_to_labels = load_imagenet(cfg_dataset)
-        wrong_labels_bool = (
-            []
-        )  # True if the label is wrong, False if the label is correct
+        wrong_labels_bool = []  # True if the label is wrong, False if the label is correct
         for mturks_label_idx, orig_label_idx in zip(mturks_idx, orig_idx):
-            (
-                wrong_labels_bool.append(True)
-                if mturks_label_idx != orig_label_idx
-                else wrong_labels_bool.append(False)
-            )
+            (wrong_labels_bool.append(True) if mturks_label_idx != orig_label_idx else wrong_labels_bool.append(False))
         wrong_labels_bool = np.array(wrong_labels_bool, dtype=bool)
     elif cfg.dataset == "tiil":
         cfg_dataset = cfg.tiil

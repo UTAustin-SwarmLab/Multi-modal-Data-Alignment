@@ -50,21 +50,13 @@ def cal_spearman_coeff(
     data1, _ = origin_centered(data1)
     data2, _ = origin_centered(data2)
     # make sure the data is zero mean
-    assert np.allclose(
-        data1.mean(axis=0), 0, atol=1e-4
-    ), f"data1 not zero mean: {data1.mean(axis=0)}"
-    assert np.allclose(
-        data2.mean(axis=0), 0, atol=1e-4
-    ), f"data2 not zero mean: {data2.mean(axis=0)}"
+    assert np.allclose(data1.mean(axis=0), 0, atol=1e-4), f"data1 not zero mean: {data1.mean(axis=0)}"
+    assert np.allclose(data2.mean(axis=0), 0, atol=1e-4), f"data2 not zero mean: {data2.mean(axis=0)}"
 
     # CCA dimensionality reduction
     audio_text_cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
     data1, data2 = audio_text_cca.fit_transform((data1, data2))
-    corr_align = (
-        np.ones((data2.shape[1],))
-        if cfg_dataset.equal_weights
-        else np.diag(data1.T @ data2) / data1.shape[0]
-    )
+    corr_align = np.ones((data2.shape[1],)) if cfg_dataset.equal_weights else np.diag(data1.T @ data2) / data1.shape[0]
 
     # calculate the similarity score
     sim_score_cca = weighted_corr_sim(data1, data2, corr_align, dim=cfg_dataset.sim_dim)
@@ -83,9 +75,7 @@ def spearman_coeff(cfg: DictConfig) -> None:
         cfg: Config dictionary.
     """
     cfg_dataset = load_dataset_config(cfg)
-    r, p_value, sim_score_clip, sim_score_cca, rank_clap, rank_cca = cal_spearman_coeff(
-        cfg
-    )
+    r, p_value, sim_score_clip, sim_score_cca, rank_clap, rank_cca = cal_spearman_coeff(cfg)
 
     print(f"Spearman's rank coefficient: {r}")
     print(f"p-value: {p_value}")
@@ -99,9 +89,7 @@ def spearman_coeff(cfg: DictConfig) -> None:
         xlabel="CLAP similarity score rank",
         ylabel="CCA similarity score rank",
     )
-    save_fig(
-        fig_rank, cfg_dataset.paths.plots_path + "sim_rank_scatter_plot.png", dpi=400
-    )
+    save_fig(fig_rank, cfg_dataset.paths.plots_path + "sim_rank_scatter_plot.png", dpi=400)
 
     # plot scatter plot of the original similarity scores
     fig, ax = plt.subplots()

@@ -38,9 +38,7 @@ def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:
     return np.array(yes_no_array).astype(bool)
 
 
-def boolean_binary_detection(
-    align: np.ndarray, unalign: np.ndarray
-) -> list[list[float]]:
+def boolean_binary_detection(align: np.ndarray, unalign: np.ndarray) -> list[list[float]]:
     """Calculate the ROC points for boolean data.
 
     Args:
@@ -59,41 +57,24 @@ def boolean_binary_detection(
     return tpr, fpr
 
 
-def llava_shuffle_align(
-    cfg: DictConfig, shuffle_level: str = "dataset"
-) -> list[list[float]]:
+def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[list[float]]:
     """Return llava's shuffled alignment answer."""
     # set random seed
     cfg_dataset = load_dataset_config(cfg)
 
     # load image embeddings and text embeddings
-    align = joblib.load(
-        Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl")
-    )
+    align = joblib.load(Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl"))
     align = parse_llava_yes_no(align)
     if shuffle_level == "dataset":
-        ds_unalign = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"{cfg.dataset}_llava-v1.5-13b_ds_unalign.pkl"
-            )
-        )
+        ds_unalign = joblib.load(Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_ds_unalign.pkl"))
         unalign = parse_llava_yes_no(ds_unalign)
     elif shuffle_level == "class":
         class_unalign = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"{cfg.dataset}_llava-v1.5-13b_class_unalign.pkl"
-            )
+            Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_class_unalign.pkl")
         )
         unalign = parse_llava_yes_no(class_unalign)
     elif shuffle_level == "object":
-        obj_unalign = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"{cfg.dataset}_llava-v1.5-13b_obj_unalign.pkl"
-            )
-        )
+        obj_unalign = joblib.load(Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_obj_unalign.pkl"))
         unalign = parse_llava_yes_no(obj_unalign)
 
     # print ROC
@@ -108,21 +89,13 @@ def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    llava_results = joblib.load(
-        Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl")
-    )
+    llava_results = joblib.load(Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl"))
     llava_results = parse_llava_yes_no(llava_results)
     wrong_labels_bool = parse_wrong_label(cfg)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
-    train_llava_results, val_llava_results = train_test_split(
-        llava_results, train_idx, val_idx
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(wrong_labels_bool, train_idx, val_idx)
+    train_llava_results, val_llava_results = train_test_split(llava_results, train_idx, val_idx)
 
     # separate aligned data and unaligned data
     val_llava_results_align = val_llava_results[~val_wrong_labels_bool]
@@ -130,9 +103,7 @@ def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
 
     # print ROC
     print("Aligned vs Unaligned")
-    tpr, fpr = boolean_binary_detection(
-        val_llava_results_align, val_llava_results_unalign
-    )
+    tpr, fpr = boolean_binary_detection(val_llava_results_align, val_llava_results_unalign)
     print(f"tpr: {tpr}, fpr: {fpr}")
     return (fpr, tpr)
 

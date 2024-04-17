@@ -30,9 +30,7 @@ from mmda.utils.sim_utils import (
 )
 
 
-def cca_data_align(
-    cfg: DictConfig, shuffle_level: str = "dataset"
-) -> list[tuple[float, float]]:
+def cca_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
     """Align the audio and text data and calculate the similarity score using my proposed method.
 
     Args:
@@ -49,9 +47,7 @@ def cca_data_align(
     plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
 
@@ -77,9 +73,7 @@ def cca_data_align(
 
     # calculate the similarity score
     valdata1align, valdata2align = cca.transform((valdata1align, valdata2align))
-    sim_align = weighted_corr_sim(
-        valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
-    )
+    sim_align = weighted_corr_sim(valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim)
 
     ### unaligned case: shuffle the data
     # shuffle only the text data
@@ -111,9 +105,7 @@ def cca_data_align(
     ), f"traindata2unalign not zero mean: {traindata2unalign.mean(axis=0)}"
 
     valdata1align, valdata2align = cca.transform((valdata1unalign, valdata2unalign))
-    sim_unalign = weighted_corr_sim(
-        valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
-    )
+    sim_unalign = weighted_corr_sim(valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim)
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
         data_list=[sim_align, sim_unalign],
@@ -126,12 +118,11 @@ def cca_data_align(
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     save_fig(
         fig,
-        plots_path
-        / f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}{eq_label}.png",
+        plots_path / f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}{eq_label}.png",
     )
 
-    cca_unalign, traindata1unalign, traindata2unalign, corr_unalign = (
-        cca_fit_train_data(cfg_dataset, traindata1unalign, traindata2unalign)
+    cca_unalign, traindata1unalign, traindata2unalign, corr_unalign = cca_fit_train_data(
+        cfg_dataset, traindata1unalign, traindata2unalign
     )
 
     # plot the correlation coefficients
@@ -150,9 +141,7 @@ def cca_data_align(
     return roc_align_unalign_points(sim_align, sim_unalign, (-1.0, 1.0, 80))
 
 
-def clip_like_data_align(
-    cfg: DictConfig, shuffle_level: str = "dataset"
-) -> list[tuple[float, float]]:
+def clip_like_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
     """Align the audio and text data and calculate the similarity score using CLIP like models.
 
     Args:
@@ -169,9 +158,7 @@ def clip_like_data_align(
     plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     _, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
 
@@ -205,17 +192,14 @@ def clip_like_data_align(
     )
     save_fig(
         fig,
-        plots_path
-        / f"cos_similarity_{shuffle_level}_{clip_model_name}_r{cfg.train_test_ratio}.png",
+        plots_path / f"cos_similarity_{shuffle_level}_{clip_model_name}_r{cfg.train_test_ratio}.png",
     )
 
     # plot ROC
     return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
 
 
-def asif_data_align(
-    cfg: DictConfig, shuffle_level: str = "dataset"
-) -> list[tuple[float, float]]:
+def asif_data_align(cfg: DictConfig, shuffle_level: str = "dataset") -> list[tuple[float, float]]:
     """Align the audio and text data and calculate the similarity score using the ASIF method.
 
     Paper: https://openreview.net/pdf?id=YAxV_Krcdjm
@@ -228,9 +212,7 @@ def asif_data_align(
     """
     # load embeddings from the two encoders
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
+    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, data1.shape[0])
     traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
 
@@ -242,10 +224,7 @@ def asif_data_align(
 
     # set parameters
     non_zeros = min(cfg.asif.non_zeros, traindata1.shape[0])
-    range_anch = [
-        2**i
-        for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(traindata1))) + 2)
-    ]
+    range_anch = [2**i for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(traindata1))) + 2)]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
     # copy data
@@ -264,9 +243,7 @@ def asif_data_align(
     )
 
     # convert to torch tensors
-    val_labels = torch.zeros(
-        valdata1.shape[0]
-    )  # dummy labels. Unused because this is not zero-shot classification.
+    val_labels = torch.zeros(valdata1.shape[0])  # dummy labels. Unused because this is not zero-shot classification.
     valdata1align, valdata2align = (
         torch.tensor(valdata1align).cuda(),
         torch.tensor(valdata2align).cuda(),
