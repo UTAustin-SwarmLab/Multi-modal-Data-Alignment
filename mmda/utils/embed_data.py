@@ -70,7 +70,9 @@ def clap_audio(
         audio features
     """
     model = AutoModel.from_pretrained("laion/larger_clap_general")
-    feature_extractor = AutoFeatureExtractor.from_pretrained("laion/larger_clap_general")
+    feature_extractor = AutoFeatureExtractor.from_pretrained(
+        "laion/larger_clap_general"
+    )
     model = model.cuda()
     audio_features = []
 
@@ -115,7 +117,9 @@ def clap_text(text: list[str], batch_size: int = 32) -> np.ndarray:
 
 
 # clip_imgs in batch with gpu
-def clip_imgs(img_files: list[str], batch_size: int = 32, noise: bool = False) -> np.ndarray:
+def clip_imgs(
+    img_files: list[str], batch_size: int = 32, noise: bool = False
+) -> np.ndarray:
     """Extract image features using CLIP model.
 
     Args:
@@ -125,7 +129,9 @@ def clip_imgs(img_files: list[str], batch_size: int = 32, noise: bool = False) -
     Returns:
         image features
     """
-    model, _, preprocess = open_clip.create_model_and_transforms("hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k")
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+    )
     model = model.cuda()
     img_embeddings = []
     with torch.no_grad(), torch.cuda.amp.autocast():
@@ -157,8 +163,12 @@ def clip_text(text: list[str], batch_size: int = 32) -> np.ndarray:
     Returns:
         text features
     """
-    model, _, preprocess = open_clip.create_model_and_transforms("hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k")
-    tokenizer = open_clip.get_tokenizer("hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k")
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+    )
+    tokenizer = open_clip.get_tokenizer(
+        "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+    )
     model = model.cuda()
 
     text_features = []

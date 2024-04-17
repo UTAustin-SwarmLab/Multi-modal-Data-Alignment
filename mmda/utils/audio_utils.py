@@ -23,7 +23,9 @@ def convert_to_mono_channel(audio: np.ndarray, normalize: bool = True) -> np.nda
     return audio if len(audio.shape) == 1 else audio.mean(axis=1)
 
 
-def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int = 48_000) -> np.ndarray:
+def resample_audio(
+    audio: np.ndarray, orig_sr: int, target_sr: int = 48_000
+) -> np.ndarray:
     """Resample the audio to the target sample rate.
 
     Args:

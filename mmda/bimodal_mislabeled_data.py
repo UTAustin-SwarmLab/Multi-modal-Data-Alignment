@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
+import hydra
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
-import hydra
 from mmda.exps.data_mislabel_align import (
     asif_detect_mislabeled_data,
     cca_detect_mislabeled_data,

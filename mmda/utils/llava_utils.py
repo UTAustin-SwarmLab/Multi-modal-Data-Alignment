@@ -94,8 +94,16 @@ def query_llava(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> li
 
         images = [load_image(image_file)]
         image_sizes = [x.size for x in images]
-        images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
+        images_tensor = process_images(images, image_processor, model.config).to(
+            model.device, dtype=torch.float16
+        )
+        input_ids = (
+            tokenizer_image_token(
+                prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+            )
+            .unsqueeze(0)
+            .cuda()
+        )
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
@@ -107,7 +115,9 @@ def query_llava(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> li
                 use_cache=True,
             )
 
-        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[
+            0
+        ].strip()
         text_descriptions.append([image_file, outputs])
     return text_descriptions
 
@@ -123,10 +133,13 @@ def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
     """
     mp.set_start_method("spawn")
     if cfg.dataset == "pitts":
-        prompt_list = [
-            "Describe the static objects in the image like buildings. \
+        prompt_list = (
+            [
+                "Describe the static objects in the image like buildings. \
                 Do not include dynamic objects such as people, cars, or animals."
-        ] * len(img_paths)
+            ]
+            * len(img_paths)
+        )
     elif cfg.dataset == "sop":
         prompt_list = ["Describe the object in the image."] * len(img_paths)
     # TODO: Add more datasets
@@ -142,9 +155,15 @@ def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
             [
                 (
                     cfg.llava,
-                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
+                    img_paths[
+                        int(i * len(img_paths) / num_processes) : int(
+                            (i + 1) * len(img_paths) / num_processes
+                        )
+                    ],
                     prompt_list[
-                        int(i * len(prompt_list) / num_processes) : int((i + 1) * len(prompt_list) / num_processes)
+                        int(i * len(prompt_list) / num_processes) : int(
+                            (i + 1) * len(prompt_list) / num_processes
+                        )
                     ],
                 )
                 for i in range(num_processes)
@@ -158,7 +177,9 @@ def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
     return img_captions
 
 
-def llava_img_text_align(cfg: DictConfig, img_paths: list[str], text_descriptions: list[str]) -> list[str]:
+def llava_img_text_align(
+    cfg: DictConfig, img_paths: list[str], text_descriptions: list[str]
+) -> list[str]:
     """Query llava model to see if the texts are aligned with the provided images.
 
     Args:
@@ -183,7 +204,11 @@ def llava_img_text_align(cfg: DictConfig, img_paths: list[str], text_description
             [
                 (
                     cfg.llava,
-                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
+                    img_paths[
+                        int(i * len(img_paths) / num_processes) : int(
+                            (i + 1) * len(img_paths) / num_processes
+                        )
+                    ],
                     text_descriptions[
                         int(i * len(text_descriptions) / num_processes) : int(
                             (i + 1) * len(text_descriptions) / num_processes

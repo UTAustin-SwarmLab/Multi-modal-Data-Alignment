@@ -3,10 +3,10 @@
 import pickle
 from pathlib import Path
 
+import hydra
 import numpy as np
 from omegaconf import DictConfig
 
-import hydra
 from mmda.utils.data_utils import (
     load_dataset_config,
 )
@@ -78,7 +78,9 @@ def llava_align(cfg: DictConfig) -> None:
 
     # split data
     if cfg.dataset in ("sop", "pitts"):
-        train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
+        train_idx, val_idx = get_train_test_split_index(
+            cfg.train_test_ratio, len(img_paths)
+        )
         _, img_paths = train_test_split(img_paths, train_idx, val_idx)
         _, text_descriptions = train_test_split(text_descriptions, train_idx, val_idx)
 
@@ -88,7 +90,9 @@ def llava_align(cfg: DictConfig) -> None:
 
     Path.mkdir(cfg_dataset.paths.save_path, exist_ok=True)
     # Save text_descriptions pickle
-    with Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl").open("wb") as f:
+    with Path(
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl"
+    ).open("wb") as f:
         pickle.dump(aligned_answer, f)
 
 
@@ -113,7 +117,9 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None
     elif cfg.dataset == "pitts":
         img_paths, text_descriptions, _ = load_pitts(cfg_dataset)
     # split data
-    train_idx, val_idx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
+    train_idx, val_idx = get_train_test_split_index(
+        cfg.train_test_ratio, len(img_paths)
+    )
     train_img_path, val_img_path = train_test_split(img_paths, train_idx, val_idx)
     train_txt, val_txt = train_test_split(text_descriptions, train_idx, val_idx)
 
@@ -124,9 +130,16 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None
 
     # query llava without shuffling
     aligned_answer = llava_img_text_align(cfg, val_img_path, val_txt_unalign)
-    level_tag = "ds" if shuffle_level == "dataset" else "class" if shuffle_level == "class" else "obj"
+    level_tag = (
+        "ds"
+        if shuffle_level == "dataset"
+        else "class" if shuffle_level == "class" else "obj"
+    )
     # Save text_descriptions pickle
-    with Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_{level_tag}_unalign.pkl").open("wb") as f:
+    with Path(
+        cfg_dataset.paths.save_path
+        + f"{cfg.dataset}_{model_name}_{level_tag}_unalign.pkl"
+    ).open("wb") as f:
         pickle.dump(aligned_answer, f)
 
 

@@ -54,7 +54,9 @@ def load_pitts(
     """
     # load PITTS train json files
     # train set
-    with Path(cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl").open() as f:
+    with Path(
+        cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl"
+    ).open() as f:
         path_text_descriptions_threads = joblib.load(f)
     # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
@@ -92,7 +94,9 @@ def load_cosmos(
             # caption 1: 41,006
             # since the first caption is the original caption from the website, thus inconsistency is always False
             # and since we do not have labels for the val/train data, we do not consider the other captions
-            img_paths.append(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
+            img_paths.append(
+                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+            )
             text_descriptions.append(data["articles"][0]["caption_modified"])
             inconsistency.append(0)
             article_urls.append(data["articles"][0]["article_url"])
@@ -103,15 +107,21 @@ def load_cosmos(
             data = ast.literal_eval(line)
             # caption 1: 1700
             # the first caption is the original caption from the website, thus inconsistency is always False
-            img_paths.append(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
+            img_paths.append(
+                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+            )
             text_descriptions.append(data["caption1_modified"])
             inconsistency.append(0)
             article_urls.append(data["article_url"])
             # caption 2: 1700
             # the second caption is the google-searched caption, thus inconsistency can be True
-            img_paths.append(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
+            img_paths.append(
+                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+            )
             text_descriptions.append(data["caption2_modified"])
-            inconsistency.append(data["context_label"])  # (1=Out-of-Context, 0=Not-Out-of-Context )
+            inconsistency.append(
+                data["context_label"]
+            )  # (1=Out-of-Context, 0=Not-Out-of-Context )
             article_urls.append(data["article_url"])
     print(f"Number of COSMOS data: {len(img_paths)}")
     print(f"Number of COSMOS inconsistency: {np.sum(inconsistency)}")
@@ -155,18 +165,24 @@ def load_tiil(
         img_paths[idx] = Path(cfg_dataset.paths.dataset_path + img_dict["file_name"])
         text_descriptions[idx] = annot_dict["caption"]
         inconsistent_labels[idx] = False
-        assert img_dict["id"] == annot_dict["image_id"], f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
+        assert (
+            img_dict["id"] == annot_dict["image_id"]
+        ), f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
         assert img_dict["id"] == idx + 1, f"ID mismatch: {img_dict['id']} != {idx}"
 
     for idx, (img_dict, annot_dict) in enumerate(
         zip(inconsistent_json["images"], inconsistent_json["annotations"], strict=False)
     ):
         idx_shifted = idx + len(consistent_json["images"])
-        img_paths[idx_shifted] = Path(cfg_dataset.paths.dataset_path, img_dict["file_name"])
+        img_paths[idx_shifted] = Path(
+            cfg_dataset.paths.dataset_path, img_dict["file_name"]
+        )
         text_descriptions[idx_shifted] = annot_dict["caption"]
         inconsistent_labels[idx_shifted] = True
         original_words[idx_shifted] = annot_dict["ori_word"]
-        assert img_dict["id"] == annot_dict["image_id"], f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
+        assert (
+            img_dict["id"] == annot_dict["image_id"]
+        ), f"ID mismatch: {img_dict['id']} != {annot_dict['image_id']}"
         assert img_dict["id"] == idx_shifted + 1 - len(
             consistent_json["images"]
         ), f"ID mismatch: {img_dict['id']} != {idx_shifted}"
@@ -210,12 +226,18 @@ def load_imagenet(
             }
         },
         """
-    with Path(cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json").open() as f:
-        idx2path = json.load(f)  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
+    with Path(
+        cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json"
+    ).open() as f:
+        idx2path = json.load(
+            f
+        )  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
     img_path = [None] * len(idx2path)
     for idx, path in enumerate(idx2path):
         img_path[idx] = Path(cfg_dataset.paths.dataset_path, path)
-    orig_idx = np.load(Path(cfg_dataset.paths.dataset_path, "imagenet_val_set_original_labels.npy"))
+    orig_idx = np.load(
+        Path(cfg_dataset.paths.dataset_path, "imagenet_val_set_original_labels.npy")
+    )
 
     mturks_idx = orig_idx.copy()
     # correct the labels to the MTurk labels
@@ -225,11 +247,17 @@ def load_imagenet(
         img_name = mturk["url"].replace("https://labelerrors.com//static/imagenet/", "")
         img_index = idx2path.index(img_name)
         mturks_idx[img_index] = int(guessed_label)
-        assert orig_idx[img_index] == orig_label, f"Mismatch at {img_index}: {orig_idx[img_index]} != {orig_label}"
-    assert np.sum(orig_idx != mturks_idx) == len(mturks), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
+        assert (
+            orig_idx[img_index] == orig_label
+        ), f"Mismatch at {img_index}: {orig_idx[img_index]} != {orig_label}"
+    assert np.sum(orig_idx != mturks_idx) == len(
+        mturks
+    ), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
 
     # convert the labels to string. Obtained from https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
-    with Path(cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt").open() as f:
+    with Path(
+        cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt"
+    ).open() as f:
         clsidx_to_labels_txt = f.readlines()
     clsidx_to_labels = {}
     for ln in clsidx_to_labels_txt:  # example: {0: 'tench, Tinca tinca',
@@ -327,7 +355,9 @@ def load_sop(
     return img_paths, text_descriptions, classes, obj_ids
 
 
-def get_train_test_split_index(train_test_ration: float, n: int) -> tuple[np.ndarray, np.ndarray]:
+def get_train_test_split_index(
+    train_test_ration: float, n: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Get the index of the training and validation set.
 
     Args:
@@ -343,7 +373,9 @@ def get_train_test_split_index(train_test_ration: float, n: int) -> tuple[np.nda
     return train_idx, val_idx
 
 
-def train_test_split(data: np.ndarray, train_idx: list[int], val_idx: list[int]) -> tuple[np.ndarray, np.ndarray]:
+def train_test_split(
+    data: np.ndarray, train_idx: list[int], val_idx: list[int]
+) -> tuple[np.ndarray, np.ndarray]:
     """Split the data into training and validation set.
 
     Args:
@@ -375,7 +407,9 @@ def filter_str_label(ground_truth: np.ndarray) -> dict[str, np.ndarray]:
     return filter_idx
 
 
-def shuffle_data_by_indices(data: np.ndarray, filter_idx: dict[str, np.ndarray]) -> np.ndarray:
+def shuffle_data_by_indices(
+    data: np.ndarray, filter_idx: dict[str, np.ndarray]
+) -> np.ndarray:
     """Shuffle the data by classes.
 
     Args:
@@ -392,7 +426,9 @@ def shuffle_data_by_indices(data: np.ndarray, filter_idx: dict[str, np.ndarray])
     return data
 
 
-def filter_outliers(scores: np.ndarray, threshold: float, right_tail: bool = False) -> np.ndarray:
+def filter_outliers(
+    scores: np.ndarray, threshold: float, right_tail: bool = False
+) -> np.ndarray:
     """Return the indices of the outliers (either the right or left tails) filtered from the given the scores.
 
     Args:
