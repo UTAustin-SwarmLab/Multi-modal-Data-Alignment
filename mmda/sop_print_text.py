@@ -5,17 +5,19 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.utils.dataset_utils import (
-    load_SOP,
+    load_sop,
 )
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def SOP_print_text(cfg: DictConfig):  # noqa: D103
+def sop_print_text(cfg: DictConfig) -> None:  # noqa: D103
     while True:
         # load raw data
-        img_paths, text_descriptions, classes, obj_ids = load_SOP(cfg.sop)
-        img_names = [img_path.split("/")[-1].replace(".JPG", "") for img_path in img_paths]
-        img_text_dict = {img_name: text for img_name, text in zip(img_names, text_descriptions)}
+        img_paths, text_descriptions, classes, obj_ids = load_sop(cfg.sop)
+        img_names = [
+            img_path.split("/")[-1].replace(".JPG", "") for img_path in img_paths
+        ]
+        img_text_dict = dict(zip(img_names, text_descriptions))
         print(np.unique(classes))
 
         # print an image's text description of bicycle and cabinet
@@ -37,4 +39,4 @@ def SOP_print_text(cfg: DictConfig):  # noqa: D103
 
 
 if __name__ == "__main__":
-    SOP_print_text()
+    sop_print_text()

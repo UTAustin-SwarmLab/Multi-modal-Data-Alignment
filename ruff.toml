@@ -24,7 +24,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 80
+line-length = 120
 indent-width = 4
 
 # Assume Python 3.9
@@ -34,8 +34,53 @@ target-version = "py39"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F"]
-ignore = []
+select = [
+    "A",
+    "B",
+    "D",
+    "E",
+    "G",
+    "W",
+    "F",
+    "I",
+    "N",
+    "Q",
+    "UP",
+    "C90",
+    "YTT",
+    "ANN",
+    "S",
+    "BLE",
+    "FBT",
+    "C4",
+    "DTZ",
+    "T10",
+    "DJ",
+    "EM",
+    "ISC",
+    "INP",
+    "PIE",
+    "T20",
+    "PYI",
+    "PT",
+    "RSE",
+    "RET",
+    "SLF",
+    "SIM",
+    "TID",
+    "TCH",
+    "ARG",
+    "PTH",
+    "ERA",
+    "PGH",
+    "PL",
+    "TRY",
+    "NPY",
+    "RUF",
+]
+
+ignore = ["ANN101","ANN102","COM","EXE","PD","S307","FBT001","FBT002","G004","ISC001","S101","T201","NPY002"]
+
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -56,6 +101,22 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[lint.per-file-ignores]
+"tests/*" = ["S101","T201","PLR2004"]
+
+[lint.pylint]
+max-args = 6
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.isort]
+force-wrap-aliases = true
+combine-as-imports = true
+
+# TODO: your package name here
+known-first-party = ["package_name"]
 
 [lint.pydocstyle]
 convention = "google"

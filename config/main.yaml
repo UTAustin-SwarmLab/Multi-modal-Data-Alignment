@@ -7,12 +7,20 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "cosmos" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
+dataset: "tiil" # pitts, imagenet, cosmos, sop, tiil, or musiccaps
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 llava_datasets: [pitts, sop, imagenet]
+dataset_size: {
+  sop: 56222,
+  musiccaps: 5397,
+  imagenet: 50_000,
+  tiil: 14276,
+  cosmos: 0,
+  pitts: 17608
+}
 
 sop:
   CCA_dim: 500 # dimension of the CCA transformation

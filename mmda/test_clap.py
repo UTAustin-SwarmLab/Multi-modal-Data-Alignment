@@ -1,4 +1,5 @@
-# Load model directly
+"""Play with CLAP model."""
+
 import datasets
 import numpy as np
 import resampy
@@ -14,7 +15,7 @@ from transformers.models.clap import ClapFeatureExtractor
 from transformers.models.clap.processing_clap import ClapProcessor
 
 
-def test_pipeline_and_feature_extractor():
+def test_pipeline_and_feature_extractor() -> None:
     """Test the pipeline and feature extractor of CLAP model."""
     dataset = datasets.load_dataset("ashraq/esc50")
     audio = dataset["train"]["audio"][0]["array"]
@@ -27,7 +28,6 @@ def test_pipeline_and_feature_extractor():
     audio_file = wget.download(audio_url)
     audio, sample_rate = sf.read(audio_file)
     audio = (audio[:, 0] + audio[:, 1]) / 2
-    # audio = audio / np.max(np.abs(audio))
     audio = audio.reshape(-1, 1)
     wavfile.write("24k.wav", sample_rate=sample_rate, audio_data=audio)
     # upsample to 32->48kHz
@@ -44,16 +44,34 @@ def test_pipeline_and_feature_extractor():
         "The song has been described as a funk, disco and contemporary R&B track, heavily influenced by hip hop",
         "The song features several layers of funk synthesizers in its instrumentation",
     ]
-    inputs = processor(text=input_text, audios=audio, return_tensors="pt", padding=True, sampling_rate=sample_rate)
+    inputs = processor(
+        text=input_text,
+        audios=audio,
+        return_tensors="pt",
+        padding=True,
+        sampling_rate=sample_rate,
+    )
     outputs = model(**inputs)
-    logits_per_audio = outputs.logits_per_audio  # this is the audio-text similarity score
-    probs = logits_per_audio.softmax(dim=-1)  # we can take the softmax to get the label probabilities
+    logits_per_audio = (
+        outputs.logits_per_audio
+    )  # this is the audio-text similarity score
+    probs = logits_per_audio.softmax(
+        dim=-1
+    )  # we can take the softmax to get the label probabilities
     print(probs)
 
     model = ClapModel.from_pretrained("laion/larger_clap_general")
-    feature_extractor = ClapFeatureExtractor.from_pretrained("laion/larger_clap_general")
+    feature_extractor = ClapFeatureExtractor.from_pretrained(
+        "laion/larger_clap_general"
+    )
     tokenizer = AutoTokenizer.from_pretrained("laion/larger_clap_general")
-    inputs = feature_extractor(audio, return_tensors="pt", sampling_rate=sample_rate, padding=True, max_length_s=60)
+    inputs = feature_extractor(
+        audio,
+        return_tensors="pt",
+        sampling_rate=sample_rate,
+        padding=True,
+        max_length_s=60,
+    )
     tokens = tokenizer(input_text, padding=True, return_tensors="pt")
     audio_features = model.get_audio_features(**inputs)
     text_features = model.get_text_features(**tokens)
@@ -62,7 +80,9 @@ def test_pipeline_and_feature_extractor():
     logit_scale_text = model.logit_scale_t.exp()
     logit_scale_audio = model.logit_scale_a.exp()
     _ = torch.matmul(text_features, audio_features.t()) * logit_scale_text
-    logits_per_audio = torch.matmul(audio_features, text_features.t()) * logit_scale_audio
+    logits_per_audio = (
+        torch.matmul(audio_features, text_features.t()) * logit_scale_audio
+    )
     print(logits_per_audio.softmax(dim=-1))
     assert torch.allclose(
         text_features, outputs.text_embeds, atol=1e-4

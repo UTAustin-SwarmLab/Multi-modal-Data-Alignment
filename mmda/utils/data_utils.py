@@ -1,5 +1,8 @@
-import pickle
+"""This module contains utility functions for loading data feature embeddings."""
 
+from pathlib import Path
+
+import joblib
 import numpy as np
 from omegaconf import DictConfig
 
@@ -20,42 +23,91 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
     cfg_dataset = load_dataset_config(cfg)
     # load image/audio embeddings and text embeddings
     if dataset == "sop":
-        with open(cfg_dataset.paths.save_path + f"data/SOP_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"data/SOP_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"data/SOP_img_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"data/SOP_text_emb_{cfg_dataset.text_encoder}.pkl"
+            )
+        )
     elif dataset == "musiccaps":
-        with open(cfg_dataset.paths.save_path + f"MusicCaps_audio_emb_{cfg_dataset.audio_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"MusicCaps_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"MusicCaps_audio_emb_{cfg_dataset.audio_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"MusicCaps_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     elif dataset == "imagenet":
-        with open(cfg_dataset.paths.save_path + f"ImageNet_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"ImageNet_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_img_emb_{cfg_dataset.img_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     elif dataset == "tiil":
-        with open(cfg_dataset.paths.save_path + f"TIIL_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"TIIL_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"TIIL_img_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"TIIL_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     elif dataset == "cosmos":
-        with open(cfg_dataset.paths.save_path + f"COSMOS_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"COSMOS_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"COSMOS_img_emb_{cfg_dataset.img_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"COSMOS_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     elif dataset == "pitts":
-        with open(cfg_dataset.paths.save_path + f"PITTS_img_emb_{cfg_dataset.img_encoder}.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + f"PITTS_text_emb_{cfg_dataset.text_encoder}.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"PITTS_img_emb_{cfg_dataset.img_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"PITTS_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     # TODO: add more datasets
     else:
-        raise ValueError(f"Dataset {dataset} not supported.")
-    return cfg_dataset, Data1, Data2
+        msg = f"Dataset {dataset} not supported."
+        raise ValueError(msg)
+    return cfg_dataset, data1, data2
 
 
-def load_CLIP_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.ndarray]:
+def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.ndarray]:
     """Load the data in two modalities. The encoders are the same CLIP like model.
 
     Args:
@@ -69,48 +121,59 @@ def load_CLIP_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
     cfg_dataset = load_dataset_config(cfg)
     # load image/audio embeddings and text embeddings
     if dataset == "sop":
-        with open(cfg_dataset.paths.save_path + "data/SOP_img_emb_clip.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "data/SOP_text_emb_clip.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "data/SOP_img_emb_clip.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "data/SOP_text_emb_clip.pkl")
+        )
     elif dataset == "musiccaps":
-        with open(cfg_dataset.paths.save_path + "MusicCaps_audio_emb_clap.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "MusicCaps_text_emb_clap.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "MusicCaps_audio_emb_clap.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "MusicCaps_text_emb_clap.pkl")
+        )
     elif dataset == "imagenet":
-        with open(cfg_dataset.paths.save_path + "ImageNet_img_emb_clip.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "ImageNet_text_emb_clip.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "ImageNet_img_emb_clip.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "ImageNet_text_emb_clip.pkl")
+        )
     elif dataset == "tiil":
-        with open(cfg_dataset.paths.save_path + "TIIL_img_emb_clip.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "TIIL_text_emb_clip.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(Path(cfg_dataset.paths.save_path + "TIIL_img_emb_clip.pkl"))
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "TIIL_text_emb_clip.pkl")
+        )
     elif dataset == "cosmos":
-        with open(cfg_dataset.paths.save_path + "COSMOS_img_emb_clip.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "COSMOS_text_emb_clip.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "COSMOS_img_emb_clip.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "COSMOS_text_emb_clip.pkl")
+        )
     elif dataset == "pitts":
-        with open(cfg_dataset.paths.save_path + "PITTS_img_emb_clip.pkl", "rb") as f:
-            Data1 = pickle.load(f)
-        with open(cfg_dataset.paths.save_path + "PITTS_text_emb_clip.pkl", "rb") as f:
-            Data2 = pickle.load(f)
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "PITTS_img_emb_clip.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "PITTS_text_emb_clip.pkl")
+        )
     # TODO: add more datasets
     else:
-        raise ValueError(f"Dataset {dataset} not supported.")
-    return cfg_dataset, Data1, Data2
+        msg = f"Dataset {dataset} not supported."
+        raise ValueError(msg)
+    return cfg_dataset, data1, data2
 
 
-def origin_centered(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def origin_centered(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """This function returns the origin centered data matrix and the mean of each feature.
 
     Args:
-        X: data matrix (n_samples, n_features)
+        x: data matrix (n_samples, n_features)
 
     Returns:
         origin centered data matrix, mean of each feature
     """
-    return X - np.mean(X, axis=0), np.mean(X, axis=0)
+    return x - np.mean(x, axis=0), np.mean(x, axis=0)

@@ -1,3 +1,5 @@
+"""Utility functions for executing llava model."""
+
 import multiprocessing as mp
 from io import BytesIO
 from multiprocessing import Pool
@@ -29,8 +31,8 @@ def load_image(image_file: str) -> Image.Image:
     Returns:
         image: PIL image
     """
-    if image_file.startswith("http") or image_file.startswith("https"):
-        response = requests.get(image_file)
+    if image_file.startswith(("http", "https")):
+        response = requests.get(image_file)  # noqa: S113
         image = Image.open(BytesIO(response.content)).convert("RGB")
     else:
         image = Image.open(image_file).convert("RGB")
@@ -92,25 +94,35 @@ def query_llava(input_tuple_data: tuple[DictConfig, list[str], list[str]]) -> li
 
         images = [load_image(image_file)]
         image_sizes = [x.size for x in images]
-        images_tensor = process_images(images, image_processor, model.config).to(model.device, dtype=torch.float16)
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
+        images_tensor = process_images(images, image_processor, model.config).to(
+            model.device, dtype=torch.float16
+        )
+        input_ids = (
+            tokenizer_image_token(
+                prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+            )
+            .unsqueeze(0)
+            .cuda()
+        )
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
                 images=images_tensor,
                 image_sizes=image_sizes,
-                do_sample=True if cfg_llava.temperature > 0 else False,
+                do_sample=cfg_llava.temperature > 0,
                 temperature=cfg_llava.temperature,
                 max_new_tokens=1024,
                 use_cache=True,
             )
 
-        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[
+            0
+        ].strip()
         text_descriptions.append([image_file, outputs])
     return text_descriptions
 
 
-def llava_caption(cfg, img_paths) -> list[str]:
+def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
     """Query llava model to get text descriptions of images.
 
     Args:
@@ -132,7 +144,8 @@ def llava_caption(cfg, img_paths) -> list[str]:
         prompt_list = ["Describe the object in the image."] * len(img_paths)
     # TODO: Add more datasets
     else:
-        raise ValueError(f"Dataset {cfg.dataset} not supported.")
+        msg = f"Dataset {cfg.dataset} not supported."
+        raise ValueError(msg)
     try:
         num_processes = cfg.llava.num_processes
         p = Pool(processes=num_processes)
@@ -142,9 +155,15 @@ def llava_caption(cfg, img_paths) -> list[str]:
             [
                 (
                     cfg.llava,
-                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
+                    img_paths[
+                        int(i * len(img_paths) / num_processes) : int(
+                            (i + 1) * len(img_paths) / num_processes
+                        )
+                    ],
                     prompt_list[
-                        int(i * len(prompt_list) / num_processes) : int((i + 1) * len(prompt_list) / num_processes)
+                        int(i * len(prompt_list) / num_processes) : int(
+                            (i + 1) * len(prompt_list) / num_processes
+                        )
                     ],
                 )
                 for i in range(num_processes)
@@ -158,7 +177,9 @@ def llava_caption(cfg, img_paths) -> list[str]:
     return img_captions
 
 
-def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
+def llava_img_text_align(
+    cfg: DictConfig, img_paths: list[str], text_descriptions: list[str]
+) -> list[str]:
     """Query llava model to see if the texts are aligned with the provided images.
 
     Args:
@@ -173,7 +194,7 @@ def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
         prompt = f'Does the following text describe the given image? Answer in yes/no. "{text_descriptions[i]}"'
         prompt_list.append(prompt)
 
-    mp.set_start_method("spawn", True)
+    mp.set_start_method("spawn", force=True)
     try:
         num_processes = cfg.llava.num_processes
         p = Pool(processes=num_processes)
@@ -183,7 +204,11 @@ def llava_img_text_align(cfg, img_paths, text_descriptions) -> list[str]:
             [
                 (
                     cfg.llava,
-                    img_paths[int(i * len(img_paths) / num_processes) : int((i + 1) * len(img_paths) / num_processes)],
+                    img_paths[
+                        int(i * len(img_paths) / num_processes) : int(
+                            (i + 1) * len(img_paths) / num_processes
+                        )
+                    ],
                     text_descriptions[
                         int(i * len(text_descriptions) / num_processes) : int(
                             (i + 1) * len(text_descriptions) / num_processes

@@ -1,5 +1,7 @@
-import os
+"""Script to query llava and ask if the img and text are aligned and save the aligned answer as pickle file."""
+
 import pickle
+from pathlib import Path
 
 import numpy as np
 from omegaconf import DictConfig
@@ -10,11 +12,11 @@ from mmda.utils.data_utils import (
 )
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
-    load_COSMOS,
-    load_ImageNet,
-    load_PITTS,
-    load_SOP,
-    load_TIIL,
+    load_cosmos,
+    load_imagenet,
+    load_pitts,
+    load_sop,
+    load_tiil,
     shuffle_by_level,
     train_test_split,
 )
@@ -31,11 +33,11 @@ def main(cfg: DictConfig) -> None:
     Returns:
         None
     """
-    # llava_align(cfg)
-    # if cfg.dataset in cfg.dataset_level_datasets:
-    #     llava_shuffle_align(cfg, "dataset")
-    # if cfg.dataset in cfg.class_level_datasets:
-    #     llava_shuffle_align(cfg, "class")
+    llava_align(cfg)
+    if cfg.dataset in cfg.dataset_level_datasets:
+        llava_shuffle_align(cfg, "dataset")
+    if cfg.dataset in cfg.class_level_datasets:
+        llava_shuffle_align(cfg, "class")
     if cfg.dataset in cfg.object_level_datasets:
         llava_shuffle_align(cfg, "object")
 
@@ -56,44 +58,45 @@ def llava_align(cfg: DictConfig) -> None:
 
     # load raw data
     if cfg.dataset == "sop":
-        img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+        img_paths, text_descriptions, _, _ = load_sop(cfg_dataset)
     elif cfg.dataset == "imagenet":
-        img_paths, Mturks, orig_idx, clsidx_to_labels = load_ImageNet(cfg_dataset)
+        img_paths, mturks, orig_idx, clsidx_to_labels = load_imagenet(cfg_dataset)
         text_descriptions = []
         for i in range(len(orig_idx)):
             description = "An image of " + clsidx_to_labels[orig_idx[i]]
             text_descriptions.append(description)
     elif cfg.dataset == "tiil":
-        img_paths, text_descriptions, _, _ = load_TIIL(cfg_dataset)
+        img_paths, text_descriptions, _, _ = load_tiil(cfg_dataset)
     elif cfg.dataset == "cosmos":
-        img_paths, text_descriptions, _, _ = load_COSMOS(cfg_dataset)
+        img_paths, text_descriptions, _, _ = load_cosmos(cfg_dataset)
     elif cfg.dataset == "pitts":
-        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
+        img_paths, text_descriptions, _ = load_pitts(cfg_dataset)
     # TODO: add more datasets
     else:
-        raise NotImplementedError(f"Dataset {cfg.dataset} not implemented")
+        msg = f"Dataset {cfg.dataset} not implemented"
+        raise NotImplementedError(msg)
 
     # split data
-    if cfg.dataset == "sop" or cfg.dataset == "pitts":
-        trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
-        _, img_paths = train_test_split(img_paths, trainIdx, valIdx)
-        _, text_descriptions = train_test_split(text_descriptions, trainIdx, valIdx)
+    if cfg.dataset in ("sop", "pitts"):
+        train_idx, val_idx = get_train_test_split_index(
+            cfg.train_test_ratio, len(img_paths)
+        )
+        _, img_paths = train_test_split(img_paths, train_idx, val_idx)
+        _, text_descriptions = train_test_split(text_descriptions, train_idx, val_idx)
 
     # query llava without shuffling
     aligned_answer = llava_img_text_align(cfg, img_paths, text_descriptions)
     model_name = cfg.llava.model_path.split("/")[-1]
 
-    os.makedirs(cfg_dataset.paths.save_path, exist_ok=True)
+    Path.mkdir(cfg_dataset.paths.save_path, exist_ok=True)
     # Save text_descriptions pickle
-    with open(
-        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl",
-        "wb",
-    ) as f:
+    with Path(
+        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl"
+    ).open("wb") as f:
         pickle.dump(aligned_answer, f)
 
 
-
-def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset"):
+def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None:
     """Query llava and save the dataset level unaligned answer as pickle file.
 
     Args:
@@ -110,27 +113,33 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset"):
 
     # load raw data
     if cfg.dataset == "sop":
-        img_paths, text_descriptions, _, _ = load_SOP(cfg_dataset)
+        img_paths, text_descriptions, _, _ = load_sop(cfg_dataset)
     elif cfg.dataset == "pitts":
-        img_paths, text_descriptions, _ = load_PITTS(cfg_dataset)
+        img_paths, text_descriptions, _ = load_pitts(cfg_dataset)
     # split data
-    trainIdx, valIdx = get_train_test_split_index(cfg.train_test_ratio, len(img_paths))
-    trainImgPath, valImgPath = train_test_split(img_paths, trainIdx, valIdx)
-    trainTxt, valTxt = train_test_split(text_descriptions, trainIdx, valIdx)
+    train_idx, val_idx = get_train_test_split_index(
+        cfg.train_test_ratio, len(img_paths)
+    )
+    train_img_path, val_img_path = train_test_split(img_paths, train_idx, val_idx)
+    train_txt, val_txt = train_test_split(text_descriptions, train_idx, val_idx)
 
-    trainTxtUnalign, valTxtUnalign = shuffle_by_level(
-        cfg_dataset, cfg.dataset, shuffle_level, trainTxt, valTxt, trainIdx, valIdx
+    train_txt_unalign, val_txt_unalign = shuffle_by_level(
+        cfg_dataset, cfg.dataset, shuffle_level, train_txt, val_txt, train_idx, val_idx
     )
     model_name = cfg.llava.model_path.split("/")[-1]
 
     # query llava without shuffling
-    aligned_answer = llava_img_text_align(cfg, valImgPath, valTxtUnalign)
-    level_tag = "ds" if shuffle_level == "dataset" else "class" if shuffle_level == "class" else "obj"
+    aligned_answer = llava_img_text_align(cfg, val_img_path, val_txt_unalign)
+    level_tag = (
+        "ds"
+        if shuffle_level == "dataset"
+        else "class" if shuffle_level == "class" else "obj"
+    )
     # Save text_descriptions pickle
-    with open(
-        cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_{level_tag}_unalign.pkl",
-        "wb",
-    ) as f:
+    with Path(
+        cfg_dataset.paths.save_path
+        + f"{cfg.dataset}_{model_name}_{level_tag}_unalign.pkl"
+    ).open("wb") as f:
         pickle.dump(aligned_answer, f)
 
 
