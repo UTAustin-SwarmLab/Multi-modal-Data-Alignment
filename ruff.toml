@@ -27,8 +27,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Assume Python 3.9
-target-version = "py39"
+# Assume Python 3.10
+target-version = "py310"
 
 [lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
@@ -79,7 +79,7 @@ select = [
     "RUF",
 ]
 
-ignore = ["ANN101","ANN102","COM","EXE","PD","S307","FBT001","FBT002","G004","ISC001","S101","T201","NPY002"]
+ignore = ["ANN101","ANN102","COM","EXE","PD","S307","FBT001","FBT002","G004","ISC001","S101","T201","NPY002","I001"]
 
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -116,7 +116,7 @@ force-wrap-aliases = true
 combine-as-imports = true
 
 # TODO: your package name here
-known-first-party = ["package_name"]
+known-first-party = ["mmda"]
 
 [lint.pydocstyle]
 convention = "google"

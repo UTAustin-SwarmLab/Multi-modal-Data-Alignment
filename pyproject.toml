@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Text and Image Feature Extraction"
 readme = "README.md"
-requires-python = ">=3.10.4"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,7 +32,7 @@ description = "Multi-modal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.10.13"
+python = "^3.10"
 numpy = "*"
 matplotlib = "*"
 seaborn = "*"
