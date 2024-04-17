@@ -167,6 +167,3 @@ cython_debug/
 
 # plots
 plots/*
-
-# unused scripts
-unused/*
