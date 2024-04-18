@@ -3,10 +3,10 @@
 import pickle
 from pathlib import Path
 
-import hydra
 import joblib
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.data_utils import load_dataset_config
 from mmda.utils.llava_utils import llava_caption
 
@@ -48,7 +48,7 @@ def get_caption(cfg: DictConfig) -> None:
     llava_captions = llava_caption(cfg, img_paths)
     model_name = cfg.llava.model_path.split("/")[-1]
 
-    Path.mkdir(cfg_dataset.paths.dataset_path, parents=True, exist_ok=True)
+    Path(cfg_dataset.paths.dataset_path).mkdir(parents=True, exist_ok=True)
     # Save text_descriptions joblib
     with Path(
         cfg_dataset.paths.dataset_path + f"{cfg.dataset}_{model_name}_captions.pkl"
@@ -58,4 +58,4 @@ def get_caption(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     get_caption()
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 poetry run python scripts/get_llava_caption.py
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 poetry run python mmda/get_llava_caption.py

@@ -3,10 +3,10 @@
 import pickle
 from pathlib import Path
 
-import hydra
 import numpy as np
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.data_utils import (
     load_dataset_config,
 )
@@ -88,7 +88,7 @@ def llava_align(cfg: DictConfig) -> None:
     aligned_answer = llava_img_text_align(cfg, img_paths, text_descriptions)
     model_name = cfg.llava.model_path.split("/")[-1]
 
-    Path.mkdir(cfg_dataset.paths.save_path, exist_ok=True)
+    Path(cfg_dataset.paths.save_path).mkdir(parents=True, exist_ok=True)
     # Save text_descriptions pickle
     with Path(
         cfg_dataset.paths.save_path + f"{cfg.dataset}_{model_name}_aligned.pkl"
@@ -146,4 +146,4 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None
 if __name__ == "__main__":
     main()
 
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 poetry run python scripts/llava_img_text_align.py
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 poetry run python mmda/llava_img_text_align.py

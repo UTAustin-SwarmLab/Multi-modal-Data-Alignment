@@ -3,9 +3,9 @@
 import pickle
 from pathlib import Path
 
-import hydra
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
     load_dataset_config,
@@ -29,46 +29,18 @@ BATCH_SIZE = 512
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: D103, PLR0915
+def main(cfg: DictConfig) -> None:  # noqa: PLR0915
+    """Get feature embeddings for the datasets.
+
+    Args:
+        cfg (DictConfig): Configurations.
+    """
     dataset = cfg.dataset
     cfg_dataset = load_dataset_config(cfg)
     print(f"Dataset: {dataset}")
-    Path.mkdir(cfg_dataset.paths.save_path, parents=True, exist_ok=True)
+    Path(cfg_dataset.paths.save_path).mkdir(parents=True, exist_ok=True)
 
-    if dataset == "sop":
-        img_files, text_descriptions = load_sop(cfg_dataset)
-
-        # get text embeddings
-        text_emb = clip_text(text_descriptions, BATCH_SIZE)  # batched np array
-        print("CLIP embeddings done:", text_emb.shape)
-        with Path(cfg_dataset.paths.save_path, "data/SOP_text_emb_clip.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(text_emb, f)
-
-        text_emb = gtr_text(text_descriptions)  # batched np array
-        print("GTR embeddings done:", text_emb.shape)
-        with Path(cfg_dataset.paths.save_path, "data/SOP_text_emb_gtr.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(text_emb, f)
-
-        # get img embeddings
-        img_emb = dinov2(img_files, BATCH_SIZE)  # batched np array
-        with Path(cfg_dataset.paths.save_path, "data/SOP_img_emb_dino.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(img_emb, f)
-        print("DINO embeddings saved")
-
-        img_emb = clip_imgs(img_files, BATCH_SIZE)  # batched np array
-        with Path(cfg_dataset.paths.save_path, "data/SOP_img_emb_clip.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(img_emb, f)
-        print("CLIP embeddings saved")
-
-    elif dataset == "musiccaps":
+    if dataset == "musiccaps":
         dataframe = load_musiccaps(cfg_dataset)
         audio_list = dataframe["audio_path"].tolist()
         caption_list = dataframe["caption"].tolist()
@@ -104,12 +76,75 @@ def main(cfg: DictConfig) -> None:  # noqa: D103, PLR0915
         ) as f:
             pickle.dump(clap_audio_features, f)
 
+    elif dataset == "cosmos":
+        img_files, text_descriptions, _, _ = load_cosmos(cfg_dataset)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "COSMOS_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text_descriptions)
+        with Path(cfg_dataset.paths.save_path, "COSMOS_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
+
+        # get img embeddings
+        img_emb = dinov2(img_files, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "COSMOS_img_emb_dino.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(img_files, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "COSMOS_img_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+
+    elif dataset == "sop":
+        img_files, text_descriptions = load_sop(cfg_dataset)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)  # batched np array
+        print("CLIP embeddings done:", text_emb.shape)
+        with Path(cfg_dataset.paths.save_path, "data/SOP_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+
+        text_emb = gtr_text(text_descriptions)  # batched np array
+        print("GTR embeddings done:", text_emb.shape)
+        with Path(cfg_dataset.paths.save_path, "data/SOP_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+
+        # get img embeddings
+        img_emb = dinov2(img_files, BATCH_SIZE)  # batched np array
+        with Path(cfg_dataset.paths.save_path, "data/SOP_img_emb_dino.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(img_files, BATCH_SIZE)  # batched np array
+        with Path(cfg_dataset.paths.save_path, "data/SOP_img_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+
     elif dataset == "imagenet":
         img_path, mturks_idx, orig_idx, clsidx_to_labels = load_imagenet(cfg_dataset)
         orig_labels = [clsidx_to_labels[i] for i in orig_idx]
-        print(
-            f"Number of images: {len(img_path)}. Number of labels: {len(orig_labels)}"
-        )
         text_descriptions = ["An image of " + label + "." for label in orig_labels]
 
         # get text embeddings
@@ -145,8 +180,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103, PLR0915
     elif dataset == "tiil":
         img_files, text_descriptions, _, _ = load_tiil(cfg_dataset)
 
-        Path.mkdir(cfg_dataset.paths.save_path, parents=True, exist_ok=True)
-
         # get text embeddings
         text_emb = clip_text(text_descriptions, BATCH_SIZE)
         with Path(cfg_dataset.paths.save_path, "TIIL_text_emb_clip.pkl").open(
@@ -168,39 +201,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103, PLR0915
 
         img_emb = clip_imgs(img_files, BATCH_SIZE)
         with Path(cfg_dataset.paths.save_path, "TIIL_img_emb_clip.pkl").open("wb") as f:
-            pickle.dump(img_emb, f)
-        print("CLIP embeddings saved")
-
-    elif dataset == "cosmos":
-        img_files, text_descriptions, _, _ = load_cosmos(cfg_dataset)
-
-        # get text embeddings
-        text_emb = clip_text(text_descriptions, BATCH_SIZE)
-        with Path(cfg_dataset.paths.save_path, "COSMOS_text_emb_clip.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(text_emb, f)
-        print("CLIP embeddings saved")
-
-        text_emb = gtr_text(text_descriptions)
-        with Path(cfg_dataset.paths.save_path, "COSMOS_text_emb_gtr.pkl").opne(
-            "wb"
-        ) as f:
-            pickle.dump(text_emb, f)
-        print("GTR embeddings saved")
-
-        # get img embeddings
-        img_emb = dinov2(img_files, BATCH_SIZE)
-        with Path(cfg_dataset.paths.save_path, "COSMOS_img_emb_dino.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(img_emb, f)
-        print("DINO embeddings saved")
-
-        img_emb = clip_imgs(img_files, BATCH_SIZE)
-        with Path(cfg_dataset.paths.save_path, "COSMOS_img_emb_clip.pkl").open(
-            "wb"
-        ) as f:
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
 
@@ -251,4 +251,4 @@ def main(cfg: DictConfig) -> None:  # noqa: D103, PLR0915
 
 if __name__ == "__main__":
     main()
-# CUDA_VISIBLE_DEVICES=0 poetry run python scripts/get_embeddings.py
+# CUDA_VISIBLE_DEVICES=0 poetry run python mmda/get_embeddings.py

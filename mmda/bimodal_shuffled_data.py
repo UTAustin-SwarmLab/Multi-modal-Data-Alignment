@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-import hydra
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
+import hydra
 from mmda.exps.data_shuffle_align import (
     asif_data_align,
     cca_data_align,
@@ -13,9 +13,7 @@ from mmda.exps.data_shuffle_align import (
 )
 from mmda.exps.llava_alignment import llava_shuffle_align
 from mmda.utils.dataset_utils import load_dataset_config
-from mmda.utils.sim_utils import (
-    cal_auc,
-)
+from mmda.utils.sim_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

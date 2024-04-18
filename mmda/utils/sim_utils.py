@@ -3,9 +3,7 @@
 import numpy as np
 import torch
 from scipy import stats
-from transformers import (
-    AutoModel,
-)
+from transformers import AutoModel
 
 
 def clip_like_sim(

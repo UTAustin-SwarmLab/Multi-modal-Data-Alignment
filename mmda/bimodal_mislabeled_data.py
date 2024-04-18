@@ -2,22 +2,18 @@
 
 from pathlib import Path
 
-import hydra
 import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
+import hydra
 from mmda.exps.data_mislabel_align import (
     asif_detect_mislabeled_data,
     cca_detect_mislabeled_data,
     clip_like_detect_mislabeled_data,
 )
 from mmda.exps.llava_alignment import llava_mislabeled_align
-from mmda.utils.data_utils import (
-    load_dataset_config,
-)
-from mmda.utils.sim_utils import (
-    cal_auc,
-)
+from mmda.utils.data_utils import load_dataset_config
+from mmda.utils.sim_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

@@ -6,9 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from omegaconf import DictConfig
-from swarm_visualizer.histogram import (
-    plot_several_pdf,
-)
+from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification

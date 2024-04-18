@@ -6,9 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from omegaconf import DictConfig
-from swarm_visualizer.histogram import (
-    plot_several_pdf,
-)
+from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
@@ -46,6 +44,7 @@ def cca_data_align(
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
+    print(data1.shape, data2.shape)
     plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
     plots_path.mkdir(parents=True, exist_ok=True)
 
@@ -210,7 +209,7 @@ def clip_like_data_align(
     )
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 80))
 
 
 def asif_data_align(
@@ -306,4 +305,4 @@ def asif_data_align(
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 120))
