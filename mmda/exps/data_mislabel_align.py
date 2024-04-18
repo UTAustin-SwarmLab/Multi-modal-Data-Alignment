@@ -20,7 +20,6 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_cosmos,
     load_imagenet,
-    load_pitts,
     load_tiil,
     train_test_split,
 )
@@ -185,7 +184,7 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     )
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 80))
 
 
 def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
@@ -277,7 +276,7 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))
 
 
 def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
@@ -311,9 +310,6 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
     elif cfg.dataset == "cosmos":
         cfg_dataset = cfg.cosmos
         img_paths, text_desciption, wrong_labels_bool, _ = load_cosmos(cfg_dataset)
-    elif cfg.dataset == "pitts":
-        cfg_dataset = cfg.pitts
-        img_paths, text_desciption, wrong_labels_bool = load_pitts(cfg_dataset)
     # TODO: add more datasets
     else:
         raise NotImplementedError

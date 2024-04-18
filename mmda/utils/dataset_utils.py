@@ -19,22 +19,21 @@ def load_dataset_config(cfg: DictConfig) -> DictConfig:
     Returns:
         cfg_dataset: configuration file for the dataset
     """
-    dataset = cfg.dataset
-    if dataset == "sop":
+    if cfg.dataset == "sop":
         cfg_dataset = cfg.sop
-    elif dataset == "musiccaps":
+    elif cfg.dataset == "musiccaps":
         cfg_dataset = cfg.musiccaps
-    elif dataset == "imagenet":
+    elif cfg.dataset == "imagenet":
         cfg_dataset = cfg.imagenet
-    elif dataset == "tiil":
+    elif cfg.dataset == "tiil":
         cfg_dataset = cfg.tiil
-    elif dataset == "cosmos":
+    elif cfg.dataset == "cosmos":
         cfg_dataset = cfg.cosmos
-    elif dataset == "pitts":
+    elif cfg.dataset == "pitts":
         cfg_dataset = cfg.pitts
     # TODO: add more datasets
     else:
-        msg = f"Dataset {dataset} not supported."
+        msg = f"Dataset {cfg.dataset} not supported."
         raise ValueError(msg)
     return cfg_dataset
 
@@ -123,10 +122,6 @@ def load_cosmos(
                 data["context_label"]
             )  # (1=Out-of-Context, 0=Not-Out-of-Context )
             article_urls.append(data["article_url"])
-    print(f"Number of COSMOS data: {len(img_paths)}")
-    print(f"Number of COSMOS inconsistency: {np.sum(inconsistency)}")
-    print(f"Number of COSMOS consistency: {len(inconsistency) - np.sum(inconsistency)}")
-    print(f"Number of COSMOS article urls: {len(article_urls)}")
     inconsistency = np.array(inconsistency, dtype=bool)
     return img_paths, text_descriptions, inconsistency, article_urls
 

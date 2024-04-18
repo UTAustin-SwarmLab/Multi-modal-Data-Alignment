@@ -51,7 +51,6 @@ musiccaps:
 
 imagenet:
   CCA_dim: 750 # dimension of the CCA transformation
-  CCA_dim: 750 # dimension of the CCA transformation
   sim_dim: 200 # dimension of the similarity score
   equal_weights: False
   img_encoder: "clip"
@@ -62,7 +61,6 @@ imagenet:
     plots_path: ${repo_root}plots/ImageNet/
 
 tiil:
-  CCA_dim: 750 # dimension of the CCA transformation
   CCA_dim: 750 # dimension of the CCA transformation
   sim_dim: 200 # dimension of the similarity score
   equal_weights: False
@@ -103,14 +101,12 @@ llava:
   model_path: '/nas/omama/llava-v1.5-13b'
   model_base: null
   num_gpus: 6
-  num_gpus: 6
   conv_mode: null
   temperature: 0.2
   max_new_tokens: 512
   load_8bit: True
   load_4bit: False
   debug: False
-  num_processes: 6
   num_processes: 6
 
 # Hyperparameters of asif benchmark

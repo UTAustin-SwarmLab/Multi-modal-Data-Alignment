@@ -305,4 +305,4 @@ def asif_data_align(
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 120))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))
