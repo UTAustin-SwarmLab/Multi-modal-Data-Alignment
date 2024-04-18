@@ -22,6 +22,7 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
     dataset = cfg.dataset
     cfg_dataset = load_dataset_config(cfg)
     # load image/audio embeddings and text embeddings
+    # load image/audio embeddings and text embeddings
     if dataset == "sop":
         data1 = joblib.load(
             Path(
@@ -119,6 +120,7 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
     """
     dataset = cfg.dataset
     cfg_dataset = load_dataset_config(cfg)
+    # load image/audio embeddings and text embeddings
     # load image/audio embeddings and text embeddings
     if dataset == "sop":
         data1 = joblib.load(

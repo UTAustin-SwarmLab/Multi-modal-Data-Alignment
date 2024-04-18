@@ -206,6 +206,10 @@ def load_imagenet(
         mturks_idx: MTurk verified classe indices (int)
         orig_idx: ground truth class indices (int)
         clsidx_to_labels: a dict of class idx to str.
+        img_path: list of image absolute paths
+        mturks_idx: MTurk verified classe indices (int)
+        orig_idx: ground truth class indices (int)
+        clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
     with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open() as f:
@@ -283,6 +287,14 @@ def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
         audioset_positive_labels (str)
         start_time: list of start time (int, sec)
         end_time: list of end time (int, sec)
+        A dataframe containing the following columns:
+        youtube id: list of youtube ids
+        audio paths: list of audio absolute paths
+        caption: list of text descriptions
+        aspect_list: list of aspects (str)
+        audioset_positive_labels (str)
+        start_time: list of start time (int, sec)
+        end_time: list of end time (int, sec)
     """
     parent_dir = Path.parent(cfg_dataset.paths.dataset_path)
     df_path = Path(parent_dir, "MusicCaps_parsed.csv")
@@ -333,6 +345,10 @@ def load_sop(
     Args:
         cfg_dataset: configuration file
     Returns:
+        image paths: list of image absolute paths
+        text descriptions: list of text descriptions
+        classes: list of classes (str)
+        object ids: list of object ids (str)
         image paths: list of image absolute paths
         text descriptions: list of text descriptions
         classes: list of classes (str)
