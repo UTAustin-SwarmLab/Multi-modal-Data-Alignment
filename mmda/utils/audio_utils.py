@@ -1,3 +1,5 @@
+"""Utility functions for audio processing."""
+
 import numpy as np
 import resampy
 
@@ -21,7 +23,9 @@ def convert_to_mono_channel(audio: np.ndarray, normalize: bool = True) -> np.nda
     return audio if len(audio.shape) == 1 else audio.mean(axis=1)
 
 
-def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int = 48_000) -> np.ndarray:
+def resample_audio(
+    audio: np.ndarray, orig_sr: int, target_sr: int = 48_000
+) -> np.ndarray:
     """Resample the audio to the target sample rate.
 
     Args:
@@ -31,5 +35,4 @@ def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int = 48_000) -> 
     Returns:
         resampled audio. shape: (N, )
     """
-    audio = resampy.resample(audio, orig_sr, target_sr, axis=0)
-    return audio
+    return resampy.resample(audio, orig_sr, target_sr, axis=0)

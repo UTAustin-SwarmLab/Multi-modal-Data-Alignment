@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Text and Image Feature Extraction"
 readme = "README.md"
-requires-python = ">=3.10.4"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,7 +32,7 @@ description = "Multi-modal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.10.13"
+python = "^3.10"
 numpy = "*"
 matplotlib = "*"
 seaborn = "*"
@@ -54,8 +54,7 @@ ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
 gpustat = "*"
 datasets = "^2.18.0"
-# LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"}
-torch = "2.1.1"
+LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"}
 transformers = "^4.13.0"
 soundfile = "*"
 librosa = "*"
@@ -69,22 +68,3 @@ yt-dlp = "*"
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
 test = ["pytest", "pytest-cov", "pytest-mock"]
-
-[tool.black]
-line-length = 120
-
-[tool.ruff]
-select = [
-  "E",   # pycodestyle
-  "F",   # pyflakes
-  "UP",  # pyupgrade
-  "D",   # pydocstyle
-]
-line-length = 120
-
-ignore = ["ANN101", "ANN102", "D100"]
-
-extend-exclude = [".venv", "venv", "vscode"]
-
-[tool.ruff.pydocstyle]
-convention = "google"

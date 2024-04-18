@@ -1,8 +1,10 @@
+# ruff: noqa
 ### Download the clips within the MusicCaps dataset from YouTube.
 ### modified from https://colab.research.google.com/github/nateraw/download-musiccaps-dataset/blob/main/download_musiccaps.ipynb#scrollTo=FV-nFNShP7Xd
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 from datasets import Audio, load_dataset
 from omegaconf import DictConfig
@@ -58,7 +60,7 @@ def download_clip(
 def load_dataset_and_download(
     data_dir: str,
     sampling_rate: int = 44100,
-    limit: int = None,
+    limit: Optional[int] = None,
     num_proc: int = 1,
     writer_batch_size: int = 1000,
 ):
@@ -98,18 +100,20 @@ def load_dataset_and_download(
         example["download_status"] = status
         return example
 
-    return ds.map(process, num_proc=num_proc, writer_batch_size=writer_batch_size, keep_in_memory=False).cast_column(
-        "audio", Audio(sampling_rate=sampling_rate)
-    )
+    return ds.map(
+        process,
+        num_proc=num_proc,
+        writer_batch_size=writer_batch_size,
+        keep_in_memory=False,
+    ).cast_column("audio", Audio(sampling_rate=sampling_rate))
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig):  # noqa: D103
+def main(cfg: DictConfig) -> None:  # noqa: D103
     cfg_dataset = cfg.musiccaps
     ds = load_dataset_and_download(cfg_dataset.paths.dataset_path, num_proc=10)
 
-    if not os.path.exists(cfg_dataset.paths.dataset_path):
-        os.makedirs(cfg_dataset.paths.dataset_path)
+    os.makedirs(cfg_dataset.paths.dataset_path, exist_ok=True)
     print(f"Saving dataset to {cfg_dataset.paths.dataset_path}")
     ds.save_to_disk(cfg_dataset.paths.dataset_path)
 
