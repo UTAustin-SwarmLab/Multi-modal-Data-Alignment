@@ -169,9 +169,9 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     fig.savefig(
         Path(
-            cfg_dataset.paths.plots_path
-            / f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}"
-            / f"ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}{eq_label}.png",
+            cfg_dataset.paths.plots_path,
+            f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}",
+            f"ROC_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}{eq_label}.png",
         )
     )
 
