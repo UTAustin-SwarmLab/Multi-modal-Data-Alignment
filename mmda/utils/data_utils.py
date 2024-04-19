@@ -40,7 +40,7 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
         data1 = joblib.load(
             Path(
                 cfg_dataset.paths.save_path
-                + f"MusicCaps_audio_emb_{cfg_dataset.audio_encoder}.pkl",
+                + f"MusicCaps_audio_emb_{cfg_dataset.img_encoder}.pkl",
             )
         )
         data2 = joblib.load(

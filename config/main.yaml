@@ -7,7 +7,7 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "cosmos"
+dataset: "pitts"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
@@ -25,9 +25,8 @@ dataset_size: {
 sop:
   CCA_dim: 500 # dimension of the CCA transformation
   sim_dim: 150 # dimension of the similarity score
-  # shuffle_level: "dataset" # "obj", "class", or "dataset"
   equal_weights: False
-  text_encoder: "gtr"
+  text_encoder: "clip"
   img_encoder: "clip"
   paths:
     # repo_root: "/home/po-han/Desktop/Projects/MMDA/"
@@ -42,7 +41,7 @@ musiccaps:
   CCA_dim: 512 # dimension of the CCA transformation
   sim_dim: 25 # dimension of the similarity score
   equal_weights: False
-  audio_encoder: "clap"
+  img_encoder: "clap"
   text_encoder: "gtr"
   paths:
     dataset_path: "/nas/pohan/datasets/MusicCaps/wav_files/"

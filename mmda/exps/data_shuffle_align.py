@@ -44,8 +44,10 @@ def cca_data_align(
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    print(data1.shape, data2.shape)
-    plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
+    plots_path = (
+        Path(cfg_dataset.paths.plots_path)
+        / f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     train_idx, val_idx = get_train_test_split_index(
@@ -165,7 +167,10 @@ def clip_like_data_align(
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
-    plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
+    plots_path = (
+        Path(cfg_dataset.paths.plots_path)
+        / f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     train_idx, val_idx = get_train_test_split_index(

@@ -55,7 +55,7 @@ def load_pitts(
     # train set
     with Path(
         cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl"
-    ).open() as f:
+    ).open("rb") as f:
         path_text_descriptions_threads = joblib.load(f)
     # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
@@ -87,7 +87,7 @@ def load_cosmos(
     article_urls = []
 
     # load COSMOS val data json files
-    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open("rb") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 41,006
@@ -101,7 +101,7 @@ def load_cosmos(
             article_urls.append(data["articles"][0]["article_url"])
 
     # load COSMOS test data json files
-    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open("rb") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 1700
@@ -141,9 +141,9 @@ def load_tiil(
         original words:
     """
     # load TIIL json files
-    with Path(cfg_dataset.paths.dataset_path + "consistent.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "consistent.json").open("rb") as f:
         consistent_json = json.load(f)
-    with Path(cfg_dataset.paths.dataset_path + "inconsistent.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "inconsistent.json").open("rb") as f:
         inconsistent_json = json.load(f)
     dataset_size = len(consistent_json["images"]) + len(inconsistent_json["images"])
 
@@ -207,7 +207,7 @@ def load_imagenet(
         clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
-    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open("rb") as f:
         mturks = json.load(f)  # 5440
         """
         {
@@ -227,7 +227,7 @@ def load_imagenet(
         """
     with Path(
         cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json"
-    ).open() as f:
+    ).open("rb") as f:
         idx2path = json.load(
             f
         )  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
@@ -254,9 +254,9 @@ def load_imagenet(
     ), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
 
     # convert the labels to string. Obtained from https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
-    with Path(
-        cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt"
-    ).open() as f:
+    with Path(cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt").open(
+        "rb"
+    ) as f:
         clsidx_to_labels_txt = f.readlines()
     clsidx_to_labels = {}
     for ln in clsidx_to_labels_txt:  # example: {0: 'tench, Tinca tinca',
@@ -350,7 +350,9 @@ def load_sop(
         object ids: list of object ids (str)
     """
     # load SOP images path
-    with Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl").open(
+        "rb"
+    ) as f:
         # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
         # "The image features a close-up view of a bicycle's suspension system,
         # specifically focusing on the front fork and the shock absorber.</s>"
