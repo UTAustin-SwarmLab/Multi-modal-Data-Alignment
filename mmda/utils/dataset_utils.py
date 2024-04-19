@@ -291,7 +291,7 @@ def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
         start_time: list of start time (int, sec)
         end_time: list of end time (int, sec)
     """
-    parent_dir = Path.parent(cfg_dataset.paths.dataset_path)
+    parent_dir = Path(cfg_dataset.paths.dataset_path).parent.absolute()
     df_path = Path(parent_dir, "MusicCaps_parsed.csv")
     if Path.exists(df_path):
         return pd.read_csv(df_path)
