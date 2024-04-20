@@ -67,7 +67,7 @@ def load_cosmos(
             # since the first caption is the original caption from the website, thus inconsistency is always False
             # and since we do not have labels for the val/train data, we do not consider the other captions
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["articles"][0]["caption_modified"])
             inconsistency.append(0)
@@ -80,7 +80,7 @@ def load_cosmos(
             # caption 1: 1700
             # the first caption is the original caption from the website, thus inconsistency is always False
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["caption1_modified"])
             inconsistency.append(0)
@@ -88,7 +88,7 @@ def load_cosmos(
             # caption 2: 1700
             # the second caption is the google-searched caption, thus inconsistency can be True
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["caption2_modified"])
             inconsistency.append(
