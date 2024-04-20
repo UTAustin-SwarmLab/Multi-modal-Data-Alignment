@@ -16,6 +16,8 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
 
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
 
+    assert cfg.dataset == "cosmos", "Only cosmos dataset is supported."
+
     # similarity score of correct and mislabeled data
     wrong_labels_bool = parse_wrong_label(cfg)
     idx_wrong = np.array([i for i, x in enumerate(wrong_labels_bool) if x])
