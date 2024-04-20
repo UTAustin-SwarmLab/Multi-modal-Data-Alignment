@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
         color="blue",
     )
 
-    if cfg.dataset in cfg.llava_datasets:
+    if cfg.dataset in cfg.mislabel_llava_datasets:
         # plot LLaVA result.
         llava_fpr, llava_tpr = llava_mislabeled_align(cfg)
         ax.plot(llava_fpr, llava_tpr, "s-", label="LLaVA", c="blue")

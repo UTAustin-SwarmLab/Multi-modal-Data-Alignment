@@ -121,7 +121,7 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         ylabel="Frequency",
         ax=ax,
     )
-
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path
@@ -184,6 +184,7 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
         ylabel="Frequency",
         ax=ax,
     )
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path

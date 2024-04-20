@@ -59,7 +59,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             color="blue",
         )
         # LLaVA
-        if cfg.dataset in cfg.llava_datasets:
+        if cfg.dataset in cfg.shuffle_llava_datasets:
             llava_fpr, llava_tpr = llava_shuffle_align(cfg, "dataset")
             ax.plot(
                 llava_fpr,
@@ -101,7 +101,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             color="red",
         )
         # LLAVA
-        if cfg.dataset in cfg.llava_datasets:
+        if cfg.dataset in cfg.shuffle_llava_datasets:
             llava_fpr, llava_tpr = llava_shuffle_align(cfg, "class")
             ax.plot(
                 llava_fpr,
@@ -144,7 +144,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             color="green",
         )
         # LLAVA
-        if cfg.dataset in cfg.llava_datasets:
+        if cfg.dataset in cfg.shuffle_llava_datasets:
             llava_fpr, llava_tpr = llava_shuffle_align(cfg, "object")
             ax.plot(
                 llava_fpr,

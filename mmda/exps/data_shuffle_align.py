@@ -124,6 +124,7 @@ def cca_data_align(
         ylabel="Frequency",
         ax=ax,
     )
+    plt.tight_layout()
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     save_fig(
         fig,
@@ -207,6 +208,7 @@ def clip_like_data_align(
         ylabel="Frequency",
         ax=ax,
     )
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path
