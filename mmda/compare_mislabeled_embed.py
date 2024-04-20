@@ -60,6 +60,7 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
         xlabel="Cosine similarity Score",
         ylabel="Frequency",
         ax=ax,
+        binwidth=0.05,
     )
     plt.tight_layout()
     save_fig(
