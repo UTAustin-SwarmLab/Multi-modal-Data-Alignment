@@ -53,7 +53,7 @@ def cal_spearman_coeff(
     ), f"data2 not zero mean: {data2.mean(axis=0)}"
 
     # CCA dimensionality reduction
-    audio_text_cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
+    audio_text_cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
     data1, data2 = audio_text_cca.fit_transform((data1, data2))
     corr_align = (
         np.ones((data2.shape[1],))

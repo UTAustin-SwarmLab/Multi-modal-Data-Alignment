@@ -1,10 +1,10 @@
 """Inspect outliers in the given dataset using the CLAP model and the proposed CCA method."""
 
-import hydra
 import numpy as np
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 
+import hydra
 from mmda.utils.data_utils import (
     load_two_encoder_data,
     origin_centered,
@@ -93,7 +93,7 @@ def cca_inspect_outliers(cfg: DictConfig, data1: np.ndarray, data2: np.ndarray) 
     ), f"data2 not zero mean: {data2.mean(axis=0)}"
 
     # CCA dimensionality reduction
-    audio_text_cca = CCA(latent_dimensions=cfg.CCA_dim)
+    audio_text_cca = CCA(latent_dimensions=cfg.sim_dim)
     data1, data2 = audio_text_cca.fit_transform((data1, data2))
     corr_align = (
         np.ones((data2.shape[1],))

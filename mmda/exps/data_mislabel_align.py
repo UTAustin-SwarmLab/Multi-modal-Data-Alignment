@@ -10,7 +10,7 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca import cca_fit_train_data
+from mmda.utils.cca_utils import cca_fit_train_data
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
@@ -42,6 +42,7 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     """
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
+    print(f"Loaded data1 shape: {data1.shape}, data2 shape: {data2.shape}")
     plots_path = Path(
         cfg_dataset.paths.plots_path,
         f"mislabeled_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/",

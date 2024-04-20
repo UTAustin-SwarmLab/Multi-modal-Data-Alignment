@@ -11,33 +11,6 @@ import pandas as pd
 from omegaconf import DictConfig
 
 
-def load_dataset_config(cfg: DictConfig) -> DictConfig:
-    """Load the configuration file for the dataset.
-
-    Args:
-        cfg: configuration file
-    Returns:
-        cfg_dataset: configuration file for the dataset
-    """
-    if cfg.dataset == "sop":
-        cfg_dataset = cfg.sop
-    elif cfg.dataset == "musiccaps":
-        cfg_dataset = cfg.musiccaps
-    elif cfg.dataset == "imagenet":
-        cfg_dataset = cfg.imagenet
-    elif cfg.dataset == "tiil":
-        cfg_dataset = cfg.tiil
-    elif cfg.dataset == "cosmos":
-        cfg_dataset = cfg.cosmos
-    elif cfg.dataset == "pitts":
-        cfg_dataset = cfg.pitts
-    # TODO: add more datasets
-    else:
-        msg = f"Dataset {cfg.dataset} not supported."
-        raise ValueError(msg)
-    return cfg_dataset
-
-
 def load_pitts(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:

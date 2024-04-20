@@ -110,12 +110,11 @@ def load_dataset_and_download(
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
-    cfg_dataset = cfg.musiccaps
-    ds = load_dataset_and_download(cfg_dataset.paths.dataset_path, num_proc=10)
+    ds = load_dataset_and_download(cfg.musiccaps.paths.dataset_path, num_proc=10)
 
-    os.makedirs(cfg_dataset.paths.dataset_path, exist_ok=True)
-    print(f"Saving dataset to {cfg_dataset.paths.dataset_path}")
-    ds.save_to_disk(cfg_dataset.paths.dataset_path)
+    os.makedirs(cfg.musiccaps.paths.dataset_path, exist_ok=True)
+    print(f"Saving dataset to {cfg.musiccaps.paths.dataset_path}")
+    ds.save_to_disk(cfg.musiccaps.paths.dataset_path)
 
 
 if __name__ == "__main__":

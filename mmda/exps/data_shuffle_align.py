@@ -10,7 +10,7 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca import cca_fit_train_data
+from mmda.utils.cca_utils import cca_fit_train_data
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,

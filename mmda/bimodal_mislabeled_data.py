@@ -12,7 +12,6 @@ from mmda.exps.data_mislabel_align import (
     clip_like_detect_mislabeled_data,
 )
 from mmda.exps.llava_alignment import llava_mislabeled_align
-from mmda.utils.data_utils import load_dataset_config
 from mmda.utils.sim_utils import cal_auc
 
 
@@ -21,8 +20,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     num_train_data = int(cfg.dataset_size[cfg.dataset] * cfg.train_test_ratio)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
     print("number of training data", num_train_data)
-
-    cfg_dataset = load_dataset_config(cfg)
     # plot the ROC curve
     fig, ax = plt.subplots()
 
@@ -69,12 +66,12 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     ax.grid()
 
     ds_label = "" if cfg.noisy_train_set else "_clean"
-    eq_label = "_noweight" if cfg_dataset.equal_weights else ""
+    eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
     fig.savefig(
         Path(
-            cfg_dataset.paths.plots_path,
-            f"mislabeled_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}",
-            f"ROC_mislabeled_curves_size{num_train_data}_dim{cfg_dataset.sim_dim}{eq_label}{ds_label}.png",
+            cfg[cfg.dataset].paths.plots_path,
+            f"mislabeled_{cfg[cfg.dataset].text_encoder}_{cfg[cfg.dataset].img_encoder}",
+            f"ROC_mislabeled_curves_size{num_train_data}_dim{cfg[cfg.dataset].sim_dim}{eq_label}{ds_label}.png",
         )
     )
 

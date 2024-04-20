@@ -115,7 +115,7 @@ def roc_align_unalign_points(
     Return:
         list of roc points
     """
-    roc = [(0, 0), (1, 1)]
+    roc = [(0.0, 0.0), (1.0, 1.0)]
     threshold_list = list(
         np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(
             -1
@@ -126,7 +126,9 @@ def roc_align_unalign_points(
         tpr = tp / (tp + fn)  # y axis
         fpr = fp / (fp + tn)  # x axis
         roc.append((fpr, tpr))
-    return sorted(roc, key=lambda x: x[0])
+    # keep only the unique points
+    roc = list(set(roc))
+    return sorted(roc, key=lambda x: x[0] + x[1])
 
 
 def cal_auc(roc_points: list[tuple[float, float]]) -> float:

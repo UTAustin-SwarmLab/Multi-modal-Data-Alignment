@@ -7,7 +7,7 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "pitts"
+dataset: "cosmos"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
@@ -23,8 +23,7 @@ dataset_size: {
 }
 
 sop:
-  CCA_dim: 500 # dimension of the CCA transformation
-  sim_dim: 150 # dimension of the similarity score
+  sim_dim: 150 # dimension of the similarity score and the CCA transformation
   equal_weights: False
   text_encoder: "clip"
   img_encoder: "clip"
@@ -38,19 +37,17 @@ sop:
   work_dir: ${repo_root}hydra/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 musiccaps:
-  CCA_dim: 512 # dimension of the CCA transformation
-  sim_dim: 25 # dimension of the similarity score
+  sim_dim: 25 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "clap"
-  text_encoder: "clap"
+  img_encoder: "clap" # 512
+  text_encoder: "gtr"  # 768
   paths:
     dataset_path: "/nas/pohan/datasets/MusicCaps/wav_files/"
     save_path: ${musiccaps.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/MusicCaps/
 
 imagenet:
-  CCA_dim: 750 # dimension of the CCA transformation
-  sim_dim: 200 # dimension of the similarity score
+  sim_dim: 200 # dimension of the similarity score and the CCA transformation
   equal_weights: False
   img_encoder: "clip"
   text_encoder: "gtr"
@@ -60,8 +57,7 @@ imagenet:
     plots_path: ${repo_root}plots/ImageNet/
 
 tiil:
-  CCA_dim: 750 # dimension of the CCA transformation
-  sim_dim: 200 # dimension of the similarity score
+  sim_dim: 200 # dimension of the similarity score and the CCA transformation
   equal_weights: False
   img_encoder: "clip"
   text_encoder: "gtr"
@@ -71,19 +67,17 @@ tiil:
     plots_path: ${repo_root}plots/TIIL/
 
 cosmos:
-  CCA_dim: 750 # dimension of the CCA transformation
-  sim_dim: 200 # dimension of the similarity score
+  sim_dim: 200 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "clip"
-  text_encoder: "gtr"
+  img_encoder: "dino"
+  text_encoder: "clip"
   paths:
     dataset_path: "/nas/pohan/datasets/COSMOS/"
     save_path: ${cosmos.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/COSMOS/
 
 pitts:
-  CCA_dim: 750 # dimension of the CCA transformation
-  sim_dim: 10 # dimension of the similarity score
+  sim_dim: 10 # dimension of the similarity score and the CCA transformation
   equal_weights: False
   img_encoder: "cosplace"
   text_encoder: "gtr"
@@ -113,3 +107,9 @@ asif:
   non_zeros: 800
   val_exps: [8]
   max_gpu_mem_gb: 23
+
+# model embedding size
+# clap: 512
+# gtr: 768
+# dino: 1536
+# clip: 1280
