@@ -87,7 +87,7 @@ def load_cosmos(
     article_urls = []
 
     # load COSMOS val data json files
-    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open("rb") as f:
+    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open("r") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 41,006
@@ -101,7 +101,7 @@ def load_cosmos(
             article_urls.append(data["articles"][0]["article_url"])
 
     # load COSMOS test data json files
-    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open("rb") as f:
+    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open("r") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 1700

@@ -115,20 +115,18 @@ def roc_align_unalign_points(
     Return:
         list of roc points
     """
-    roc = []
+    roc = [(0, 0), (1, 1)]
     threshold_list = list(
         np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(
             -1
         )
     )
-    threshold_list += [-1, 1]
-    threshold_list.sort()
     for threshold in threshold_list:
         tp, fp, fn, tn = cal_roc_components(sim_align, sim_unalign, threshold)
         tpr = tp / (tp + fn)  # y axis
         fpr = fp / (fp + tn)  # x axis
         roc.append((fpr, tpr))
-    return roc
+    return sorted(roc, key=lambda x: x[0])
 
 
 def cal_auc(roc_points: list[tuple[float, float]]) -> float:
@@ -139,7 +137,6 @@ def cal_auc(roc_points: list[tuple[float, float]]) -> float:
     Return:
         auc (Area Under Curve)
     """
-    roc_points = sorted(roc_points, key=lambda x: x[0])
     auc = 0
     for ii in range(1, len(roc_points)):
         auc += (
