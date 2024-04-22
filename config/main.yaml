@@ -8,7 +8,7 @@ repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
 dataset: "cosmos"
-dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps]
+dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
@@ -86,6 +86,16 @@ pitts:
     dataset_path: "/nas/pohan/datasets/pitts250k/"
     save_path: ${pitts.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/PITTS/
+
+flickr:
+  sim_dim: 200 # dimension of the similarity score and the CCA transformation
+  equal_weights: False
+  img_encoder: "clip"
+  text_encoder: "gtr"
+  paths:
+    dataset_path: "/nas/pohan/datasets/flickr30k"
+    save_path: ${flickr.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/Flickr30k/
 
 hydra:
   run:
