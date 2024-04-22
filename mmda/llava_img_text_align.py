@@ -7,9 +7,6 @@ import numpy as np
 from omegaconf import DictConfig
 
 import hydra
-from mmda.utils.data_utils import (
-    load_dataset_config,
-)
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_cosmos,
@@ -54,7 +51,7 @@ def llava_align(cfg: DictConfig) -> None:
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
 
     # load raw data
     if cfg.dataset == "sop":
@@ -109,7 +106,7 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None
     # set random seed
     np.random.seed(cfg.seed)
 
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
 
     # load raw data
     if cfg.dataset == "sop":

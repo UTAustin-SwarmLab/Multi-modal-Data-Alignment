@@ -189,9 +189,14 @@ def llava_img_text_align(
     Returns:
         llava_yes_no_answer: list of text descriptions
     """
+    assert len(img_paths) == len(text_descriptions), "Image and text length mismatch."
     prompt_list = []
     for i in range(len(text_descriptions)):
-        prompt = f'Does the following text describe the given image? Answer in yes/no. "{text_descriptions[i]}"'
+        if cfg.dataset == "cosmos":
+            prompt = f'Does the following text describe the given image? GPE means any location. Answer in yes/no. \
+                    "{text_descriptions[i][1]}"'
+        else:
+            prompt = f'Does the following text describe the given image? Answer in yes/no. "{text_descriptions[i]}"'
         prompt_list.append(prompt)
 
     mp.set_start_method("spawn", force=True)
@@ -209,9 +214,9 @@ def llava_img_text_align(
                             (i + 1) * len(img_paths) / num_processes
                         )
                     ],
-                    text_descriptions[
-                        int(i * len(text_descriptions) / num_processes) : int(
-                            (i + 1) * len(text_descriptions) / num_processes
+                    prompt_list[
+                        int(i * len(prompt_list) / num_processes) : int(
+                            (i + 1) * len(prompt_list) / num_processes
                         )
                     ],
                 )
@@ -221,5 +226,5 @@ def llava_img_text_align(
         llava_yes_no_answer = data.copy()
     except RuntimeError:
         print("-----------------------------------------------")
-        llava_yes_no_answer = query_llava((cfg.llava, img_paths, text_descriptions))
+        llava_yes_no_answer = query_llava((cfg.llava, img_paths, prompt_list))
     return llava_yes_no_answer

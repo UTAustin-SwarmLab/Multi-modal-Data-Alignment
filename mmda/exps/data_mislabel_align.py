@@ -10,7 +10,7 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca import cca_fit_train_data
+from mmda.utils.cca_utils import cca_fit_train_data
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
@@ -20,7 +20,6 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_cosmos,
     load_imagenet,
-    load_pitts,
     load_tiil,
     train_test_split,
 )
@@ -43,7 +42,11 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     """
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    plots_path = Path(cfg_dataset.paths.plots_path) / "mislabeled/"
+    print(f"Loaded data1 shape: {data1.shape}, data2 shape: {data2.shape}")
+    plots_path = Path(
+        cfg_dataset.paths.plots_path,
+        f"mislabeled_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/",
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
@@ -117,8 +120,9 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         xlabel="Similarity Score",
         ylabel="Frequency",
         ax=ax,
+        binwidth=0.05,
     )
-
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path
@@ -142,7 +146,10 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
-    plots_path = Path(cfg_dataset.paths.plots_path) / "mislabeled/"
+    plots_path = Path(
+        cfg_dataset.paths.plots_path,
+        f"mislabeled_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/",
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     wrong_labels_bool = parse_wrong_label(cfg)
@@ -177,7 +184,9 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
         xlabel="Similarity Score",
         ylabel="Frequency",
         ax=ax,
+        binwidth=0.05,
     )
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path
@@ -185,7 +194,7 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     )
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 80))
 
 
 def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
@@ -277,7 +286,7 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 50))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))
 
 
 def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
@@ -311,9 +320,6 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
     elif cfg.dataset == "cosmos":
         cfg_dataset = cfg.cosmos
         img_paths, text_desciption, wrong_labels_bool, _ = load_cosmos(cfg_dataset)
-    elif cfg.dataset == "pitts":
-        cfg_dataset = cfg.pitts
-        img_paths, text_desciption, wrong_labels_bool = load_pitts(cfg_dataset)
     # TODO: add more datasets
     else:
         raise NotImplementedError

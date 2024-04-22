@@ -1,6 +1,5 @@
 """calculate the spearman's rank coefficient with CLIP model's and our proposed method's similarity score."""
 
-import hydra
 import matplotlib.pyplot as plt
 import numpy as np
 from cca_zoo.linear import CCA
@@ -8,12 +7,12 @@ from omegaconf import DictConfig
 from swarm_visualizer.scatterplot import plot_basic_scatterplot
 from swarm_visualizer.utility.general_utils import save_fig
 
+import hydra
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
     origin_centered,
 )
-from mmda.utils.dataset_utils import load_dataset_config
 from mmda.utils.sim_utils import (
     cosine_sim,
     spearman_rank_coefficient,
@@ -58,7 +57,7 @@ def cal_spearman_coeff(
     ), f"data2 not zero mean: {data2.mean(axis=0)}"
 
     # CCA dimensionality reduction
-    audio_text_cca = CCA(latent_dimensions=cfg_dataset.CCA_dim)
+    audio_text_cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
     data1, data2 = audio_text_cca.fit_transform((data1, data2))
     corr_align = (
         np.ones((data2.shape[1],))
@@ -82,7 +81,7 @@ def spearman_coeff(cfg: DictConfig) -> None:
     Args:
         cfg: Config dictionary.
     """
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
     r, p_value, sim_score_clip, sim_score_cca, rank_clap, rank_cca = cal_spearman_coeff(
         cfg
     )

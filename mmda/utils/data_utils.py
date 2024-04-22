@@ -6,8 +6,6 @@ import joblib
 import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.dataset_utils import load_dataset_config
-
 
 def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.ndarray]:
     """Load the data in two modalities.
@@ -20,8 +18,7 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
         data2: data in modality 2. shape: (N, D2)
     """
     dataset = cfg.dataset
-    cfg_dataset = load_dataset_config(cfg)
-    # load image/audio embeddings and text embeddings
+    cfg_dataset = cfg[cfg.dataset]
     # load image/audio embeddings and text embeddings
     if dataset == "sop":
         data1 = joblib.load(
@@ -40,7 +37,7 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
         data1 = joblib.load(
             Path(
                 cfg_dataset.paths.save_path
-                + f"MusicCaps_audio_emb_{cfg_dataset.audio_encoder}.pkl",
+                + f"MusicCaps_audio_emb_{cfg_dataset.img_encoder}.pkl",
             )
         )
         data2 = joblib.load(
@@ -119,8 +116,7 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         data2: data in modality 2. shape: (N, D2)
     """
     dataset = cfg.dataset
-    cfg_dataset = load_dataset_config(cfg)
-    # load image/audio embeddings and text embeddings
+    cfg_dataset = cfg[cfg.dataset]
     # load image/audio embeddings and text embeddings
     if dataset == "sop":
         data1 = joblib.load(

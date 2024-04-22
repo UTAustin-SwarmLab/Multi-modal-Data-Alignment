@@ -10,7 +10,7 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca import cca_fit_train_data
+from mmda.utils.cca_utils import cca_fit_train_data
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
@@ -44,8 +44,10 @@ def cca_data_align(
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    print(data1.shape, data2.shape)
-    plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
+    plots_path = Path(
+        cfg_dataset.paths.plots_path,
+        f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/",
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     train_idx, val_idx = get_train_test_split_index(
@@ -121,7 +123,9 @@ def cca_data_align(
         xlabel="Similarity Score",
         ylabel="Frequency",
         ax=ax,
+        binwidth=0.05,
     )
+    plt.tight_layout()
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     save_fig(
         fig,
@@ -165,7 +169,10 @@ def clip_like_data_align(
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
-    plots_path = Path(cfg_dataset.paths.plots_path) / "shuffle_align/"
+    plots_path = Path(
+        cfg_dataset.paths.plots_path,
+        f"shuffle_align_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/",
+    )
     plots_path.mkdir(parents=True, exist_ok=True)
 
     train_idx, val_idx = get_train_test_split_index(
@@ -201,7 +208,9 @@ def clip_like_data_align(
         xlabel="Similarity Score",
         ylabel="Frequency",
         ax=ax,
+        binwidth=0.05,
     )
+    plt.tight_layout()
     save_fig(
         fig,
         plots_path
@@ -305,4 +314,4 @@ def asif_data_align(
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 120))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))

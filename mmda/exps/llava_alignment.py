@@ -9,7 +9,6 @@ from omegaconf import DictConfig
 import hydra
 from mmda.exps.data_mislabel_align import parse_wrong_label
 from mmda.utils.data_utils import (
-    load_dataset_config,
     load_two_encoder_data,
 )
 from mmda.utils.dataset_utils import (
@@ -64,7 +63,7 @@ def llava_shuffle_align(
 ) -> list[list[float]]:
     """Return llava's shuffled alignment answer."""
     # set random seed
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
 
     # load image embeddings and text embeddings
     align = joblib.load(

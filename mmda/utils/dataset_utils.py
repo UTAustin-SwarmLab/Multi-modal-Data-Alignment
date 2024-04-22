@@ -11,34 +11,6 @@ import pandas as pd
 from omegaconf import DictConfig
 
 
-def load_dataset_config(cfg: DictConfig) -> DictConfig:
-    """Load the configuration file for the dataset.
-
-    Args:
-        cfg: configuration file
-    Returns:
-        cfg_dataset: configuration file for the dataset
-    """
-    dataset = cfg.dataset
-    if dataset == "sop":
-        cfg_dataset = cfg.sop
-    elif dataset == "musiccaps":
-        cfg_dataset = cfg.musiccaps
-    elif dataset == "imagenet":
-        cfg_dataset = cfg.imagenet
-    elif dataset == "tiil":
-        cfg_dataset = cfg.tiil
-    elif dataset == "cosmos":
-        cfg_dataset = cfg.cosmos
-    elif dataset == "pitts":
-        cfg_dataset = cfg.pitts
-    # TODO: add more datasets
-    else:
-        msg = f"Dataset {dataset} not supported."
-        raise ValueError(msg)
-    return cfg_dataset
-
-
 def load_pitts(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
@@ -56,7 +28,7 @@ def load_pitts(
     # train set
     with Path(
         cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl"
-    ).open() as f:
+    ).open("rb") as f:
         path_text_descriptions_threads = joblib.load(f)
     # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
@@ -88,27 +60,27 @@ def load_cosmos(
     article_urls = []
 
     # load COSMOS val data json files
-    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "val_data.json").open("r") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 41,006
             # since the first caption is the original caption from the website, thus inconsistency is always False
             # and since we do not have labels for the val/train data, we do not consider the other captions
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["articles"][0]["caption_modified"])
             inconsistency.append(0)
             article_urls.append(data["articles"][0]["article_url"])
 
     # load COSMOS test data json files
-    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "test_data.json").open("r") as f:
         for line in f:
             data = ast.literal_eval(line)
             # caption 1: 1700
             # the first caption is the original caption from the website, thus inconsistency is always False
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["caption1_modified"])
             inconsistency.append(0)
@@ -116,17 +88,13 @@ def load_cosmos(
             # caption 2: 1700
             # the second caption is the google-searched caption, thus inconsistency can be True
             img_paths.append(
-                Path(cfg_dataset.paths.dataset_path + data["img_local_path"])
+                str(Path(cfg_dataset.paths.dataset_path + data["img_local_path"]))
             )
             text_descriptions.append(data["caption2_modified"])
             inconsistency.append(
                 data["context_label"]
             )  # (1=Out-of-Context, 0=Not-Out-of-Context )
             article_urls.append(data["article_url"])
-    print(f"Number of COSMOS data: {len(img_paths)}")
-    print(f"Number of COSMOS inconsistency: {np.sum(inconsistency)}")
-    print(f"Number of COSMOS consistency: {len(inconsistency) - np.sum(inconsistency)}")
-    print(f"Number of COSMOS article urls: {len(article_urls)}")
     inconsistency = np.array(inconsistency, dtype=bool)
     return img_paths, text_descriptions, inconsistency, article_urls
 
@@ -146,9 +114,9 @@ def load_tiil(
         original words:
     """
     # load TIIL json files
-    with Path(cfg_dataset.paths.dataset_path + "consistent.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "consistent.json").open("rb") as f:
         consistent_json = json.load(f)
-    with Path(cfg_dataset.paths.dataset_path + "inconsistent.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "inconsistent.json").open("rb") as f:
         inconsistent_json = json.load(f)
     dataset_size = len(consistent_json["images"]) + len(inconsistent_json["images"])
 
@@ -212,7 +180,7 @@ def load_imagenet(
         clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
-    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open() as f:
+    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open("rb") as f:
         mturks = json.load(f)  # 5440
         """
         {
@@ -232,7 +200,7 @@ def load_imagenet(
         """
     with Path(
         cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json"
-    ).open() as f:
+    ).open("rb") as f:
         idx2path = json.load(
             f
         )  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
@@ -259,9 +227,9 @@ def load_imagenet(
     ), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
 
     # convert the labels to string. Obtained from https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
-    with Path(
-        cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt"
-    ).open() as f:
+    with Path(cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt").open(
+        "rb"
+    ) as f:
         clsidx_to_labels_txt = f.readlines()
     clsidx_to_labels = {}
     for ln in clsidx_to_labels_txt:  # example: {0: 'tench, Tinca tinca',
@@ -296,7 +264,7 @@ def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
         start_time: list of start time (int, sec)
         end_time: list of end time (int, sec)
     """
-    parent_dir = Path.parent(cfg_dataset.paths.dataset_path)
+    parent_dir = Path(cfg_dataset.paths.dataset_path).parent.absolute()
     df_path = Path(parent_dir, "MusicCaps_parsed.csv")
     if Path.exists(df_path):
         return pd.read_csv(df_path)
@@ -355,7 +323,9 @@ def load_sop(
         object ids: list of object ids (str)
     """
     # load SOP images path
-    with Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl").open() as f:
+    with Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl").open(
+        "rb"
+    ) as f:
         # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
         # "The image features a close-up view of a bicycle's suspension system,
         # specifically focusing on the front fork and the shock absorber.</s>"

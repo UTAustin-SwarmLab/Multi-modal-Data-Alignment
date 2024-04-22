@@ -8,7 +8,6 @@ from omegaconf import DictConfig
 import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
-    load_dataset_config,
     load_imagenet,
     load_musiccaps,
     load_pitts,
@@ -36,7 +35,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
         cfg (DictConfig): Configurations.
     """
     dataset = cfg.dataset
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
     print(f"Dataset: {dataset}")
     Path(cfg_dataset.paths.save_path).mkdir(parents=True, exist_ok=True)
 

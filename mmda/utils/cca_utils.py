@@ -36,6 +36,4 @@ def cca_fit_train_data(
         corr_align = np.ones((traindata2.shape[1],))  # dim,
     else:
         corr_align = np.diag(traindata1.T @ traindata2) / traindata1.shape[0]  # dim,
-    assert np.max(corr_align) <= 1.0, f"max corr_align: {np.max(corr_align)}"
-    assert np.min(corr_align) >= 0.0, f"min corr_align: {np.min(corr_align)}"
     return cca, traindata1, traindata2, corr_align

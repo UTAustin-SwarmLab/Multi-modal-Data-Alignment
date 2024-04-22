@@ -7,7 +7,6 @@ import joblib
 from omegaconf import DictConfig
 
 import hydra
-from mmda.utils.data_utils import load_dataset_config
 from mmda.utils.llava_utils import llava_caption
 
 
@@ -18,7 +17,7 @@ def get_caption(cfg: DictConfig) -> None:
     Args:
         cfg: config
     """
-    cfg_dataset = load_dataset_config(cfg)
+    cfg_dataset = cfg[cfg.dataset]
     if cfg.dataset == "sop":
         path_text_descriptions = joblib.load(
             Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl")
