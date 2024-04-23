@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
+import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-import hydra
 from mmda.exps.multimodal_retrieval import (
     cca_retrieval,
     clip_like_retrieval,
@@ -15,7 +15,6 @@ from mmda.exps.multimodal_retrieval import (
 @hydra.main(version_base=None, config_path="../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
     cfg_dataset = cfg[cfg.dataset]
-    cca_proj_dims = cfg_dataset.cca_proj_dims
 
     clip_recall, clip_precision = clip_like_retrieval(cfg)
     print(f"CLIP-like: Recall: {clip_recall}, Precision: {clip_precision}")
