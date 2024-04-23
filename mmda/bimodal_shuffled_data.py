@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.data_shuffle_align import (
+from mmda.exps.llava_alignment import llava_shuffle_align
+from mmda.exps.shuffle_align import (
     asif_data_align,
     cca_data_align,
     clip_like_data_align,
 )
-from mmda.exps.llava_alignment import llava_shuffle_align
 from mmda.utils.sim_utils import cal_auc
 
 

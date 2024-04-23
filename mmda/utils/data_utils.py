@@ -171,6 +171,13 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         data2 = joblib.load(
             Path(cfg_dataset.paths.save_path + "PITTS_text_emb_clip.pkl")
         )
+    elif dataset == "flickr":
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "FLICKR_img_emb_clip.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "FLICKR_text_emb_clip.pkl")
+        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."

@@ -43,7 +43,7 @@ def load_flickr(
             splits.append(row["split"])
             img_ids.append(row["img_id"])
     # ['test', 'train', 'val'] = [5000, 145000, 5070]
-    return img_paths, text_descriptions, np.array(splits), img_ids
+    return img_paths, text_descriptions, np.array(splits), np.array(img_ids)
 
 
 def load_pitts(

@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.data_mislabel_align import (
+from mmda.exps.llava_alignment import llava_mislabeled_align
+from mmda.exps.mislabel_align import (
     asif_detect_mislabeled_data,
     cca_detect_mislabeled_data,
     clip_like_detect_mislabeled_data,
 )
-from mmda.exps.llava_alignment import llava_mislabeled_align
 from mmda.utils.sim_utils import cal_auc
 
 

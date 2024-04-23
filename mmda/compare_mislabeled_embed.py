@@ -9,7 +9,7 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 import hydra
-from mmda.exps.data_mislabel_align import (
+from mmda.exps.mislabel_align import (
     parse_wrong_label,
 )
 from mmda.utils.data_utils import load_two_encoder_data
