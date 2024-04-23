@@ -98,6 +98,19 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
                 + f"PITTS_text_emb_{cfg_dataset.text_encoder}.pkl",
             )
         )
+    elif dataset == "flickr":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"FLICKR_img_emb_{cfg_dataset.img_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"FLICKR_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."

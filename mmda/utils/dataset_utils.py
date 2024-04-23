@@ -11,6 +11,41 @@ import pandas as pd
 from omegaconf import DictConfig
 
 
+def load_flickr(
+    cfg_dataset: DictConfig,
+) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the Flickr dataset.
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        text_descriptions: list of text descriptions
+        splits: list of splits [train, test, val] (str)
+        obj_ids: list of object ids (str)
+    """
+    # load Flickr train json filee. columns: [raw, sentids, split, filename, img_id]
+    flickr = pd.read_csv(cfg_dataset.paths.dataset_path + "flickr_annotations_30k.csv")
+    img_paths, text_descriptions, splits, img_ids = [], [], [], []
+    for _, row in flickr.iterrows():
+        texts = row["raw"].replace("[", "").replace("]", "").split('", "')
+        assert len(texts) == 5, f"Not 5 captions: {len(texts)}"  # noqa: PLR2004
+        for text in texts:
+            text_descriptions.append(text.replace('"', ""))
+            img_paths.append(
+                str(
+                    Path(cfg_dataset.paths.dataset_path)
+                    / "flickr30k-images"
+                    / row["filename"]
+                )
+            )
+            splits.append(row["split"])
+            img_ids.append(row["img_id"])
+    # ['test', 'train', 'val'] = [5000, 145000, 5070]
+    return img_paths, text_descriptions, np.array(splits), img_ids
+
+
 def load_pitts(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
@@ -512,3 +547,15 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
     train_dict_filter = filter_str_label(train_gts)
     traindata2unalign = shuffle_data_by_indices(traindata2unalign, train_dict_filter)
     return traindata2unalign, valdata2unalign
+
+
+import hydra  # noqa: E402
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="main")
+def main(cfg: DictConfig) -> None:  # noqa: D103
+    load_flickr(cfg.flickr)
+
+
+if __name__ == "__main__":
+    main()

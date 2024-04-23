@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
+    load_flickr,
     load_imagenet,
     load_musiccaps,
     load_pitts,
@@ -24,7 +25,7 @@ from mmda.utils.embed_data import (
     gtr_text,
 )
 
-BATCH_SIZE = 512
+BATCH_SIZE = 128
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -242,6 +243,40 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
         ) as f:
             pickle.dump(img_emb, f)
         print("Cosplace embeddings saved")
+
+    elif dataset == "flickr":
+        img_files, text_descriptions, _, _ = load_flickr(cfg_dataset)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "Flickr_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text_descriptions)
+        with Path(cfg_dataset.paths.save_path, "Flickr_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
+
+        # get img embeddings
+        img_emb = dinov2(img_files, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "Flickr_img_emb_dino.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(img_files, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "Flickr_img_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
