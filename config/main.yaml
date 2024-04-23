@@ -7,7 +7,7 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "cosmos"
+dataset: "flickr"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
@@ -20,7 +20,8 @@ dataset_size: {
   imagenet: 50_000,
   tiil: 14276,
   cosmos: 44406,
-  pitts: 17608
+  pitts: 17608,
+  flickr: 155070
 }
 
 sop:
@@ -90,10 +91,11 @@ pitts:
 flickr:
   sim_dim: 200 # dimension of the similarity score and the CCA transformation
   equal_weights: False
+  img2text: True # whether to retrieve text to image or image to text
   img_encoder: "clip"
   text_encoder: "gtr"
   paths:
-    dataset_path: "/nas/pohan/datasets/flickr30k"
+    dataset_path: "/nas/pohan/datasets/flickr30k/"
     save_path: ${flickr.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/Flickr30k/
 

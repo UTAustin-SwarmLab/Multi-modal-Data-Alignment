@@ -88,10 +88,10 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     # make sure the data is zero mean
     assert np.allclose(
         traindata1.mean(axis=0), 0, atol=1e-4
-    ), f"traindata1align not zero mean: {traindata1.mean(axis=0)}"
+    ), f"traindata1 not zero mean: {traindata1.mean(axis=0)}"
     assert np.allclose(
         traindata2.mean(axis=0), 0, atol=1e-4
-    ), f"traindata2align not zero mean: {traindata2.mean(axis=0)}"
+    ), f"traindata2 not zero mean: {traindata2.mean(axis=0)}"
 
     cca, traindata1, traindata2, corr_align = cca_fit_train_data(
         cfg_dataset, traindata1, traindata2
