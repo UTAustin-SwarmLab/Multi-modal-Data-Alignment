@@ -30,6 +30,109 @@ from mmda.utils.sim_utils import (
 )
 
 
+def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
+    """Parse the wrong label boolean array to the train and val set.
+
+    Args:
+        cfg: configuration file
+        wrong_labels_bool: boolean array indicating whether the label is wrong.
+        train_idx: index of the training set
+        val_idx: index of the validation set
+
+    Returns:
+        wrong_labels_bool
+    """
+    if cfg.dataset == "imagenet":
+        cfg_dataset = cfg.imagenet
+        img_path, mturks_idx, orig_idx, clsidx_to_labels = load_imagenet(cfg_dataset)
+        wrong_labels_bool = (
+            []
+        )  # True if the label is wrong, False if the label is correct
+        for mturks_label_idx, orig_label_idx in zip(mturks_idx, orig_idx, strict=True):
+            (
+                wrong_labels_bool.append(True)
+                if mturks_label_idx != orig_label_idx
+                else wrong_labels_bool.append(False)
+            )
+        wrong_labels_bool = np.array(wrong_labels_bool, dtype=bool)
+    elif cfg.dataset == "tiil":
+        cfg_dataset = cfg.tiil
+        img_paths, text_desciption, wrong_labels_bool, _ = load_tiil(cfg_dataset)
+    elif cfg.dataset == "cosmos":
+        cfg_dataset = cfg.cosmos
+        img_paths, text_desciption, wrong_labels_bool, _ = load_cosmos(cfg_dataset)
+    # TODO: add more datasets
+    else:
+        raise NotImplementedError
+    return wrong_labels_bool
+
+
+def separate_data(
+    cfg: DictConfig,
+    data1: np.ndarray,
+    data2: np.ndarray,
+    return_pt: bool = False,
+) -> None:
+    """Separate aligned data and unaligned data.
+
+    Args:
+        cfg: configuration file
+        data1: data from the first encoder
+        data2: data from the second encoder
+        return_pt: whether to return the data as torch tensors
+    Returns:
+
+    """
+    wrong_labels_bool = parse_wrong_label(cfg)
+    train_idx, val_idx = get_train_test_split_index(
+        cfg.train_test_ratio, data1.shape[0]
+    )
+    traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
+    traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
+    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
+        wrong_labels_bool, train_idx, val_idx
+    )
+    traindata1align = traindata1[~train_wrong_labels_bool]
+    traindata2align = traindata2[~train_wrong_labels_bool]
+    valdata1align = valdata1[~val_wrong_labels_bool]
+    valdata2align = valdata2[~val_wrong_labels_bool]
+    valdata1unalign = valdata1[val_wrong_labels_bool]
+    valdata2unalign = valdata2[val_wrong_labels_bool]
+    if return_pt:
+        traindata1 = torch.tensor(traindata1).cuda()
+        traindata2 = torch.tensor(traindata2).cuda()
+        valdata1 = torch.tensor(valdata1).cuda()
+        valdata2 = torch.tensor(valdata2).cuda()
+        traindata1align = torch.tensor(traindata1align).cuda()
+        traindata2align = torch.tensor(traindata2align).cuda()
+        valdata1align = torch.tensor(valdata1align).cuda()
+        valdata2align = torch.tensor(valdata2align).cuda()
+        valdata1unalign = torch.tensor(valdata1unalign).cuda()
+        valdata2unalign = torch.tensor(valdata2unalign).cuda()
+
+    class AttrDict(dict):
+        def __init__(self, *args, **kwargs):  # noqa: ANN204, ANN002, ANN003
+            super().__init__(*args, **kwargs)
+            self.__dict__ = self
+
+    data = AttrDict()
+    data.update(
+        {
+            "traindata1": traindata1,
+            "traindata2": traindata2,
+            "valdata1": valdata1,
+            "valdata2": valdata2,
+            "traindata1align": traindata1align,
+            "traindata2align": traindata2align,
+            "valdata1align": valdata1align,
+            "valdata2align": valdata2align,
+            "valdata1unalign": valdata1unalign,
+            "valdata2unalign": valdata2unalign,
+        }
+    )
+    return data
+
+
 def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     """Detect mislabeled data using the proposed CCA method.
 
@@ -49,42 +152,23 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     )
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    wrong_labels_bool = parse_wrong_label(cfg)
-
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
-    traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
-    traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
-
-    # separate aligned data and unaligned data
-    traindata1align, traindata2align = (
-        traindata1[~train_wrong_labels_bool],
-        traindata2[~train_wrong_labels_bool],
-    )
-    valdata1align, valdata2align = (
-        valdata1[~val_wrong_labels_bool],
-        valdata2[~val_wrong_labels_bool],
-    )
-    valdata1unalign, valdata2unalign = (
-        valdata1[val_wrong_labels_bool],
-        valdata2[val_wrong_labels_bool],
-    )
+    all_data = separate_data(cfg, data1, data2)
 
     # select training data based on the noisy_train_set
-    traindata1 = traindata1 if cfg.noisy_train_set else traindata1align
-    traindata2 = traindata2 if cfg.noisy_train_set else traindata2align
+    traindata1 = (
+        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align
+    )
+    traindata2 = (
+        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align
+    )
     train_label = "" if cfg.noisy_train_set else "_clean"
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
 
     # zero mean data
     traindata1, traindata1_mean = origin_centered(traindata1)
     traindata2, traindata2_mean = origin_centered(traindata2)
-    valdata1align = valdata1align - traindata1_mean
-    valdata2align = valdata2align - traindata2_mean
+    valdata1align = all_data.valdata1align - traindata1_mean
+    valdata2align = all_data.valdata2align - traindata2_mean
     # make sure the data is zero mean
     assert np.allclose(
         traindata1.mean(axis=0), 0, atol=1e-4
@@ -105,8 +189,8 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     ### unaligned case: shuffle the data
     # zero mean data
-    valdata1unalign = valdata1unalign - traindata1_mean
-    valdata2unalign = valdata2unalign - traindata2_mean
+    valdata1unalign = all_data.valdata1unalign - traindata1_mean
+    valdata2unalign = all_data.valdata2unalign - traindata2_mean
 
     valdata1unalign, valdata2unalign = cca.transform((valdata1unalign, valdata2unalign))
     sim_unalign = weighted_corr_sim(
@@ -152,29 +236,10 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     )
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    wrong_labels_bool = parse_wrong_label(cfg)
+    all_data = separate_data(cfg, data1, data2)
 
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
-    traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
-    traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
-
-    # separate aligned data and unaligned data
-    valdata1align, valdata2align = (
-        valdata1[~val_wrong_labels_bool],
-        valdata2[~val_wrong_labels_bool],
-    )
-    valdata1unalign, valdata2unalign = (
-        valdata1[val_wrong_labels_bool],
-        valdata2[val_wrong_labels_bool],
-    )
-
-    sim_align = cosine_sim(valdata1align, valdata2align)
-    sim_unalign = cosine_sim(valdata1unalign, valdata2unalign)
+    sim_align = cosine_sim(all_data.valdata1align, all_data.valdata2align)
+    sim_unalign = cosine_sim(all_data.valdata1unalign, all_data.valdata2unalign)
 
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
@@ -207,62 +272,34 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     Returns:
         ROC points
     """
-    wrong_labels_bool = parse_wrong_label(cfg)
-
     # load embeddings from the two encoders
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
-    train_idx, val_idx = get_train_test_split_index(
-        cfg.train_test_ratio, data1.shape[0]
-    )
-    traindata1, valdata1 = train_test_split(data1, train_idx, val_idx)
-    traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
-    train_wrong_labels_bool, val_wrong_labels_bool = train_test_split(
-        wrong_labels_bool, train_idx, val_idx
-    )
+
+    all_data = separate_data(cfg, data1, data2, return_pt=True)
 
     # normalization to perform cosine similarity with a simple matmul
-    traindata1 /= np.linalg.norm(traindata1, axis=1, keepdims=True)
-    traindata2 /= np.linalg.norm(traindata2, axis=1, keepdims=True)
-    valdata1 /= np.linalg.norm(valdata1, axis=1, keepdims=True)
-    valdata2 /= np.linalg.norm(valdata2, axis=1, keepdims=True)
+    all_data.traindata1 /= torch.norm(all_data.traindata1, p=2, dim=1, keepdim=True)
+    all_data.traindata2 /= torch.norm(all_data.traindata2, p=2, dim=1, keepdim=True)
+    all_data.valdata1 /= torch.norm(all_data.valdata1, p=2, dim=1, keepdim=True)
+    all_data.valdata2 /= torch.norm(all_data.valdata2, p=2, dim=1, keepdim=True)
 
     # set parameters
-    non_zeros = min(cfg.asif.non_zeros, traindata1.shape[0])
+    non_zeros = min(cfg.asif.non_zeros, all_data.traindata1.shape[0])
     range_anch = [
         2**i
-        for i in range(int(np.log2(non_zeros) + 1), int(np.log2(len(traindata1))) + 2)
+        for i in range(
+            int(np.log2(non_zeros) + 1), int(np.log2(len(all_data.traindata1))) + 2
+        )
     ]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
-    # convert to torch tensors
-    wrong_labels_bool = torch.tensor(wrong_labels_bool).cuda()
-    valdata1, valdata2 = torch.tensor(valdata1).cuda(), torch.tensor(valdata2).cuda()
-    traindata1, traindata2 = (
-        torch.tensor(traindata1).cuda(),
-        torch.tensor(traindata2).cuda(),
-    )
-
-    # separate aligned data and unaligned data
-    traindata1align, traindata2align = (
-        traindata1[~train_wrong_labels_bool],
-        traindata2[~train_wrong_labels_bool],
-    )
-    valdata1align, valdata2align = (
-        valdata1[~val_wrong_labels_bool],
-        valdata2[~val_wrong_labels_bool],
-    )
-    valdata1unalign, valdata2unalign = (
-        valdata1[val_wrong_labels_bool],
-        valdata2[val_wrong_labels_bool],
-    )
-
     # similarity score of val data
     n_anchors, scores, sims = zero_shot_classification(
-        valdata1align,
-        valdata2align,
-        traindata1 if cfg.noisy_train_set else traindata1align,
-        traindata2 if cfg.noisy_train_set else traindata2align,
-        torch.zeros(valdata1align.shape[0]),
+        all_data.valdata1align,
+        all_data.valdata2align,
+        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align,
+        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align,
+        torch.zeros(all_data.valdata1align.shape[0]),
         non_zeros,
         range_anch,
         cfg.asif.val_exps,
@@ -272,11 +309,11 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     # similarity score of unaligned val data
     n_anchors, scores, sims = zero_shot_classification(
-        valdata1unalign,
-        valdata2unalign,
-        traindata1 if cfg.noisy_train_set else traindata1align,
-        traindata2 if cfg.noisy_train_set else traindata2align,
-        torch.zeros(valdata1unalign.shape[0]),
+        all_data.valdata1unalign,
+        all_data.valdata2unalign,
+        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align,
+        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align,
+        torch.zeros(all_data.valdata1unalign.shape[0]),
         non_zeros,
         range_anch,
         cfg.asif.val_exps,
@@ -287,40 +324,3 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     # plot ROC
     return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))
-
-
-def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
-    """Parse the wrong label boolean array to the train and val set.
-
-    Args:
-        cfg: configuration file
-        wrong_labels_bool: boolean array indicating whether the label is wrong.
-        train_idx: index of the training set
-        val_idx: index of the validation set
-
-    Returns:
-        wrong_labels_bool
-    """
-    if cfg.dataset == "imagenet":
-        cfg_dataset = cfg.imagenet
-        img_path, mturks_idx, orig_idx, clsidx_to_labels = load_imagenet(cfg_dataset)
-        wrong_labels_bool = (
-            []
-        )  # True if the label is wrong, False if the label is correct
-        for mturks_label_idx, orig_label_idx in zip(mturks_idx, orig_idx, strict=True):
-            (
-                wrong_labels_bool.append(True)
-                if mturks_label_idx != orig_label_idx
-                else wrong_labels_bool.append(False)
-            )
-        wrong_labels_bool = np.array(wrong_labels_bool, dtype=bool)
-    elif cfg.dataset == "tiil":
-        cfg_dataset = cfg.tiil
-        img_paths, text_desciption, wrong_labels_bool, _ = load_tiil(cfg_dataset)
-    elif cfg.dataset == "cosmos":
-        cfg_dataset = cfg.cosmos
-        img_paths, text_desciption, wrong_labels_bool, _ = load_cosmos(cfg_dataset)
-    # TODO: add more datasets
-    else:
-        raise NotImplementedError
-    return wrong_labels_bool

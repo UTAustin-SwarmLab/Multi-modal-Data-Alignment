@@ -19,7 +19,7 @@ def cca_fit_train_data(
         cca: the CCA model
         traindata1: the first training data after CCA. shape: (num_samples, dim)
         traindata2: the second training data after CCA. shape: (num_samples, dim)
-        corr_align: the correlation alignment. shape: (dim,)
+        corr_coeff: the correlation coefficient. shape: (dim,)
     """
     # Check the shape of the training data9
     assert (
@@ -33,7 +33,9 @@ def cca_fit_train_data(
     cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
     traindata1, traindata2 = cca.fit_transform((traindata1, traindata2))
     if cfg_dataset.equal_weights:
-        corr_align = np.ones((traindata2.shape[1],))  # dim,
+        corr_coeff = np.ones((traindata2.shape[1],))  # dim,
     else:
-        corr_align = np.diag(traindata1.T @ traindata2) / traindata1.shape[0]  # dim,
-    return cca, traindata1, traindata2, corr_align
+        corr_coeff = np.diag(traindata1.T @ traindata2) / traindata1.shape[0]  # dim,
+    assert (corr_coeff >= 0).any, f"Correlation should be non-negative. {corr_coeff}"
+    assert (corr_coeff <= 1).any, f"Correlation should be less than 1. {corr_coeff}"
+    return cca, traindata1, traindata2, corr_coeff

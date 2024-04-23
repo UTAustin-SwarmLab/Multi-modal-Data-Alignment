@@ -209,33 +209,13 @@ def load_imagenet(
         mturks_idx: MTurk verified classe indices (int)
         orig_idx: ground truth class indices (int)
         clsidx_to_labels: a dict of class idx to str.
-        img_path: list of image absolute paths
-        mturks_idx: MTurk verified classe indices (int)
-        orig_idx: ground truth class indices (int)
-        clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
-    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open("rb") as f:
+    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open() as f:
         mturks = json.load(f)  # 5440
-        """
-        {
-            "id": 293,
-            "url": "https://labelerrors.com//static/imagenet/val/n01440764/ILSVRC2012_val_00000293.JPEG",
-            "given_original_label": 0,
-            "given_original_label_name": "tench",
-            "our_guessed_label": 48,
-            "our_guessed_label_name": "Komodo dragon",
-            "mturk": {
-            "given": 5,
-            "guessed": 0,
-            "neither": 0,
-            "both": 0
-            }
-        },
-        """
     with Path(
         cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json"
-    ).open("rb") as f:
+    ).open() as f:
         idx2path = json.load(
             f
         )  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
@@ -262,9 +242,9 @@ def load_imagenet(
     ), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
 
     # convert the labels to string. Obtained from https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
-    with Path(cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt").open(
-        "rb"
-    ) as f:
+    with Path(
+        cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt"
+    ).open() as f:
         clsidx_to_labels_txt = f.readlines()
     clsidx_to_labels = {}
     for ln in clsidx_to_labels_txt:  # example: {0: 'tench, Tinca tinca',
@@ -282,22 +262,14 @@ def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
     Args:
         cfg_dataset: configuration file
     Returns:
-        A dataframe containing the following columns:
-        youtube id: list of youtube ids
-        audio paths: list of audio absolute paths
-        caption: list of text descriptions
-        aspect_list: list of aspects (str)
-        audioset_positive_labels (str)
-        start_time: list of start time (int, sec)
-        end_time: list of end time (int, sec)
-        A dataframe containing the following columns:
-        youtube id: list of youtube ids
-        audio paths: list of audio absolute paths
-        caption: list of text descriptions
-        aspect_list: list of aspects (str)
-        audioset_positive_labels (str)
-        start_time: list of start time (int, sec)
-        end_time: list of end time (int, sec)
+        dataframe: A dataframe containing the following columns:
+            youtube id: list of youtube ids
+            audio paths: list of audio absolute paths
+            caption: list of text descriptions
+            aspect_list: list of aspects (str)
+            audioset_positive_labels (str)
+            start_time: list of start time (int, sec)
+            end_time: list of end time (int, sec)
     """
     parent_dir = Path(cfg_dataset.paths.dataset_path).parent.absolute()
     df_path = Path(parent_dir, "MusicCaps_parsed.csv")
@@ -348,10 +320,6 @@ def load_sop(
     Args:
         cfg_dataset: configuration file
     Returns:
-        image paths: list of image absolute paths
-        text descriptions: list of text descriptions
-        classes: list of classes (str)
-        object ids: list of object ids (str)
         image paths: list of image absolute paths
         text descriptions: list of text descriptions
         classes: list of classes (str)

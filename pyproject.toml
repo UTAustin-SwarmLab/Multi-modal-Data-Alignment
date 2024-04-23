@@ -33,7 +33,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-numpy = "*"
+numpy = "^1.18"
 matplotlib = "*"
 seaborn = "*"
 pandas = "*"

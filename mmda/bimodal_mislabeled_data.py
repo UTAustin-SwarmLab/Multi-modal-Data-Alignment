@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     if cfg.dataset in cfg.mislabel_llava_datasets:
         # plot LLaVA result.
         llava_fpr, llava_tpr = llava_mislabeled_align(cfg)
-        ax.plot(llava_fpr, llava_tpr, "s-", label="LLaVA", c="blue")
+        ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="blue")
 
     ax.set_title("ROC Curves of Detecting Mislabeled Data")
     ax.set_xlabel("False Positive Rate")
