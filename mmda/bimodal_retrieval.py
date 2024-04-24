@@ -2,11 +2,11 @@
 
 from pathlib import Path
 
-import hydra
 import pandas as pd
 from omegaconf import DictConfig
 
-from mmda.exps.multimodal_retrieval import (
+import hydra
+from mmda.exps.retrieval import (
     cca_retrieval,
     clip_like_retrieval,
 )
@@ -16,20 +16,17 @@ from mmda.exps.multimodal_retrieval import (
 def main(cfg: DictConfig) -> None:  # noqa: D103
     cfg_dataset = cfg[cfg.dataset]
 
-    clip_recall, clip_precision = clip_like_retrieval(cfg)
-    print(f"CLIP-like: Recall: {clip_recall}, Precision: {clip_precision}")
+    clip_maps, clip_precision = clip_like_retrieval(cfg)
+    print(f"CLIP-like: mAP: {clip_maps}, Precision: {clip_precision}")
 
-    cca_recalls, cca_precisions = cca_retrieval(cfg)
-    print(f"CCA: Recall: {cca_recalls}, Precision: {cca_precisions}")
+    cca_maps_dict, cca_precisions = cca_retrieval(cfg)
+    print(f"CCA: mAP: {cca_maps_dict}, Precision: {cca_precisions}")
 
     # write to csv file
     data = {
-        "method": ["CLIP-like"] + ["CCA" for _ in cca_recalls],
-        "projection dim": [1280, *cca_recalls.keys()],
-        "recall@1": [clip_recall[1]]
-        + [cca_recall[1] for cca_recall in cca_recalls.values()],
-        "recall@5": [clip_recall[5]]
-        + [cca_recall[5] for cca_recall in cca_recalls.values()],
+        "method": ["CLIP-like"] + ["CCA" for _ in cca_maps_dict],
+        "projection dim": [1280, *cca_maps_dict.keys()],
+        "mAP": [clip_maps, *list(cca_maps_dict.values())],
         "precision@1": [clip_precision[1]]
         + [cca_precision[1] for cca_precision in cca_precisions.values()],
         "precision@5": [clip_precision[5]]
