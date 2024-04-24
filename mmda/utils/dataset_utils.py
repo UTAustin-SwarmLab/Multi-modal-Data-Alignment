@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
 
+import hydra
+
 
 def load_flickr(
     cfg_dataset: DictConfig,
@@ -439,9 +441,8 @@ def filter_outliers(
     return index
 
 
-def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
-    cfg_dataset: DictConfig,
-    dataset: str,
+def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
+    cfg: DictConfig,
     shuffle_level: str,
     traindata2unalign: np.ndarray,
     valdata2unalign: np.ndarray,
@@ -451,7 +452,7 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
     """Shuffle the data by dataset, class, or object level.
 
     Args:
-        cfg_dataset: configuration file
+        cfg: configuration file
         dataset: dataset name
         shuffle_level: shuffle level. It can only be "dataset", "class", or "object".
         traindata2unalign: unaligned data
@@ -472,7 +473,8 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
         np.random.shuffle(traindata2unalign)
         np.random.shuffle(valdata2unalign)
         return traindata2unalign, valdata2unalign
-
+    dataset = cfg.dataset
+    cfg_dataset = cfg[dataset]
     # shuffle by class or object level
     if dataset == "sop":
         _, _, classes, obj_ids = load_sop(cfg_dataset)
@@ -515,9 +517,6 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
     train_dict_filter = filter_str_label(train_gts)
     traindata2unalign = shuffle_data_by_indices(traindata2unalign, train_dict_filter)
     return traindata2unalign, valdata2unalign
-
-
-import hydra  # noqa: E402
 
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")

@@ -152,23 +152,19 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     )
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    all_data = separate_data(cfg, data1, data2)
+    alldata = separate_data(cfg, data1, data2)
 
     # select training data based on the noisy_train_set
-    traindata1 = (
-        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align
-    )
-    traindata2 = (
-        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align
-    )
+    traindata1 = alldata.traindata1 if cfg.noisy_train_set else alldata.traindata1align
+    traindata2 = alldata.traindata2 if cfg.noisy_train_set else alldata.traindata2align
     train_label = "" if cfg.noisy_train_set else "_clean"
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
 
     # zero mean data
     traindata1, traindata1_mean = origin_centered(traindata1)
     traindata2, traindata2_mean = origin_centered(traindata2)
-    valdata1align = all_data.valdata1align - traindata1_mean
-    valdata2align = all_data.valdata2align - traindata2_mean
+    valdata1align = alldata.valdata1align - traindata1_mean
+    valdata2align = alldata.valdata2align - traindata2_mean
     # make sure the data is zero mean
     assert np.allclose(
         traindata1.mean(axis=0), 0, atol=1e-4
@@ -189,8 +185,8 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     ### unaligned case: shuffle the data
     # zero mean data
-    valdata1unalign = all_data.valdata1unalign - traindata1_mean
-    valdata2unalign = all_data.valdata2unalign - traindata2_mean
+    valdata1unalign = alldata.valdata1unalign - traindata1_mean
+    valdata2unalign = alldata.valdata2unalign - traindata2_mean
 
     valdata1unalign, valdata2unalign = cca.transform((valdata1unalign, valdata2unalign))
     sim_unalign = weighted_corr_sim(
@@ -236,10 +232,10 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
     )
     plots_path.mkdir(parents=True, exist_ok=True)
 
-    all_data = separate_data(cfg, data1, data2)
+    alldata = separate_data(cfg, data1, data2)
 
-    sim_align = cosine_sim(all_data.valdata1align, all_data.valdata2align)
-    sim_unalign = cosine_sim(all_data.valdata1unalign, all_data.valdata2unalign)
+    sim_align = cosine_sim(alldata.valdata1align, alldata.valdata2align)
+    sim_unalign = cosine_sim(alldata.valdata1unalign, alldata.valdata2unalign)
 
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
@@ -275,31 +271,31 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     # load embeddings from the two encoders
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
 
-    all_data = separate_data(cfg, data1, data2, return_pt=True)
+    alldata = separate_data(cfg, data1, data2, return_pt=True)
 
     # normalization to perform cosine similarity with a simple matmul
-    all_data.traindata1 /= torch.norm(all_data.traindata1, p=2, dim=1, keepdim=True)
-    all_data.traindata2 /= torch.norm(all_data.traindata2, p=2, dim=1, keepdim=True)
-    all_data.valdata1 /= torch.norm(all_data.valdata1, p=2, dim=1, keepdim=True)
-    all_data.valdata2 /= torch.norm(all_data.valdata2, p=2, dim=1, keepdim=True)
+    alldata.traindata1 /= torch.norm(alldata.traindata1, p=2, dim=1, keepdim=True)
+    alldata.traindata2 /= torch.norm(alldata.traindata2, p=2, dim=1, keepdim=True)
+    alldata.valdata1 /= torch.norm(alldata.valdata1, p=2, dim=1, keepdim=True)
+    alldata.valdata2 /= torch.norm(alldata.valdata2, p=2, dim=1, keepdim=True)
 
     # set parameters
-    non_zeros = min(cfg.asif.non_zeros, all_data.traindata1.shape[0])
+    non_zeros = min(cfg.asif.non_zeros, alldata.traindata1.shape[0])
     range_anch = [
         2**i
         for i in range(
-            int(np.log2(non_zeros) + 1), int(np.log2(len(all_data.traindata1))) + 2
+            int(np.log2(non_zeros) + 1), int(np.log2(len(alldata.traindata1))) + 2
         )
     ]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
     # similarity score of val data
     n_anchors, scores, sims = zero_shot_classification(
-        all_data.valdata1align,
-        all_data.valdata2align,
-        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align,
-        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align,
-        torch.zeros(all_data.valdata1align.shape[0]),
+        alldata.valdata1align,
+        alldata.valdata2align,
+        alldata.traindata1 if cfg.noisy_train_set else alldata.traindata1align,
+        alldata.traindata2 if cfg.noisy_train_set else alldata.traindata2align,
+        torch.zeros(alldata.valdata1align.shape[0]),
         non_zeros,
         range_anch,
         cfg.asif.val_exps,
@@ -309,11 +305,11 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
 
     # similarity score of unaligned val data
     n_anchors, scores, sims = zero_shot_classification(
-        all_data.valdata1unalign,
-        all_data.valdata2unalign,
-        all_data.traindata1 if cfg.noisy_train_set else all_data.traindata1align,
-        all_data.traindata2 if cfg.noisy_train_set else all_data.traindata2align,
-        torch.zeros(all_data.valdata1unalign.shape[0]),
+        alldata.valdata1unalign,
+        alldata.valdata2unalign,
+        alldata.traindata1 if cfg.noisy_train_set else alldata.traindata1align,
+        alldata.traindata2 if cfg.noisy_train_set else alldata.traindata2align,
+        torch.zeros(alldata.valdata1unalign.shape[0]),
         non_zeros,
         range_anch,
         cfg.asif.val_exps,

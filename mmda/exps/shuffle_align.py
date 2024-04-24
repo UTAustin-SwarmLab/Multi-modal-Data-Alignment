@@ -88,8 +88,7 @@ def cca_data_align(
     traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
 
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -182,14 +181,10 @@ def clip_like_data_align(
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
 
     # copy data
-    valdata1align = valdata1.copy()
-    valdata2align = valdata2.copy()
-    traindata2unalign = traindata2.copy()
-    valdata2unalign = valdata2.copy()
-
+    valdata1align, valdata2align = valdata1.copy(), valdata2.copy()
+    traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -257,13 +252,10 @@ def asif_data_align(
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
     # copy data
-    valdata1align = valdata1.copy()
-    valdata2align = valdata2.copy()
-    traindata2unalign = traindata2.copy()
-    valdata2unalign = valdata2.copy()
+    valdata1align, valdata2align = valdata1.copy(), valdata2.copy()
+    traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -275,15 +267,11 @@ def asif_data_align(
     val_labels = torch.zeros(
         valdata1.shape[0]
     )  # dummy labels. Unused because this is not zero-shot classification.
-    valdata1align, valdata2align = (
-        torch.tensor(valdata1align).cuda(),
-        torch.tensor(valdata2align).cuda(),
-    )
+    valdata1align = torch.tensor(valdata1align).cuda()
+    valdata2align = torch.tensor(valdata2align).cuda()
     valdata2unalign = torch.tensor(valdata2unalign).cuda()
-    traindata1, traindata2 = (
-        torch.tensor(traindata1).cuda(),
-        torch.tensor(traindata2).cuda(),
-    )
+    traindata1 = torch.tensor(traindata1).cuda()
+    traindata2 = torch.tensor(traindata2).cuda()
 
     # similarity score of aligned data
     n_anchors, scores, sims = zero_shot_classification(
