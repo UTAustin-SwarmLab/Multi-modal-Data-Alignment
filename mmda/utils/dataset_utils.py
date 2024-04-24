@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 def load_flickr(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
-    """Load the Flickr dataset.
+    """Load the Flickr dataset (https://huggingface.co/datasets/nlphuji/flickr30k).
 
     Args:
         cfg_dataset: configuration file
@@ -78,7 +78,7 @@ def load_pitts(
 def load_cosmos(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
-    """Load the COSMOS dataset.
+    """Load the COSMOS dataset (https://github.com/shivangi-aneja/COSMOS?tab=readme-ov-file).
 
     Args:
         cfg_dataset: configuration file
@@ -137,7 +137,7 @@ def load_cosmos(
 def load_tiil(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str | None]]:
-    """Load the TIIL dataset.
+    """Load the TIIL dataset (https://github.com/Mingzhen-Huang/D-TIIL).
 
     Args:
         cfg_dataset: configuration file
@@ -200,7 +200,7 @@ def load_tiil(
 def load_imagenet(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[int], list[int], dict[int, str]]:
-    """Load the ImageNet dataset.
+    """Load the ImageNet dataset (https://github.com/google-research/imagenet-mistakes?tab=readme-ov-file).
 
     Args:
         cfg_dataset: configuration file
@@ -257,7 +257,7 @@ def load_imagenet(
 
 
 def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
-    """Load the Google MusicCaps dataset.
+    """Load the Google MusicCaps dataset (https://huggingface.co/datasets/google/MusicCaps).
 
     Args:
         cfg_dataset: configuration file
