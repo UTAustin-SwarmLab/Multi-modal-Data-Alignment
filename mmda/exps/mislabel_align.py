@@ -10,11 +10,10 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca_utils import cca_fit_train_data
+from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
-    origin_centered,
 )
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
@@ -81,7 +80,7 @@ def separate_data(
         data2: data from the second encoder
         return_pt: whether to return the data as torch tensors
     Returns:
-
+        alldata: dictionary containing the separated data
     """
     wrong_labels_bool = parse_wrong_label(cfg)
     train_idx, val_idx = get_train_test_split_index(
@@ -115,8 +114,8 @@ def separate_data(
             super().__init__(*args, **kwargs)
             self.__dict__ = self
 
-    data = AttrDict()
-    data.update(
+    alldata = AttrDict()
+    alldata.update(
         {
             "traindata1": traindata1,
             "traindata2": traindata2,
@@ -130,7 +129,7 @@ def separate_data(
             "valdata2unalign": valdata2unalign,
         }
     )
-    return data
+    return alldata
 
 
 def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
@@ -160,35 +159,24 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     train_label = "" if cfg.noisy_train_set else "_clean"
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
 
-    # zero mean data
-    traindata1, traindata1_mean = origin_centered(traindata1)
-    traindata2, traindata2_mean = origin_centered(traindata2)
-    valdata1align = alldata.valdata1align - traindata1_mean
-    valdata2align = alldata.valdata2align - traindata2_mean
-    # make sure the data is zero mean
-    assert np.allclose(
-        traindata1.mean(axis=0), 0, atol=1e-4
-    ), f"traindata1 not zero mean: {traindata1.mean(axis=0)}"
-    assert np.allclose(
-        traindata2.mean(axis=0), 0, atol=1e-4
-    ), f"traindata2 not zero mean: {traindata2.mean(axis=0)}"
-
-    cca, traindata1, traindata2, corr_align = cca_fit_train_data(
+    # correctly labeled case:
+    cca = NormalizedCCA()
+    traindata1, traindata2, corr_align = cca.fit_transform_train_data(
         cfg_dataset, traindata1, traindata2
     )
 
     # calculate the similarity score
-    valdata1align, valdata2align = cca.transform((valdata1align, valdata2align))
+    valdata1align, valdata2align = cca.transform_data(
+        alldata.valdata1align, alldata.valdata2align
+    )
     sim_align = weighted_corr_sim(
         valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
     )
 
-    ### unaligned case: shuffle the data
-    # zero mean data
-    valdata1unalign = alldata.valdata1unalign - traindata1_mean
-    valdata2unalign = alldata.valdata2unalign - traindata2_mean
-
-    valdata1unalign, valdata2unalign = cca.transform((valdata1unalign, valdata2unalign))
+    ### mislabeled case:
+    valdata1unalign, valdata2unalign = cca.transform_data(
+        alldata.valdata1unalign, alldata.valdata2unalign
+    )
     sim_unalign = weighted_corr_sim(
         valdata1unalign, valdata2unalign, corr_align, dim=cfg_dataset.sim_dim
     )
@@ -259,9 +247,8 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
 
 
 def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
-    """Detect mislabeled data using the ASIF method.
+    """Detect mislabeled data using the ASIF method (Paper: https://openreview.net/pdf?id=YAxV_Krcdjm).
 
-    Paper: https://openreview.net/pdf?id=YAxV_Krcdjm
     Args:
         cfg: configuration file
 
