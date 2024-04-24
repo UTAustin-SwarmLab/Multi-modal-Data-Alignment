@@ -97,8 +97,8 @@ class FlickrDataset(BaseRetrievalDataset):
             self.data1, self.data2 = data2, data1
             self.num_gt = 1  # Total number of relevant images in the database
 
-        self.train_idx = np.where(self.splits == "train")[0][:1500]  # 145_000
-        self.test_idx = np.where(self.splits == "test")[0][:1500]  # 5_000
+        self.train_idx = np.where(self.splits == "train")[0]  # 145_000
+        self.test_idx = np.where(self.splits == "test")[0]  # 5_000
 
         self.traindata1, self.traindata2 = (
             self.data1[self.train_idx],

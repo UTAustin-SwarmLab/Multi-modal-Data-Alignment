@@ -35,10 +35,11 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     df = pd.DataFrame(data)
     img2text_label = "img2text" if cfg_dataset.img2text else "text2img"
     sim_dim = cfg_dataset.sim_dim
+    eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     df_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"retrieval_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}"
-        / f"{img2text_label}_results_{sim_dim}.csv"
+        / f"{img2text_label}_results_{sim_dim}_{eq_label}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
