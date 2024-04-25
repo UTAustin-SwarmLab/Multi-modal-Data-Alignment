@@ -121,7 +121,7 @@ def llava_shuffle_align(cfg: DictConfig, shuffle_level: str = "dataset") -> None
     train_txt, val_txt = train_test_split(text_descriptions, train_idx, val_idx)
 
     train_txt_unalign, val_txt_unalign = shuffle_by_level(
-        cfg_dataset, cfg.dataset, shuffle_level, train_txt, val_txt, train_idx, val_idx
+        cfg, shuffle_level, train_txt, val_txt, train_idx, val_idx
     )
     model_name = cfg.llava.model_path.split("/")[-1]
 

@@ -10,6 +10,43 @@ import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
 
+import hydra
+
+
+def load_flickr(
+    cfg_dataset: DictConfig,
+) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the Flickr dataset (https://huggingface.co/datasets/nlphuji/flickr30k).
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        text_descriptions: list of text descriptions
+        splits: list of splits [train, test, val] (str)
+        obj_ids: list of object ids (str)
+    """
+    # load Flickr train json filee. columns: [raw, sentids, split, filename, img_id]
+    flickr = pd.read_csv(cfg_dataset.paths.dataset_path + "flickr_annotations_30k.csv")
+    img_paths, text_descriptions, splits, img_ids = [], [], [], []
+    for _, row in flickr.iterrows():
+        texts = row["raw"].replace("[", "").replace("]", "").split('", "')
+        assert len(texts) == 5, f"Not 5 captions: {len(texts)}"  # noqa: PLR2004
+        for text in texts:
+            text_descriptions.append(text.replace('"', ""))
+            img_paths.append(
+                str(
+                    Path(cfg_dataset.paths.dataset_path)
+                    / "flickr30k-images"
+                    / row["filename"]
+                )
+            )
+            splits.append(row["split"])
+            img_ids.append(row["img_id"])
+    # ['test', 'train', 'val'] = [5000, 145000, 5070]
+    return img_paths, text_descriptions, np.array(splits), np.array(img_ids)
+
 
 def load_pitts(
     cfg_dataset: DictConfig,
@@ -43,7 +80,7 @@ def load_pitts(
 def load_cosmos(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
-    """Load the COSMOS dataset.
+    """Load the COSMOS dataset (https://github.com/shivangi-aneja/COSMOS?tab=readme-ov-file).
 
     Args:
         cfg_dataset: configuration file
@@ -102,7 +139,7 @@ def load_cosmos(
 def load_tiil(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str | None]]:
-    """Load the TIIL dataset.
+    """Load the TIIL dataset (https://github.com/Mingzhen-Huang/D-TIIL).
 
     Args:
         cfg_dataset: configuration file
@@ -165,7 +202,7 @@ def load_tiil(
 def load_imagenet(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[int], list[int], dict[int, str]]:
-    """Load the ImageNet dataset.
+    """Load the ImageNet dataset (https://github.com/google-research/imagenet-mistakes?tab=readme-ov-file).
 
     Args:
         cfg_dataset: configuration file
@@ -174,33 +211,13 @@ def load_imagenet(
         mturks_idx: MTurk verified classe indices (int)
         orig_idx: ground truth class indices (int)
         clsidx_to_labels: a dict of class idx to str.
-        img_path: list of image absolute paths
-        mturks_idx: MTurk verified classe indices (int)
-        orig_idx: ground truth class indices (int)
-        clsidx_to_labels: a dict of class idx to str.
     """
     # load json file
-    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open("rb") as f:
+    with Path(cfg_dataset.paths.dataset_path, "imagenet_mturk.json").open() as f:
         mturks = json.load(f)  # 5440
-        """
-        {
-            "id": 293,
-            "url": "https://labelerrors.com//static/imagenet/val/n01440764/ILSVRC2012_val_00000293.JPEG",
-            "given_original_label": 0,
-            "given_original_label_name": "tench",
-            "our_guessed_label": 48,
-            "our_guessed_label_name": "Komodo dragon",
-            "mturk": {
-            "given": 5,
-            "guessed": 0,
-            "neither": 0,
-            "both": 0
-            }
-        },
-        """
     with Path(
         cfg_dataset.paths.dataset_path, "imagenet_val_set_index_to_filepath.json"
-    ).open("rb") as f:
+    ).open() as f:
         idx2path = json.load(
             f
         )  # ["val/n01440764/ILSVRC2012_val_00000293.JPEG", ...] # 50000
@@ -227,9 +244,9 @@ def load_imagenet(
     ), f"Relabel num mismatch: {np.sum(orig_idx != mturks_idx)}"
 
     # convert the labels to string. Obtained from https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
-    with Path(cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt").open(
-        "rb"
-    ) as f:
+    with Path(
+        cfg_dataset.paths.dataset_path, "ImageNet_clsidx_to_labels.txt"
+    ).open() as f:
         clsidx_to_labels_txt = f.readlines()
     clsidx_to_labels = {}
     for ln in clsidx_to_labels_txt:  # example: {0: 'tench, Tinca tinca',
@@ -242,27 +259,19 @@ def load_imagenet(
 
 
 def load_musiccaps(cfg_dataset: DictConfig) -> pd.DataFrame:
-    """Load the Google MusicCaps dataset.
+    """Load the Google MusicCaps dataset (https://huggingface.co/datasets/google/MusicCaps).
 
     Args:
         cfg_dataset: configuration file
     Returns:
-        A dataframe containing the following columns:
-        youtube id: list of youtube ids
-        audio paths: list of audio absolute paths
-        caption: list of text descriptions
-        aspect_list: list of aspects (str)
-        audioset_positive_labels (str)
-        start_time: list of start time (int, sec)
-        end_time: list of end time (int, sec)
-        A dataframe containing the following columns:
-        youtube id: list of youtube ids
-        audio paths: list of audio absolute paths
-        caption: list of text descriptions
-        aspect_list: list of aspects (str)
-        audioset_positive_labels (str)
-        start_time: list of start time (int, sec)
-        end_time: list of end time (int, sec)
+        dataframe: A dataframe containing the following columns:
+            youtube id: list of youtube ids
+            audio paths: list of audio absolute paths
+            caption: list of text descriptions
+            aspect_list: list of aspects (str)
+            audioset_positive_labels (str)
+            start_time: list of start time (int, sec)
+            end_time: list of end time (int, sec)
     """
     parent_dir = Path(cfg_dataset.paths.dataset_path).parent.absolute()
     df_path = Path(parent_dir, "MusicCaps_parsed.csv")
@@ -313,10 +322,6 @@ def load_sop(
     Args:
         cfg_dataset: configuration file
     Returns:
-        image paths: list of image absolute paths
-        text descriptions: list of text descriptions
-        classes: list of classes (str)
-        object ids: list of object ids (str)
         image paths: list of image absolute paths
         text descriptions: list of text descriptions
         classes: list of classes (str)
@@ -436,9 +441,8 @@ def filter_outliers(
     return index
 
 
-def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
-    cfg_dataset: DictConfig,
-    dataset: str,
+def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
+    cfg: DictConfig,
     shuffle_level: str,
     traindata2unalign: np.ndarray,
     valdata2unalign: np.ndarray,
@@ -448,7 +452,7 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
     """Shuffle the data by dataset, class, or object level.
 
     Args:
-        cfg_dataset: configuration file
+        cfg: configuration file
         dataset: dataset name
         shuffle_level: shuffle level. It can only be "dataset", "class", or "object".
         traindata2unalign: unaligned data
@@ -469,7 +473,8 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
         np.random.shuffle(traindata2unalign)
         np.random.shuffle(valdata2unalign)
         return traindata2unalign, valdata2unalign
-
+    dataset = cfg.dataset
+    cfg_dataset = cfg[dataset]
     # shuffle by class or object level
     if dataset == "sop":
         _, _, classes, obj_ids = load_sop(cfg_dataset)
@@ -512,3 +517,12 @@ def shuffle_by_level(  # noqa: PLR0913, PLR0912, C901, ANN201
     train_dict_filter = filter_str_label(train_gts)
     traindata2unalign = shuffle_data_by_indices(traindata2unalign, train_dict_filter)
     return traindata2unalign, valdata2unalign
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="main")
+def main(cfg: DictConfig) -> None:  # noqa: D103
+    load_flickr(cfg.flickr)
+
+
+if __name__ == "__main__":
+    main()

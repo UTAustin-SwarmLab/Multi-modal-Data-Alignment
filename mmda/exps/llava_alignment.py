@@ -7,7 +7,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.data_mislabel_align import parse_wrong_label
+from mmda.exps.mislabel_align import parse_wrong_label
 from mmda.utils.data_utils import (
     load_two_encoder_data,
 )
@@ -128,7 +128,7 @@ def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
     val_llava_results_unalign = val_llava_results[val_wrong_labels_bool]
 
     # print ROC
-    print("Aligned vs Unaligned")
+    print("Mislabeled vs correctly labeled.")
     tpr, fpr = boolean_binary_detection(
         val_llava_results_align, val_llava_results_unalign
     )

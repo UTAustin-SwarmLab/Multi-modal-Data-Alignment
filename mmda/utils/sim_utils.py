@@ -48,7 +48,7 @@ def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def weighted_corr_sim(
-    x: np.ndarray, y: np.ndarray, corr: np.ndarray, dim: int = 150
+    x: np.ndarray, y: np.ndarray, corr: np.ndarray, dim: int
 ) -> np.ndarray:
     """Compute the weighted correlation similarity.
 

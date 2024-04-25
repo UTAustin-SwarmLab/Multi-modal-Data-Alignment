@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.data_mislabel_align import (
+from mmda.exps.llava_alignment import llava_mislabeled_align
+from mmda.exps.mislabel_align import (
     asif_detect_mislabeled_data,
     cca_detect_mislabeled_data,
     clip_like_detect_mislabeled_data,
 )
-from mmda.exps.llava_alignment import llava_mislabeled_align
 from mmda.utils.sim_utils import cal_auc
 
 
@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     if cfg.dataset in cfg.mislabel_llava_datasets:
         # plot LLaVA result.
         llava_fpr, llava_tpr = llava_mislabeled_align(cfg)
-        ax.plot(llava_fpr, llava_tpr, "s-", label="LLaVA", c="blue")
+        ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="blue")
 
     ax.set_title("ROC Curves of Detecting Mislabeled Data")
     ax.set_xlabel("False Positive Rate")

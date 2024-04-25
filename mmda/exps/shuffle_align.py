@@ -10,11 +10,10 @@ from swarm_visualizer.histogram import plot_several_pdf
 from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
-from mmda.utils.cca_utils import cca_fit_train_data
+from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
-    origin_centered,
 )
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
@@ -59,25 +58,14 @@ def cca_data_align(
     ### aligned case: not shuffle the data
     traindata1align, valdata1align = traindata1.copy(), valdata1.copy()
     traindata2align, valdata2align = traindata2.copy(), valdata2.copy()
-    # zero mean data
-    traindata1align, traindata1_mean = origin_centered(traindata1align)
-    traindata2align, traindata2_mean = origin_centered(traindata2align)
-    valdata1align = valdata1align - traindata1_mean
-    valdata2align = valdata2align - traindata2_mean
-    # make sure the data is zero mean
-    assert np.allclose(
-        traindata1align.mean(axis=0), 0, atol=1e-4
-    ), f"traindata1align not zero mean: {traindata1align.mean(axis=0)}"
-    assert np.allclose(
-        traindata2align.mean(axis=0), 0, atol=1e-4
-    ), f"traindata2align not zero mean: {traindata2align.mean(axis=0)}"
 
-    cca, traindata1align, traindata2align, corr_align = cca_fit_train_data(
+    cca = NormalizedCCA()
+    traindata1align, traindata2align, corr_align = cca.fit_transform_train_data(
         cfg_dataset, traindata1align, traindata2align
     )
 
     # calculate the similarity score
-    valdata1align, valdata2align = cca.transform((valdata1align, valdata2align))
+    valdata1align, valdata2align = cca.transform_data(valdata1align, valdata2align)
     sim_align = weighted_corr_sim(
         valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
     )
@@ -88,8 +76,7 @@ def cca_data_align(
     traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
 
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -97,23 +84,11 @@ def cca_data_align(
         val_idx,
     )
 
-    # zero mean data
-    traindata1unalign, traindata1_mean_ = origin_centered(traindata1unalign)
-    traindata2unalign, traindata2_mean_ = origin_centered(traindata2unalign)
-    valdata1unalign = valdata1unalign - traindata1_mean_
-    valdata2unalign = valdata2unalign - traindata2_mean_
-
-    # make sure the data is zero mean
-    assert np.allclose(
-        traindata1unalign.mean(axis=0), 0, atol=1e-4
-    ), f"traindata1unalign not zero mean: {traindata1unalign.mean(axis=0)}"
-    assert np.allclose(
-        traindata2unalign.mean(axis=0), 0, atol=1e-4
-    ), f"traindata2unalign not zero mean: {traindata2unalign.mean(axis=0)}"
-
-    valdata1align, valdata2align = cca.transform((valdata1unalign, valdata2unalign))
+    valdata1unalign, valdata2unalign = cca.transform_data(
+        valdata1unalign, valdata2unalign
+    )
     sim_unalign = weighted_corr_sim(
-        valdata1align, valdata2align, corr_align, dim=cfg_dataset.sim_dim
+        valdata1unalign, valdata2unalign, corr_align, dim=cfg_dataset.sim_dim
     )
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_several_pdf(
@@ -132,9 +107,11 @@ def cca_data_align(
         plots_path
         / f"similarity_score_{shuffle_level}_r{cfg.train_test_ratio}_dim{cfg_dataset.sim_dim}{eq_label}.png",
     )
-
-    cca_unalign, traindata1unalign, traindata2unalign, corr_unalign = (
-        cca_fit_train_data(cfg_dataset, traindata1unalign, traindata2unalign)
+    cca_unalign = NormalizedCCA()
+    traindata1unalign, traindata2unalign, corr_unalign = (
+        cca_unalign.fit_transform_train_data(
+            cfg_dataset, traindata1unalign, traindata2unalign
+        )
     )
 
     # plot the correlation coefficients
@@ -182,14 +159,10 @@ def clip_like_data_align(
     traindata2, valdata2 = train_test_split(data2, train_idx, val_idx)
 
     # copy data
-    valdata1align = valdata1.copy()
-    valdata2align = valdata2.copy()
-    traindata2unalign = traindata2.copy()
-    valdata2unalign = valdata2.copy()
-
+    valdata1align, valdata2align = valdata1.copy(), valdata2.copy()
+    traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -257,13 +230,10 @@ def asif_data_align(
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
     # copy data
-    valdata1align = valdata1.copy()
-    valdata2align = valdata2.copy()
-    traindata2unalign = traindata2.copy()
-    valdata2unalign = valdata2.copy()
+    valdata1align, valdata2align = valdata1.copy(), valdata2.copy()
+    traindata2unalign, valdata2unalign = traindata2.copy(), valdata2.copy()
     traindata2unalign, valdata2unalign = shuffle_by_level(
-        cfg_dataset,
-        cfg.dataset,
+        cfg,
         shuffle_level,
         traindata2unalign,
         valdata2unalign,
@@ -275,15 +245,11 @@ def asif_data_align(
     val_labels = torch.zeros(
         valdata1.shape[0]
     )  # dummy labels. Unused because this is not zero-shot classification.
-    valdata1align, valdata2align = (
-        torch.tensor(valdata1align).cuda(),
-        torch.tensor(valdata2align).cuda(),
-    )
+    valdata1align = torch.tensor(valdata1align).cuda()
+    valdata2align = torch.tensor(valdata2align).cuda()
     valdata2unalign = torch.tensor(valdata2unalign).cuda()
-    traindata1, traindata2 = (
-        torch.tensor(traindata1).cuda(),
-        torch.tensor(traindata2).cuda(),
-    )
+    traindata1 = torch.tensor(traindata1).cuda()
+    traindata2 = torch.tensor(traindata2).cuda()
 
     # similarity score of aligned data
     n_anchors, scores, sims = zero_shot_classification(
