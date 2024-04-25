@@ -94,7 +94,7 @@ flickr:
   equal_weights: False
   img2text: True # whether to retrieve text to image or image to text
   img_encoder: "clip"
-  text_encoder: "gtr"
+  text_encoder: "clip"
   paths:
     dataset_path: "/nas/pohan/datasets/flickr30k/"
     save_path: ${flickr.paths.dataset_path}embeddings/

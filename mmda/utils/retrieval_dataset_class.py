@@ -88,6 +88,15 @@ class FlickrDataset(BaseRetrievalDataset):
             data1: data from the first encoder
             data2: data from the second encoder
         """
+        # remove redundant text descriptions
+        assert data1.shape[0] == data2.shape[0], f"{data1.shape[0]}!={data2.shape[0]}"
+        assert (
+            data1.shape[0] == self.splits.shape[0]
+        ), f"{data1.shape[0]}!={self.splits.shape[0]}"
+        assert (
+            data1.shape[0] == self.img_ids.shape[0]
+        ), f"{data1.shape[0]}!={self.img_ids.shape[0]}"
+
         super().preprocess_retrieval_data(data1, data2)
         if self.img2text:  # image to retrieve text
             self.data1, self.data2 = data1, data2
@@ -111,7 +120,7 @@ class FlickrDataset(BaseRetrievalDataset):
         self.test_img_ids = self.img_ids[self.test_idx]
 
 
-def load_retrieval_dataset(cfg: DictConfig) -> BaseRetrievalDataset:
+def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset:
     """Load the dataset for retrieval task.
 
     Args:

@@ -39,7 +39,7 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     df_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"retrieval_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}"
-        / f"{img2text_label}_results_{sim_dim}_{eq_label}.csv"
+        / f"{img2text_label}_results_{sim_dim}{eq_label}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)

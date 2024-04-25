@@ -3,7 +3,7 @@
 import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.cca_utils import cca_fit_train_data
+from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import (
     load_clip_like_data,
     load_two_encoder_data,
@@ -31,11 +31,14 @@ def cca_retrieval(
     retrieval_ds = load_retrieval_dataset(cfg)
     retrieval_ds.preprocess_retrieval_data(data1, data2)
 
-    cca, retrieval_ds.traindata1, retrieval_ds.traindata2, corr = cca_fit_train_data(
-        cfg_dataset, retrieval_ds.traindata1, retrieval_ds.traindata2
+    cca = NormalizedCCA()
+    retrieval_ds.traindata1, retrieval_ds.traindata2, corr = (
+        cca.fit_transform_train_data(
+            cfg_dataset, retrieval_ds.traindata1, retrieval_ds.traindata2
+        )
     )
-    retrieval_ds.testdata1, retrieval_ds.testdata2 = cca.transform(
-        (retrieval_ds.testdata1, retrieval_ds.testdata2)
+    retrieval_ds.testdata1, retrieval_ds.testdata2 = cca.transform_data(
+        retrieval_ds.testdata1, retrieval_ds.testdata2
     )
     maps, precisions = {}, {}
     for cca_proj_dim in cfg_dataset.cca_proj_dims:
