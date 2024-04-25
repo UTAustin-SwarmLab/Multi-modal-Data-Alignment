@@ -100,7 +100,6 @@ def cca_data_align(
         ax=ax,
         binwidth=0.05,
     )
-    plt.tight_layout()
     eq_label = "_noweight" if cfg_dataset.equal_weights else ""
     save_fig(
         fig,
@@ -183,7 +182,6 @@ def clip_like_data_align(
         ax=ax,
         binwidth=0.05,
     )
-    plt.tight_layout()
     save_fig(
         fig,
         plots_path

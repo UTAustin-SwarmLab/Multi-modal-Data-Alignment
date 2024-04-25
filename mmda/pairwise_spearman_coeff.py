@@ -37,7 +37,6 @@ def spearman_coeff(cfg: DictConfig) -> None:
     )
     plot_path = Path(cfg_dataset.paths.plots_path)
     plot_path.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout()
     save_fig(fig_rank, plot_path / "sim_rank_scatter_plot.png", dpi=400)
 
     # plot scatter plot of the original similarity scores
@@ -49,7 +48,6 @@ def spearman_coeff(cfg: DictConfig) -> None:
         xlabel="CLIP similarity score",
         ylabel="CCA similarity score",
     )
-    plt.tight_layout()
     save_fig(fig, plot_path / "sim_scatter_plot.png", dpi=400)
 
 
