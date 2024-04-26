@@ -19,7 +19,7 @@ class NormalizedCCA:
 
     def fit_transform_train_data(
         self, cfg_dataset: DictConfig, traindata1: np.ndarray, traindata2: np.ndarray
-    ) -> tuple[CCA, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Fit the CCA model to the training data.
 
         Args:

@@ -44,7 +44,7 @@ def cca_retrieval(
     for cca_proj_dim in cfg_dataset.cca_proj_dims:
 
         def sim_fn(x: np.array, y: np.array) -> np.array:
-            return weighted_corr_sim(x, y, corr, dim=cca_proj_dim)  # noqa: B023
+            return weighted_corr_sim(x, y, corr=corr, dim=cca_proj_dim)  # noqa: B023
 
         map_, precision = retrieval_ds.top_k_presicion(sim_fn=sim_fn)
         maps[cca_proj_dim], precisions[cca_proj_dim] = map_, precision

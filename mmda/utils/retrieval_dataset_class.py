@@ -32,16 +32,20 @@ class BaseRetrievalDataset:
         """
         assert data1.shape[0] == data2.shape[0], f"{data1.shape[0]}!={data2.shape[0]}"
 
-    def top_k_presicion(self, sim_fn: callable) -> tuple[float, dict[float:float]]:
-        """Calculate the average precision and precision at k (1 ~ num_gt).
+    def map_precision_similarity(
+        self, sim_fn: callable
+    ) -> tuple[float, dict[float:float]]:
+        """Calculate the mean average precision and precision at k (1 ~ num_gt).
 
         Args:
             sim_fn: similarity function
         Returns:
             map: {mAP}
             precisions: {1: precision@1, 5:precision@5}
+            similarity: similarity score
         """
         maps, precisions = [], []
+        sim_scores = []
         for idx in range(0, self.testdata1.shape[0], self.num_gt):
             gt_img_id = self.test_img_ids[idx]
             test_datapoint = self.testdata1[idx, :].reshape(1, -1)
@@ -60,9 +64,22 @@ class BaseRetrievalDataset:
             ap = 1 / self.num_gt * np.sum(precision * hit)  # scalar
             maps.append(ap)
             precisions.append(precision)
+            sim_scores.append(sim_score)
         maps = np.array(maps).mean()
         precisions = np.array(precisions).mean(axis=0)
-        return maps, {1: precisions[0], 5: precisions[4]}
+        sim_scores = np.array(sim_scores)
+        return maps, {1: precisions[0], 5: precisions[4]}, sim_scores
+
+    def top_k_presicion(self, sim_fn: callable) -> tuple[float, dict[float:float]]:
+        """Calculate the average precision and precision at k (1 ~ num_gt).
+
+        Args:
+            sim_fn: similarity function
+        Returns:
+            map: {mAP}
+            precisions: {1: precision@1, 5:precision@5}
+        """
+        return self.map_precision_similarity(sim_fn)[0:2]
 
 
 class FlickrDataset(BaseRetrievalDataset):

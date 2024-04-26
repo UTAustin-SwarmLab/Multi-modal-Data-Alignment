@@ -190,7 +190,6 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         ax=ax,
         binwidth=0.05,
     )
-    plt.tight_layout()
     save_fig(
         fig,
         plots_path
@@ -235,7 +234,6 @@ def clip_like_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float
         ax=ax,
         binwidth=0.05,
     )
-    plt.tight_layout()
     save_fig(
         fig,
         plots_path

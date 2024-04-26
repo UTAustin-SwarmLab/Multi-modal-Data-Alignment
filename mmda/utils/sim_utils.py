@@ -160,6 +160,8 @@ def spearman_rank_coefficient(
 
     Return:
         Spearman rank correlation coefficient
+        rank of x
+        rank of y
     """
     assert (
         x.shape == y.shape
@@ -167,7 +169,6 @@ def spearman_rank_coefficient(
     n = x.shape[0]
     rank_x = np.argsort(x)
     rank_y = np.argsort(y)
-    print(rank_x, rank_y)
     d = np.sum((rank_x - rank_y) ** 2)
     return 1 - 6 * d / (n * (n**2 - 1)), rank_x, rank_y
 

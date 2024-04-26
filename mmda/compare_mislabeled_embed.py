@@ -62,7 +62,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
         ax=ax,
         binwidth=0.05,
     )
-    plt.tight_layout()
     save_fig(
         fig,
         plots_path / "cos_similarity_compare.png",
