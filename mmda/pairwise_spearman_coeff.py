@@ -13,7 +13,7 @@ from mmda.exps.spearman_coeff import cal_spearman_coeff
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
 def spearman_coeff(cfg: DictConfig) -> None:
-    """Calculate the Spearman's rank coeff of MusicCaps with CLAP model and CCA similarity score.
+    """Calculate the Spearman's rank coeff of CLIP model and CCA similarity score.
 
     Args:
         cfg: Config dictionary.

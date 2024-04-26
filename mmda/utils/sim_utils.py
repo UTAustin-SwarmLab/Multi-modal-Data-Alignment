@@ -160,6 +160,8 @@ def spearman_rank_coefficient(
 
     Return:
         Spearman rank correlation coefficient
+        rank of x
+        rank of y
     """
     assert (
         x.shape == y.shape
