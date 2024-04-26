@@ -67,7 +67,7 @@ class BaseRetrievalDataset:
             sim_scores.append(sim_score)
         maps = np.array(maps).mean()
         precisions = np.array(precisions).mean(axis=0)
-        sim_scores = np.concatenate(sim_scores, axis=0)
+        sim_scores = np.array(sim_scores)
         return maps, {1: precisions[0], 5: precisions[4]}, sim_scores
 
     def top_k_presicion(self, sim_fn: callable) -> tuple[float, dict[float:float]]:
