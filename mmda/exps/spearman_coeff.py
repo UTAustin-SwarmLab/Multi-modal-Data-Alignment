@@ -4,19 +4,10 @@ import numpy as np
 from omegaconf import DictConfig
 
 from mmda.utils.cca_class import NormalizedCCA
-from mmda.utils.data_utils import (
-    load_clip_like_data,
-    load_two_encoder_data,
-)
+from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
 from mmda.utils.retrieval_dataset_class import load_retrieval_dataset
-from mmda.utils.sim_utils import (
-    cosine_sim,
-    weighted_corr_sim,
-)
-from mmda.utils.spearman_utils import (
-    spearman_rank_coefficient,
-    spearman_to_p_value,
-)
+from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
+from mmda.utils.spearman_utils import spearman_rank_coefficient, spearman_to_p_value
 
 
 def cal_spearman_coeff(

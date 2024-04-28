@@ -8,13 +8,8 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.exps.mislabel_align import parse_wrong_label
-from mmda.utils.data_utils import (
-    load_two_encoder_data,
-)
-from mmda.utils.dataset_utils import (
-    get_train_test_split_index,
-    train_test_split,
-)
+from mmda.utils.data_utils import load_two_encoder_data
+from mmda.utils.dataset_utils import get_train_test_split_index, train_test_split
 
 
 def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:

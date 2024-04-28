@@ -6,10 +6,7 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.retrieval import (
-    cca_retrieval,
-    clip_like_retrieval,
-)
+from mmda.exps.retrieval import cca_retrieval, clip_like_retrieval
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

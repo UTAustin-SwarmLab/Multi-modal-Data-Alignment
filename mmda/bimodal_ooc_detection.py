@@ -6,11 +6,7 @@ import matplotlib.pyplot as plt
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.hier_ooc import (
-    asif_hier_ooc,
-    cca_hier_ooc,
-    clip_like_hier_ooc,
-)
+from mmda.exps.hier_ooc import asif_hier_ooc, cca_hier_ooc, clip_like_hier_ooc
 from mmda.utils.roc_utils import cal_auc, tp_fp_fn_tn_to_roc
 
 
@@ -20,7 +16,6 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
 
     # (txt_threshold, text_img_threshold): (tp, fp, fn, tn)
     clip_tps = clip_like_hier_ooc(cfg)
-    print(len(clip_tps))
     clip_roc_points = tp_fp_fn_tn_to_roc(clip_tps.values())
     clip_auc = cal_auc(clip_roc_points)
 

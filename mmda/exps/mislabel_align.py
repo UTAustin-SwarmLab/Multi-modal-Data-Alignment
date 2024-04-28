@@ -11,10 +11,7 @@ from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.cca_class import NormalizedCCA
-from mmda.utils.data_utils import (
-    load_clip_like_data,
-    load_two_encoder_data,
-)
+from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_cosmos,
@@ -23,10 +20,7 @@ from mmda.utils.dataset_utils import (
     train_test_split,
 )
 from mmda.utils.roc_utils import roc_align_unalign_points
-from mmda.utils.sim_utils import (
-    cosine_sim,
-    weighted_corr_sim,
-)
+from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 
 def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:

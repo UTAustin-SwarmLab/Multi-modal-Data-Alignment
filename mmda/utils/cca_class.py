@@ -4,9 +4,7 @@ import numpy as np
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 
-from mmda.utils.data_utils import (
-    origin_centered,
-)
+from mmda.utils.data_utils import origin_centered
 
 
 class NormalizedCCA:

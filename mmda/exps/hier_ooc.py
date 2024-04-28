@@ -3,16 +3,11 @@
 The setting is, given a set of corresponding images and captions, predict the out-of-context of a new caption.
 """
 
-import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.data_utils import (
-    load_clip_like_data,
-)
+from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
 from mmda.utils.ooc_dataset_class import load_hier_dataset
-from mmda.utils.sim_utils import (
-    cosine_sim,
-)
+from mmda.utils.sim_utils import cosine_sim
 
 
 def cca_hier_ooc(
@@ -25,6 +20,7 @@ def cca_hier_ooc(
     Returns:
         ROC_points: ROC points
     """
+    cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
 
 
 def clip_like_hier_ooc(
@@ -37,8 +33,6 @@ def clip_like_hier_ooc(
     Returns:
         ROC_points: ROC points
     """
-    # set random seed
-    np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
 
     hier_ds = load_hier_dataset(cfg)
