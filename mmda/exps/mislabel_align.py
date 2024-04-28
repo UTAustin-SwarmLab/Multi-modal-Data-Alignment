@@ -22,9 +22,9 @@ from mmda.utils.dataset_utils import (
     load_tiil,
     train_test_split,
 )
+from mmda.utils.roc_utils import roc_align_unalign_points
 from mmda.utils.sim_utils import (
     cosine_sim,
-    roc_align_unalign_points,
     weighted_corr_sim,
 )
 

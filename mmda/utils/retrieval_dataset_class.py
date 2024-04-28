@@ -92,7 +92,6 @@ class FlickrDataset(BaseRetrievalDataset):
             cfg: configuration file
         """
         super().__init__(cfg)
-        self.cfg = cfg
         self.img_path, self.txt_descriptions, self.splits, self.img_ids = load_flickr(
             cfg["flickr"]
         )

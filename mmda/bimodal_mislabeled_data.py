@@ -12,7 +12,7 @@ from mmda.exps.mislabel_align import (
     cca_detect_mislabeled_data,
     clip_like_detect_mislabeled_data,
 )
-from mmda.utils.sim_utils import cal_auc
+from mmda.utils.roc_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

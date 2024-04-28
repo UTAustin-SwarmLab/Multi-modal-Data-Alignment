@@ -12,7 +12,7 @@ from mmda.exps.shuffle_align import (
     cca_data_align,
     clip_like_data_align,
 )
-from mmda.utils.sim_utils import cal_auc
+from mmda.utils.roc_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

@@ -11,9 +11,11 @@ from mmda.utils.data_utils import (
 from mmda.utils.retrieval_dataset_class import load_retrieval_dataset
 from mmda.utils.sim_utils import (
     cosine_sim,
+    weighted_corr_sim,
+)
+from mmda.utils.spearman_utils import (
     spearman_rank_coefficient,
     spearman_to_p_value,
-    weighted_corr_sim,
 )
 
 
