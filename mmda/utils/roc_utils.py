@@ -42,20 +42,37 @@ def roc_align_unalign_points(
     Return:
         list of roc points
     """
-    roc = [(0.0, 0.0), (1.0, 1.0)]
     threshold_list = list(
         np.linspace(threshold_range[0], threshold_range[1], threshold_range[2]).reshape(
             -1
         )
     )
+    tps = []
     for threshold in threshold_list:
         tp, fp, fn, tn = cal_roc_components(sim_align, sim_unalign, threshold)
+        tps.append((tp, fp, fn, tn))
+    return tp_fp_fn_tn_to_roc(tps)
+
+
+def tp_fp_fn_tn_to_roc(
+    tps: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    """Calculate the roc points from true positives etc.
+
+    Args:
+        tps: tuples of (true positives, false positives false negatives, and true negatives)
+
+    Return:
+        list of roc points
+    """
+    roc_points = [(0.0, 0.0), (1.0, 1.0)]
+    for tp, fp, fn, tn in tps:
         tpr = tp / (tp + fn)  # y axis
         fpr = fp / (fp + tn)  # x axis
-        roc.append((fpr, tpr))
+        roc_points.append((fpr, tpr))
     # keep only the unique points
-    roc = list(set(roc))
-    return sorted(roc, key=lambda x: x[0] + x[1])
+    roc_points = list(set(roc_points))
+    return sorted(roc_points, key=lambda x: x[0] + x[1])
 
 
 def cal_auc(roc_points: list[tuple[float, float]]) -> float:
