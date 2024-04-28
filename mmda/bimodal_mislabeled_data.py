@@ -34,20 +34,23 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
         [x[0] for x in roc_points],
         [x[1] for x in roc_points],
         "o-",
-        label=f"Random shuffle (ours). AUC={auc:.3f}",
+        ms=8,
+        label=f"Ours. AUC={auc:.3f}",
         color="blue",
     )
     ax.plot(
         [x[0] for x in clip_roc_ds_points],
         [x[1] for x in clip_roc_ds_points],
-        "+-",
-        label=f"Random shuffle ({clip_model_name}). AUC={clip_auc:.3f}",
+        "^-",
+        ms=8,
+        label=f"{clip_model_name}. AUC={clip_auc:.3f}",
         color="blue",
     )
     ax.plot(
         [x[0] for x in asif_roc_points],
         [x[1] for x in asif_roc_points],
         "D-",
+        ms=8,
         label=f"ASIF. AUC={asif_auc:.3f}",
         color="blue",
     )
