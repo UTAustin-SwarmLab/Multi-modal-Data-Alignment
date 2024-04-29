@@ -1,5 +1,7 @@
 """This module contains the functions to detect mislabeled data using the proposed method and baselines."""
 
+from pathlib import Path
+
 import numpy as np
 from omegaconf import DictConfig
 
@@ -25,12 +27,20 @@ def cca_retrieval(
     retrieval_ds = load_retrieval_dataset(cfg)
     retrieval_ds.preprocess_retrieval_data(data1, data2)
 
+    cca_save_path = Path(cfg_dataset.paths.save_path) / "retrieval_cca_model.pkl"
     cca = NormalizedCCA()
-    retrieval_ds.traindata1, retrieval_ds.traindata2, corr = (
-        cca.fit_transform_train_data(
-            cfg_dataset, retrieval_ds.traindata1, retrieval_ds.traindata2
+    if not cca_save_path.exists():
+        retrieval_ds.traindata1, retrieval_ds.traindata2, corr = (
+            cca.fit_transform_train_data(
+                cfg_dataset, retrieval_ds.traindata1, retrieval_ds.traindata2
+            )
         )
-    )
+        cca.save_model(cca_save_path)
+    else:
+        cca.load_model(cca_save_path)
+        retrieval_ds.traindata1 = cca.traindata1
+        retrieval_ds.traindata2 = cca.traindata2
+        corr = cca.corr_coeff
     retrieval_ds.testdata1, retrieval_ds.testdata2 = cca.transform_data(
         retrieval_ds.testdata1, retrieval_ds.testdata2
     )

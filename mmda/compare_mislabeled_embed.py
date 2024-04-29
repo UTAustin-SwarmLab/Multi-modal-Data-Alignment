@@ -35,9 +35,8 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     print("data2_unalign shape", data2_unalign.shape)
 
     mislabel_cos_sim = cosine_sim(data2_align, data2_unalign)
-    print(
-        "mean cos_sim", mislabel_cos_sim.mean(), "std cos_sim", mislabel_cos_sim.std()
-    )
+    print("mean cos_sim", mislabel_cos_sim.mean())
+    print("std cos_sim", mislabel_cos_sim.std())
 
     # similarity score of random pairs of data
     np.random.seed(cfg.seed)
