@@ -1,5 +1,9 @@
 """Canonical Correlation Analysis (CCA) related functions."""
 
+import pickle
+from pathlib import Path
+
+import joblib
 import numpy as np
 from cca_zoo.linear import CCA
 from omegaconf import DictConfig
@@ -65,6 +69,8 @@ class NormalizedCCA:
             corr_coeff >= 0
         ).any, f"Correlation should be non-negative. {corr_coeff}"
         assert (corr_coeff <= 1).any, f"Correlation should be less than 1. {corr_coeff}"
+        self.corr_coeff = corr_coeff
+        self.traindata1, self.traindata2 = traindata1, traindata2
         return traindata1, traindata2, corr_coeff
 
     def transform_data(
@@ -80,10 +86,31 @@ class NormalizedCCA:
             data1: the first transformed data. shape: (num_samples, dim)
             data2: the second transformed data. shape: (num_samples, dim)
         """
-        assert self.traindata1_mean is not None, "Please fit the model first."
-        assert self.traindata2_mean is not None, "Please fit the model first."
+        assert self.traindata1_mean is not None, "Please fit the cca model first."
+        assert self.traindata2_mean is not None, "Please fit the cca model first."
         # zero mean data and transform
         data1 = data1 - self.traindata1_mean
         data2 = data2 - self.traindata2_mean
         data1, data2 = self.cca.transform((data1, data2))
         return data1, data2
+
+    def save_model(self, path: str | Path) -> None:
+        """Save the CCA class.
+
+        Args:
+            path: the path to save the class
+        """
+        if isinstance(path, str):
+            path = Path(path)
+        with path.open("wb") as f:
+            pickle.dump(self, f)
+
+    def load_model(self, path: str | Path) -> None:
+        """Load the CCA class.
+
+        Args:
+            path: the path to load the class
+        """
+        if isinstance(path, str):
+            path = Path(path)
+        self.__dict__ = joblib.load(path.open("rb")).__dict__

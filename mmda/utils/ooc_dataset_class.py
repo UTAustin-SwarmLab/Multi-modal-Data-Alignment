@@ -21,8 +21,8 @@ class BaseOocDataset:
         self.text_img_sim_fn = None
         self.text_text_sim_fn = None
 
-    def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
-        """Preprocess the data. Check the shape of the data.
+    def split_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
+        """Split the data. Check the shape of the data.
 
         Args:
             data1: data from the first encoder
@@ -63,9 +63,9 @@ class COSMOSOocDataset(BaseOocDataset):
             np.sum(self.test_new_wrong_mask) == self.test_new_wrong_mask.shape[0] / 2
         ), "Out-of-context labels should be half of the test data"
 
-    def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
-        """Preprocess the data. Split the data into training and testing sets."""
-        super().preprocess_retrieval_data(data1, data2)
+    def split_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
+        """Split the data. Split the data into training and testing sets."""
+        super().split_data(data1, data2)
         self.train_gt_img_emb = data1[self.train_gt_idx]
         self.train_gt_text_emb = data2[self.train_gt_idx]
         self.test_gt_img_emb = data1[self.test_gt_idx]
@@ -77,29 +77,29 @@ class COSMOSOocDataset(BaseOocDataset):
         ), f"Test data and mask shape mismatch, {self.test_new_text_emb.shape[0]}!={self.test_new_wrong_mask.shape[0]}"
 
     def set_similarity_metrics(
-        self, text_img_sim_fn: callable, text_text_sim_fn: callable
+        self, text_text_sim_fn: callable, text_img_sim_fn: callable
     ) -> None:
         """Set the similarity function.
 
         Args:
-            text_img_sim_fn: similarity function between text and image
             text_text_sim_fn: similarity function between texts
+            text_img_sim_fn: similarity function between text and image
         """
         self.text_img_sim_fn = text_img_sim_fn
         self.text_text_sim_fn = text_text_sim_fn
 
-    def detect_ooc(self) -> None:
+    def bilevel_detect_ooc(self) -> None:
         """Detect out-of-context data.
 
-        Now, we have the similarity scores for text-text and text-image. We run a two-level detection of OOC data.
+        We have the similarity scores for text-text and text-image so we run a two-level detection of OOC data.
         The first level is to detect OOC text data. The second level is to detect OOC image data.
         Ground truth: C1=Image aligned
         if C1=C2
-          C2!=I -> O
-          C2=I -> O
+          C2!=I -> in or out of context?
+          C2=I -> in context
         else C1!=C2
-          C2!=I -> X (ooc)
-          C2=I -> O
+          C2!=I -> out of context
+          C2=I -> in context
         """
         self.get_texts_similarity()
         self.get_text_image_similarity()
@@ -107,20 +107,24 @@ class COSMOSOocDataset(BaseOocDataset):
         ooc_texts_mask_dict = {}
         ooc_text_image_mask_dict = {}
         detection_results = {}
-        for texts_threshold in np.linspace(-1, 1, 40):
+        for texts_threshold in np.linspace(-1, 1, 40):  # compare C1 and C2
             ooc_texts_mask = self.filter_ooc_data(texts_threshold, self.texts_sim)
             ooc_texts_mask_dict[texts_threshold] = ooc_texts_mask
-        for text_image_threshold in np.linspace(-1, 1, 40):
+        for text_image_threshold in np.linspace(-1, 1, 40):  # compare C2 and I
             ooc_text_image_mask = self.filter_ooc_data(
                 text_image_threshold, self.text_image_sim
             )
             ooc_text_image_mask_dict[text_image_threshold] = ooc_text_image_mask
         for texts_threshold in np.linspace(-1, 1, 40):
             for text_image_threshold in np.linspace(-1, 1, 40):
-                two_level_ooc_mask = (
+                text_img_not_align = (
                     ooc_texts_mask_dict[texts_threshold]
                     & ooc_text_image_mask_dict[text_image_threshold]
-                )
+                )  # C1!=C2 & C2!=I
+                image_not_align = ooc_text_image_mask_dict[
+                    text_image_threshold
+                ]  # C2!=I
+                two_level_ooc_mask = image_not_align & text_img_not_align
                 tp = np.sum(two_level_ooc_mask & ooc_ground_truth)
                 fp = np.sum(two_level_ooc_mask & ~ooc_ground_truth)
                 fn = np.sum(~two_level_ooc_mask & ooc_ground_truth)
@@ -144,7 +148,7 @@ class COSMOSOocDataset(BaseOocDataset):
         """Compare the image embeddings."""
         assert self.text_img_sim_fn is not None, "text_img_sim_fn is not set"
         self.text_image_sim = self.text_img_sim_fn(
-            self.test_gt_img_emb, self.test_new_img_emb
+            self.test_gt_img_emb, self.test_new_text_emb
         )
 
     def filter_ooc_data(

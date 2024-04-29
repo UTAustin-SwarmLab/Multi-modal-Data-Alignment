@@ -14,13 +14,15 @@ from mmda.utils.roc_utils import cal_auc, tp_fp_fn_tn_to_roc
 def main(cfg: DictConfig) -> None:  # noqa: D103
     cfg_dataset = cfg[cfg.dataset]
 
+    cca_tps = cca_hier_ooc(cfg)
+    cca_roc_points = tp_fp_fn_tn_to_roc(cca_tps.values())
+
     # (txt_threshold, text_img_threshold): (tp, fp, fn, tn)
     clip_tps = clip_like_hier_ooc(cfg)
     clip_roc_points = tp_fp_fn_tn_to_roc(clip_tps.values())
-    clip_auc = cal_auc(clip_roc_points)
 
-    cca_tps = cca_hier_ooc(cfg)
     asif_tps = asif_hier_ooc(cfg)
+    asif_roc_points = tp_fp_fn_tn_to_roc(asif_tps.values())
 
     # plot the ROC curve
     fig, ax = plt.subplots()
@@ -28,11 +30,27 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
     ax.plot(
+        [x[0] for x in cca_roc_points],
+        [x[1] for x in cca_roc_points],
+        "o",
+        ms=6,
+        label=f"Ours. AUC={cal_auc(cca_roc_points):.3f}",
+        color="blue",
+    )
+    ax.plot(
         [x[0] for x in clip_roc_points],
         [x[1] for x in clip_roc_points],
-        "^-",
-        ms=8,
-        label=f"CLIP. AUC={clip_auc:.3f}",
+        "^",
+        ms=6,
+        label=f"CLIP. AUC={cal_auc(clip_roc_points):.3f}",
+        color="blue",
+    )
+    ax.plot(
+        [x[0] for x in asif_roc_points],
+        [x[1] for x in asif_roc_points],
+        "D",
+        ms=6,
+        label=f"ASIF. AUC={cal_auc(asif_roc_points):.3f}",
         color="blue",
     )
     ax.plot(0.26, 0.74, "x", ms=12, mew=3, label="COSMOS", c="blue")
