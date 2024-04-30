@@ -51,8 +51,8 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "clip"
-  text_encoder: "gtr"
+  img_encoder: "dino"
+  text_encoder: "clip"
   paths:
     dataset_path: "/nas/pohan/datasets/ImageNet/"
     save_path: ${imagenet.paths.dataset_path}embeddings/
@@ -69,7 +69,7 @@ tiil:
     plots_path: ${repo_root}plots/TIIL/
 
 cosmos:
-  sim_dim: 200 # dimension of the similarity score and the CCA transformation
+  sim_dim: 1280 # dimension of the similarity score and the CCA transformation
   equal_weights: False
   img_encoder: "clip"
   text_encoder: "gtr"
@@ -116,8 +116,7 @@ llava:
   debug: False
   num_processes: 6
 
-# Hyperparameters of asif baseline
-asif:
+asif:  # Hyperparameters of asif baseline
   non_zeros: 800
   val_exps: [8]
   max_gpu_mem_gb: 23

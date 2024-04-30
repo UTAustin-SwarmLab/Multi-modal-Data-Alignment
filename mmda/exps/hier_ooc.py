@@ -30,18 +30,28 @@ def cca_hier_ooc(
     hier_ds = load_hier_dataset(cfg)
     hier_ds.split_data(data1, data2)
     # CCA transformation of img and text
-    cca_save_path = Path(cfg_dataset.paths.save_path) / "ooc_cca_model.pkl"
+    eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
+    cca_save_path = Path(cfg_dataset.paths.save_path) / (
+        f"ooc_cca_model_size{hier_ds.train_gt_img_emb.shape[0]}_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}{eq_label}.pkl"
+    )
     cca = NormalizedCCA()
     if not cca_save_path.exists():
-        print("Fit the CCA model to the training data.")
+        cfg_dataset.sim_dim = min(
+            hier_ds.train_gt_img_emb.shape[1], hier_ds.train_gt_text_emb.shape[1]
+        )
+        print(f"Fit the CCA model. CCA dimension: {cfg_dataset.sim_dim}")
+        print(
+            f"Train data shape: {hier_ds.train_gt_img_emb.shape}, {hier_ds.train_gt_text_emb.shape}"
+        )
         hier_ds.train_gt_img_emb, hier_ds.train_gt_text_emb, corr = (
             cca.fit_transform_train_data(
                 cfg_dataset, hier_ds.train_gt_img_emb, hier_ds.train_gt_text_emb
             )
         )
         cca.save_model(cca_save_path)  # save the class object for later use
+        print(f"Save the CCA model to {cca_save_path}.")
     else:
-        print("Load the CCA model from the saved file.")
+        print(f"Load the CCA model from {cca_save_path}.")
         cca.load_model(cca_save_path)
         hier_ds.train_gt_img_emb = cca.traindata1
         hier_ds.train_gt_text_emb = cca.traindata2
