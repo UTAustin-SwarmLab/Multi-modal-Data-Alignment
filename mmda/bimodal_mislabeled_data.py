@@ -16,7 +16,13 @@ from mmda.utils.roc_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: D103
+def main(cfg: DictConfig) -> None:
+    """Main function to generate the ROC curves of detecting mislabeled data.
+
+    Args:
+        cfg: config file
+    """
+    assert cfg.dataset == "flickr", f"{cfg.dataset} is not a retrieval dataset."
     num_train_data = int(cfg.dataset_size[cfg.dataset] * cfg.train_test_ratio)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
     print("number of training data", num_train_data)
