@@ -61,10 +61,7 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
 
 
 def separate_data(
-    cfg: DictConfig,
-    data1: np.ndarray,
-    data2: np.ndarray,
-    return_pt: bool = False,
+    cfg: DictConfig, data1: np.ndarray, data2: np.ndarray, return_pt: bool = False
 ) -> None:
     """Separate aligned data and unaligned data.
 

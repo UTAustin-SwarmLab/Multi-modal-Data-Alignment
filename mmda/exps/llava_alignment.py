@@ -47,7 +47,6 @@ def boolean_binary_detection(
     fp = np.sum(unalign)
     fn = np.sum(1 - align)
     tn = np.sum(1 - unalign)
-    print(f"llava tp: {tp}, fp: {fp}, fn: {fn}, tn: {tn}")
     tpr = tp / (tp + fn)
     fpr = fp / (fp + tn)
     return tpr, fpr
@@ -97,10 +96,7 @@ def llava_shuffle_align(
         )
         unalign = parse_llava_yes_no(obj_unalign)
 
-    # print ROC
-    print("Aligned vs Unaligned. Level: ", shuffle_level)
     tpr, fpr = boolean_binary_detection(align, unalign)
-    print(f"tpr: {tpr}, fpr: {fpr}")
     return (fpr, tpr)
 
 
@@ -136,15 +132,13 @@ def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
     val_llava_results_unalign = val_llava_results[val_wrong_labels_bool]
 
     # print ROC
-    print("Mislabeled vs correctly labeled.")
     tpr, fpr = boolean_binary_detection(
         val_llava_results_align, val_llava_results_unalign
     )
-    print(f"tpr: {tpr}, fpr: {fpr}")
     return (fpr, tpr)
 
 
-def llava_ooc_detect(cfg: DictConfig) -> tuple[float, float]:
+def llava_ooc_detection(cfg: DictConfig) -> tuple[float, float]:
     """Return llava's out-of-context answer.
 
     Args:
@@ -163,11 +157,7 @@ def llava_ooc_detect(cfg: DictConfig) -> tuple[float, float]:
 
     llava_results_ooc = llava_results[wrong_labels_bool]
     llava_results_in_context = llava_results[~wrong_labels_bool]
-
-    # print ROC
-    print("Ooc vs in-context data.")
     tpr, fpr = boolean_binary_detection(llava_results_in_context, llava_results_ooc)
-    print(f"tpr: {tpr}, fpr: {fpr}")
     return (fpr, tpr)
 
 

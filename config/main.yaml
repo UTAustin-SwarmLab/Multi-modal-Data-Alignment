@@ -69,7 +69,8 @@ tiil:
     plots_path: ${repo_root}plots/TIIL/
 
 cosmos:
-  sim_dim: 200 # dimension of the similarity score and the CCA transformation
+  sim_dim: 700 # dimension of the similarity score and the CCA transformation
+  detection_rule: "mean" # bilevel, mean
   equal_weights: False
   img_encoder: "clip"
   text_encoder: "gtr"

@@ -4,6 +4,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 from mmda.utils.dataset_utils import load_cosmos
+from mmda.utils.roc_utils import select_maximum_auc, tp_fp_fn_tn_to_roc
 
 
 # define base class of dataset
@@ -42,6 +43,7 @@ class COSMOSOocDataset(BaseOocDataset):
         """
         super().__init__(cfg)
         self.linspace = np.linspace(-1, 1, 80)
+        self.detection_rule = cfg[cfg.dataset].detection_rule
         self.img_path, self.txt_descriptions, self.wrong_label, _ = load_cosmos(
             cfg[cfg.dataset]
         )
@@ -89,16 +91,60 @@ class COSMOSOocDataset(BaseOocDataset):
         self.text_img_sim_fn = text_img_sim_fn
         self.text_text_sim_fn = text_text_sim_fn
 
-    def bilevel_detect_ooc(
-        self,
-    ) -> dict[tuple[float, float], tuple[int, int, int, int]]:
+    def detect_ooc(self) -> list[(float, float)]:
         """Detect out-of-context data.
 
-        We have the similarity scores for text-text and text-image so we run a two-level detection of OOC data.
+        Returns:
+            roc_points: ROC points
+        """
+        self.get_texts_similarity()
+        self.get_text_image_similarity()
+        if self.detection_rule == "bilevel":
+            detection_results = self.bilevel_detect_ooc()
+            roc_points = select_maximum_auc(detection_results)
+        elif self.detection_rule == "mean":
+            tps = self.mean_detect_ooc()
+            roc_points = tp_fp_fn_tn_to_roc(tps)
+        else:
+            msg = f"Detection rule {self.detection_rule} not supported"
+            raise ValueError(msg)
+        return roc_points
+
+    def mean_detect_ooc(
+        self,
+    ) -> list[(float, float)]:
+        """Detect out-of-context data.
+
+        We have the similarity scores for text-text and text-image.
+        We use the mean of the two similarities as the detection threshold.
+        mean = (text-text + text-image) / 2
+        if mean < threshold, it is out of context.
+        else, it is in context.
+
+        Returns:
+            detection_results: (texts_threshold, text_image_threshold): (tp, fp, fn, tn)
+        """
+        mean_sim = (self.texts_sim + self.text_image_sim) / 2
+        roc_points = []
+        for threshold in self.linspace:  # compare C1 and C2
+            mean_ooc_mask = self.filter_ooc_data(threshold, mean_sim)
+            tp = np.sum(mean_ooc_mask & self.test_new_wrong_mask)
+            fp = np.sum(mean_ooc_mask & ~self.test_new_wrong_mask)
+            fn = np.sum(~mean_ooc_mask & self.test_new_wrong_mask)
+            tn = np.sum(~mean_ooc_mask & ~self.test_new_wrong_mask)
+            roc_points.append((tp, fp, fn, tn))
+        return roc_points
+
+    def bilevel_detect_ooc(
+        self,
+    ) -> dict[tuple[float, float], tuple[float, float, float, float]]:
+        """Detect out-of-context data.
+
+        We have the similarity scores for text-text and text-image. We run a two-level detection of OOC data.
         The first level is to detect OOC text data. The second level is to detect OOC image data.
         Ground truth: C1=Image aligned
         if C1=C2
-          C2!=I -> in or out of context?
+          C2!=I -> in context
           C2=I -> in context
         else C1!=C2
           C2!=I -> out of context
@@ -107,9 +153,6 @@ class COSMOSOocDataset(BaseOocDataset):
         Returns:
             detection_results: (texts_threshold, text_image_threshold): (tp, fp, fn, tn)
         """
-        self.get_texts_similarity()
-        self.get_text_image_similarity()
-        ooc_ground_truth = self.test_new_wrong_mask
         ooc_texts_mask_dict = {}
         ooc_text_image_mask_dict = {}
         detection_results = {}
@@ -131,10 +174,10 @@ class COSMOSOocDataset(BaseOocDataset):
                     text_image_threshold
                 ]  # C2!=I
                 two_level_ooc_mask = image_not_align & text_img_not_align
-                tp = np.sum(two_level_ooc_mask & ooc_ground_truth)
-                fp = np.sum(two_level_ooc_mask & ~ooc_ground_truth)
-                fn = np.sum(~two_level_ooc_mask & ooc_ground_truth)
-                tn = np.sum(~two_level_ooc_mask & ~ooc_ground_truth)
+                tp = np.sum(two_level_ooc_mask & self.test_new_wrong_mask)
+                fp = np.sum(two_level_ooc_mask & ~self.test_new_wrong_mask)
+                fn = np.sum(~two_level_ooc_mask & self.test_new_wrong_mask)
+                tn = np.sum(~two_level_ooc_mask & ~self.test_new_wrong_mask)
                 detection_results[(texts_threshold, text_image_threshold)] = (
                     tp,
                     fp,
