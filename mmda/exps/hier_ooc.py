@@ -18,13 +18,13 @@ from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 def cca_hier_ooc(
     cfg: DictConfig,
-) -> list[tuple[float, float]]:
+) -> dict[tuple[float, float], tuple[int, int, int, int]]:
     """Hierarchical decision making process to predict out-of-context image and captions using the proposed CCA method.
 
     Args:
         cfg: configuration file
     Returns:
-        ROC_points: ROC points
+        dict of (txt_threshold, text_img_threshold): (tp, fp, fn, tn)
     """
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
     hier_ds = load_hier_dataset(cfg)
@@ -63,22 +63,22 @@ def cca_hier_ooc(
         hier_ds.test_new_img_emb, hier_ds.test_new_text_emb
     )
 
-    def new_text_img_sim_fn(x: np.array, y: np.array) -> np.array:
+    def text_img_sim_fn(x: np.array, y: np.array) -> np.array:
         return weighted_corr_sim(x, y, corr=corr, dim=cfg_dataset.sim_dim)
 
-    hier_ds.set_similarity_metrics(cosine_sim, new_text_img_sim_fn)
+    hier_ds.set_similarity_metrics(cosine_sim, text_img_sim_fn)
     return hier_ds.bilevel_detect_ooc()  # tp, fp, fn, tn
 
 
 def clip_like_hier_ooc(
     cfg: DictConfig,
-) -> list[tuple[float, float]]:
+) -> dict[tuple[float, float], tuple[int, int, int, int]]:
     """Hierarchical decision making process to predict out-of-context image and captions using the CLIP-like method.
 
     Args:
         cfg: configuration file
     Returns:
-        ROC_points: ROC points
+        dict of (txt_threshold, text_img_threshold): (tp, fp, fn, tn)
     """
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
     hier_ds = load_hier_dataset(cfg)
@@ -89,13 +89,13 @@ def clip_like_hier_ooc(
 
 def asif_hier_ooc(
     cfg: DictConfig,
-) -> list[tuple[float, float]]:
+) -> dict[tuple[float, float], tuple[int, int, int, int]]:
     """Hierarchical decision making process to predict out-of-context image and captions using the ASIF method.
 
     Args:
         cfg: configuration file
     Returns:
-        ROC_points: ROC points
+        dict of (txt_threshold, text_img_threshold): (tp, fp, fn, tn)
     """
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
     hier_ds = load_hier_dataset(cfg)
@@ -119,7 +119,7 @@ def asif_hier_ooc(
     ]
     range_anch = range_anch[-1:]  # run just last anchor to be quick
 
-    def new_text_img_sim_fn(x: np.array, y: np.array) -> np.array:
+    def text_img_sim_fn(x: np.array, y: np.array) -> np.array:
         n_anchors, scores, sims = zero_shot_classification(
             torch.tensor(x).cuda(),
             torch.tensor(y).cuda(),
@@ -133,5 +133,5 @@ def asif_hier_ooc(
         )
         return np.diag(sims.detach().cpu().numpy())
 
-    hier_ds.set_similarity_metrics(cosine_sim, new_text_img_sim_fn)
+    hier_ds.set_similarity_metrics(cosine_sim, text_img_sim_fn)
     return hier_ds.bilevel_detect_ooc()  # tp, fp, fn, tn

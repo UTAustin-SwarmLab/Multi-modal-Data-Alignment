@@ -55,7 +55,7 @@ def roc_align_unalign_points(
 
 
 def tp_fp_fn_tn_to_roc(
-    tps: list[tuple[float, float]],
+    tps: list[tuple[float, float, float, float]],
 ) -> list[tuple[float, float]]:
     """Calculate the roc points from true positives etc.
 
@@ -73,6 +73,46 @@ def tp_fp_fn_tn_to_roc(
     # keep only the unique points
     roc_points = list(set(roc_points))
     return sorted(roc_points, key=lambda x: x[0] + x[1])
+
+
+def select_maximum_auc(
+    dict_tps: dict[tuple[float, float], tuple[int, int, int, int]]
+) -> list[float, float]:
+    """Select the threshold that gives the maximum AUC.
+
+    Args:
+        dict_tps: dictionary of threshold and tp, fp, fn, tn
+    Returns:
+        roc_points: ROC points
+    """
+    max_auc = 0
+    max_roc_points = None
+    dict_texts_threshold, dict_text_image_threshold = zip(
+        *dict_tps.keys(), strict=False
+    )
+    # fix texts_threshold and change text_image_threshold
+    for texts_threshold in dict_texts_threshold:
+        tps_list = []
+        for text_image_threshold in dict_text_image_threshold:
+            tps = dict_tps[(texts_threshold, text_image_threshold)]
+            tps_list.append(tps)
+        roc_points = tp_fp_fn_tn_to_roc(tps_list)
+        auc = cal_auc(roc_points)
+        if auc > max_auc:
+            max_auc = auc
+            max_roc_points = roc_points
+    # fix text_image_threshold and change texts_threshold
+    for text_image_threshold in dict_text_image_threshold:
+        tps_list = []
+        for texts_threshold in dict_texts_threshold:
+            tps = dict_tps[(texts_threshold, text_image_threshold)]
+            tps_list.append(tps)
+        roc_points = tp_fp_fn_tn_to_roc(tps_list)
+        auc = cal_auc(roc_points)
+        if auc > max_auc:
+            max_auc = auc
+            max_roc_points = roc_points
+    return max_roc_points
 
 
 def cal_auc(roc_points: list[tuple[float, float]]) -> float:

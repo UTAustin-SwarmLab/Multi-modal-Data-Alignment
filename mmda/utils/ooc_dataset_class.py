@@ -41,6 +41,7 @@ class COSMOSOocDataset(BaseOocDataset):
             cfg: configuration file
         """
         super().__init__(cfg)
+        self.linspace = np.linspace(-1, 1, 80)
         self.img_path, self.txt_descriptions, self.wrong_label, _ = load_cosmos(
             cfg[cfg.dataset]
         )
@@ -88,7 +89,9 @@ class COSMOSOocDataset(BaseOocDataset):
         self.text_img_sim_fn = text_img_sim_fn
         self.text_text_sim_fn = text_text_sim_fn
 
-    def bilevel_detect_ooc(self) -> None:
+    def bilevel_detect_ooc(
+        self,
+    ) -> dict[tuple[float, float], tuple[int, int, int, int]]:
         """Detect out-of-context data.
 
         We have the similarity scores for text-text and text-image so we run a two-level detection of OOC data.
@@ -100,6 +103,9 @@ class COSMOSOocDataset(BaseOocDataset):
         else C1!=C2
           C2!=I -> out of context
           C2=I -> in context
+
+        Returns:
+            detection_results: (texts_threshold, text_image_threshold): (tp, fp, fn, tn)
         """
         self.get_texts_similarity()
         self.get_text_image_similarity()
@@ -107,16 +113,16 @@ class COSMOSOocDataset(BaseOocDataset):
         ooc_texts_mask_dict = {}
         ooc_text_image_mask_dict = {}
         detection_results = {}
-        for texts_threshold in np.linspace(-1, 1, 40):  # compare C1 and C2
+        for texts_threshold in self.linspace:  # compare C1 and C2
             ooc_texts_mask = self.filter_ooc_data(texts_threshold, self.texts_sim)
             ooc_texts_mask_dict[texts_threshold] = ooc_texts_mask
-        for text_image_threshold in np.linspace(-1, 1, 40):  # compare C2 and I
+        for text_image_threshold in self.linspace:  # compare C2 and I
             ooc_text_image_mask = self.filter_ooc_data(
                 text_image_threshold, self.text_image_sim
             )
             ooc_text_image_mask_dict[text_image_threshold] = ooc_text_image_mask
-        for texts_threshold in np.linspace(-1, 1, 40):
-            for text_image_threshold in np.linspace(-1, 1, 40):
+        for texts_threshold in self.linspace:
+            for text_image_threshold in self.linspace:
                 text_img_not_align = (
                     ooc_texts_mask_dict[texts_threshold]
                     & ooc_text_image_mask_dict[text_image_threshold]
