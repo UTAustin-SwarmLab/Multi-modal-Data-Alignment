@@ -1,4 +1,3 @@
-# tiil
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=tiil noisy_train_set=True tiil.sim_dim=10
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=tiil noisy_train_set=True tiil.sim_dim=25
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=tiil noisy_train_set=True tiil.sim_dim=50

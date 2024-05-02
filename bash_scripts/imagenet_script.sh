@@ -1,4 +1,3 @@
-# imagenet
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=10
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=25
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=50
