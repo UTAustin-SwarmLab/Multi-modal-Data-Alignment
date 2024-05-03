@@ -5,9 +5,11 @@ The setting is, given a set of corresponding images and captions, predict the ou
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from omegaconf import DictConfig
+from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.cca_class import NormalizedCCA
@@ -54,6 +56,21 @@ def cca_hier_ooc(cfg: DictConfig) -> list[(float, float)]:
         hier_ds.train_gt_img_emb = cca.traindata1
         hier_ds.train_gt_text_emb = cca.traindata2
         corr = cca.corr_coeff
+
+    if not cfg_dataset.equal_weights:
+        plots_path = (
+            Path(cfg_dataset.paths.plots_path)
+            / f"hier_ooc_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}_{cfg_dataset.detection_rule}/"
+        )
+        plots_path.mkdir(parents=True, exist_ok=True)
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.plot(corr)
+        ax.set_title("Correlation Coefficients of the Cross Covariance")
+        ax.set_xlabel("Dimension of Eigenvalues")
+        ax.set_ylabel("Correlation Coefficients")
+        ax.set_ylim(0, 1)
+        save_fig(fig, plots_path / "correlation_coefficient.png")
+
     hier_ds.test_gt_img_emb, hier_ds.test_gt_text_emb = cca.transform_data(
         hier_ds.test_gt_img_emb, hier_ds.test_gt_text_emb
     )

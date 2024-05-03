@@ -43,7 +43,7 @@ def main(cfg: DictConfig) -> None:
         "^-",
         ms=6,
         label=f"CLIP. AUC={cal_auc(clip_roc_points):.3f}",
-        color="blue",
+        color="red",
     )
     ax.plot(
         [x[0] for x in asif_roc_points],
@@ -51,12 +51,11 @@ def main(cfg: DictConfig) -> None:
         "D-",
         ms=6,
         label=f"ASIF. AUC={cal_auc(asif_roc_points):.3f}",
-        color="blue",
+        color="green",
     )
-    # baselines
-    ax.plot(0.26, 0.74, "P", ms=12, mew=3, label="COSMOS", c="blue")  # cosmos
     llava_fpr, llava_tpr = llava_ooc_detection(cfg)  # llava
-    ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="blue")
+    ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="darkorange")
+    ax.plot(0.26, 0.74, "P", ms=12, mew=3, label="COSMOS", c="black")  # cosmos
 
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)

@@ -4,7 +4,11 @@ import numpy as np
 from omegaconf import DictConfig
 
 from mmda.utils.dataset_utils import load_cosmos
-from mmda.utils.roc_utils import select_maximum_auc, tp_fp_fn_tn_to_roc
+from mmda.utils.roc_utils import (
+    convex_hull_roc_points,
+    select_maximum_auc,
+    tp_fp_fn_tn_to_roc,
+)
 
 
 # define base class of dataset
@@ -101,7 +105,10 @@ class COSMOSOocDataset(BaseOocDataset):
         self.get_text_image_similarity()
         if self.detection_rule == "bilevel":
             detection_results = self.bilevel_detect_ooc()
-            roc_points = select_maximum_auc(detection_results)
+            if self.text_text_sim_fn == self.text_img_sim_fn:
+                roc_points = select_maximum_auc(detection_results)
+            else:
+                roc_points = convex_hull_roc_points(detection_results)
         elif self.detection_rule == "mean":
             tps = self.mean_detect_ooc()
             roc_points = tp_fp_fn_tn_to_roc(tps)

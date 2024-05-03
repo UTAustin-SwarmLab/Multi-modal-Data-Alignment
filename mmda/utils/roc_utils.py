@@ -1,6 +1,7 @@
 """This module contains the functions to calculate the ROC curve and AUC."""
 
 import numpy as np
+from scipy.spatial import ConvexHull
 
 
 def cal_roc_components(
@@ -72,7 +73,7 @@ def tp_fp_fn_tn_to_roc(
         roc_points.append((fpr, tpr))
     # keep only the unique points
     roc_points = list(set(roc_points))
-    return sorted(roc_points, key=lambda x: x[0] + x[1])
+    return sorted(roc_points, key=lambda x: x[0])
 
 
 def select_maximum_auc(
@@ -113,6 +114,24 @@ def select_maximum_auc(
             max_auc = auc
             max_roc_points = roc_points
     return max_roc_points
+
+
+def convex_hull_roc_points(
+    dict_tps: dict[tuple[float, float], tuple[int, int, int, int]]
+) -> list[float, float]:
+    """Get the convex hull of the ROC points.
+
+    Args:
+        dict_tps: dictionary of threshold and tp, fp, fn, tn
+    Returns:
+        roc_points: convex hull of the ROC points
+    """
+    list_tps = dict_tps.values()
+    points = tp_fp_fn_tn_to_roc(list_tps)
+    hull = ConvexHull(points)
+    vertices_idx = hull.vertices
+    roc_points = [points[i] for i in vertices_idx]
+    return sorted(roc_points, key=lambda x: x[0])
 
 
 def cal_auc(roc_points: list[tuple[float, float]]) -> float:
