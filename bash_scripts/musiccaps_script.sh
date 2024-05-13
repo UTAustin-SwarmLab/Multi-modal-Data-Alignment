@@ -1,4 +1,3 @@
-# musiccaps
 poetry run python mmda/bimodal_shuffled_data.py dataset=musiccaps musiccaps.sim_dim=10
 poetry run python mmda/bimodal_shuffled_data.py dataset=musiccaps musiccaps.sim_dim=25
 poetry run python mmda/bimodal_shuffled_data.py dataset=musiccaps musiccaps.sim_dim=50

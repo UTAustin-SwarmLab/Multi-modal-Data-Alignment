@@ -11,10 +11,7 @@ from swarm_visualizer.utility.general_utils import save_fig
 
 from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.cca_class import NormalizedCCA
-from mmda.utils.data_utils import (
-    load_clip_like_data,
-    load_two_encoder_data,
-)
+from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_cosmos,
@@ -22,11 +19,8 @@ from mmda.utils.dataset_utils import (
     load_tiil,
     train_test_split,
 )
-from mmda.utils.sim_utils import (
-    cosine_sim,
-    roc_align_unalign_points,
-    weighted_corr_sim,
-)
+from mmda.utils.roc_utils import roc_align_unalign_points
+from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 
 def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
@@ -67,10 +61,7 @@ def parse_wrong_label(cfg: DictConfig) -> tuple[np.ndarray, np.ndarray]:
 
 
 def separate_data(
-    cfg: DictConfig,
-    data1: np.ndarray,
-    data2: np.ndarray,
-    return_pt: bool = False,
+    cfg: DictConfig, data1: np.ndarray, data2: np.ndarray, return_pt: bool = False
 ) -> None:
     """Separate aligned data and unaligned data.
 

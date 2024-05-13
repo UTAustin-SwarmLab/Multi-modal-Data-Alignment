@@ -8,13 +8,8 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.exps.mislabel_align import parse_wrong_label
-from mmda.utils.data_utils import (
-    load_two_encoder_data,
-)
-from mmda.utils.dataset_utils import (
-    get_train_test_split_index,
-    train_test_split,
-)
+from mmda.utils.data_utils import load_two_encoder_data
+from mmda.utils.dataset_utils import get_train_test_split_index, train_test_split
 
 
 def parse_llava_yes_no(llava_output: list[str]) -> np.ndarray:
@@ -52,7 +47,6 @@ def boolean_binary_detection(
     fp = np.sum(unalign)
     fn = np.sum(1 - align)
     tn = np.sum(1 - unalign)
-    print(f"llava tp: {tp}, fp: {fp}, fn: {fn}, tn: {tn}")
     tpr = tp / (tp + fn)
     fpr = fp / (fp + tn)
     return tpr, fpr
@@ -61,7 +55,14 @@ def boolean_binary_detection(
 def llava_shuffle_align(
     cfg: DictConfig, shuffle_level: str = "dataset"
 ) -> list[list[float]]:
-    """Return llava's shuffled alignment answer."""
+    """Return llava's shuffled alignment answer.
+
+    Args:
+        cfg: config file
+        shuffle_level: shuffle level
+    Returns:
+        ROC point (only one point cause there's only one threshold in llava's output)
+    """
     # set random seed
     cfg_dataset = cfg[cfg.dataset]
 
@@ -95,15 +96,18 @@ def llava_shuffle_align(
         )
         unalign = parse_llava_yes_no(obj_unalign)
 
-    # print ROC
-    print("Aligned vs Unaligned. Level: ", shuffle_level)
     tpr, fpr = boolean_binary_detection(align, unalign)
-    print(f"tpr: {tpr}, fpr: {fpr}")
     return (fpr, tpr)
 
 
 def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
-    """Return llava's mislabeled answer."""
+    """Return llava's mislabeled answer.
+
+    Args:
+        cfg: config file
+    Returns:
+        ROC point (only one point cause there's only one threshold in llava's output)
+    """
     # set random seed
     np.random.seed(cfg.seed)
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
@@ -128,11 +132,32 @@ def llava_mislabeled_align(cfg: DictConfig) -> tuple[float, float]:
     val_llava_results_unalign = val_llava_results[val_wrong_labels_bool]
 
     # print ROC
-    print("Mislabeled vs correctly labeled.")
     tpr, fpr = boolean_binary_detection(
         val_llava_results_align, val_llava_results_unalign
     )
-    print(f"tpr: {tpr}, fpr: {fpr}")
+    return (fpr, tpr)
+
+
+def llava_ooc_detection(cfg: DictConfig) -> tuple[float, float]:
+    """Return llava's out-of-context answer.
+
+    Args:
+        cfg: config file
+    Returns:
+        ROC point (only one point cause there's only one threshold in llava's output)
+    """
+    cfg_dataset = cfg[cfg.dataset]
+    llava_results = joblib.load(
+        Path(cfg_dataset.paths.save_path + f"{cfg.dataset}_llava-v1.5-13b_aligned.pkl")
+    )
+    llava_results = parse_llava_yes_no(llava_results)
+    wrong_labels_bool = parse_wrong_label(cfg)[-3400:][1::2]
+    assert len(llava_results) == len(wrong_labels_bool), "Length mismatch"
+    assert np.sum(wrong_labels_bool) == len(wrong_labels_bool) / 2, "Ooc data!=half"
+
+    llava_results_ooc = llava_results[wrong_labels_bool]
+    llava_results_in_context = llava_results[~wrong_labels_bool]
+    tpr, fpr = boolean_binary_detection(llava_results_in_context, llava_results_ooc)
     return (fpr, tpr)
 
 

@@ -12,11 +12,17 @@ from mmda.exps.mislabel_align import (
     cca_detect_mislabeled_data,
     clip_like_detect_mislabeled_data,
 )
-from mmda.utils.sim_utils import cal_auc
+from mmda.utils.roc_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: D103
+def main(cfg: DictConfig) -> None:
+    """Main function to generate the ROC curves of detecting mislabeled data.
+
+    Args:
+        cfg: config file
+    """
+    assert cfg.dataset == "flickr", f"{cfg.dataset} is not a retrieval dataset."
     num_train_data = int(cfg.dataset_size[cfg.dataset] * cfg.train_test_ratio)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
     print("number of training data", num_train_data)
@@ -34,20 +40,23 @@ def main(cfg: DictConfig) -> None:  # noqa: D103
         [x[0] for x in roc_points],
         [x[1] for x in roc_points],
         "o-",
-        label=f"Random shuffle (ours). AUC={auc:.3f}",
+        ms=8,
+        label=f"Ours. AUC={auc:.3f}",
         color="blue",
     )
     ax.plot(
         [x[0] for x in clip_roc_ds_points],
         [x[1] for x in clip_roc_ds_points],
-        "+-",
-        label=f"Random shuffle ({clip_model_name}). AUC={clip_auc:.3f}",
+        "^-",
+        ms=8,
+        label=f"{clip_model_name}. AUC={clip_auc:.3f}",
         color="blue",
     )
     ax.plot(
         [x[0] for x in asif_roc_points],
         [x[1] for x in asif_roc_points],
         "D-",
+        ms=8,
         label=f"ASIF. AUC={asif_auc:.3f}",
         color="blue",
     )

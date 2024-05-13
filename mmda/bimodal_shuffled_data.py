@@ -12,7 +12,7 @@ from mmda.exps.shuffle_align import (
     cca_data_align,
     clip_like_data_align,
 )
-from mmda.utils.sim_utils import cal_auc
+from mmda.utils.roc_utils import cal_auc
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -41,13 +41,15 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in roc_points],
             [x[1] for x in roc_points],
             "o-",
+            ms=8,
             label=f"Random shuffle (ours). AUC={ds_auc:.3f}",
             color="blue",
         )
         ax.plot(
             [x[0] for x in clip_roc_ds_points],
             [x[1] for x in clip_roc_ds_points],
-            "+-",
+            "^-",
+            ms=8,
             label=f"Random shuffle ({clip_model_name}). AUC={clip_ds_auc:.3f}",
             color="blue",
         )
@@ -55,6 +57,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in asif_roc_points],
             [x[1] for x in asif_roc_points],
             "D-",
+            ms=8,
             label=f"ASIF. AUC={asif_ds_auc:.3f}",
             color="blue",
         )
@@ -83,13 +86,15 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in roc_class_points],
             [x[1] for x in roc_class_points],
             "o-",
+            ms=8,
             label=f"Class level shuffle (ours). AUC={class_auc:.3f}",
             color="red",
         )
         ax.plot(
             [x[0] for x in clip_roc_class_points],
             [x[1] for x in clip_roc_class_points],
-            "+-",
+            "^-",
+            ms=8,
             label=f"Class level shuffle ({clip_model_name}). AUC={clip_class_auc:.3f}",
             color="red",
         )
@@ -97,6 +102,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in asif_roc_class_points],
             [x[1] for x in asif_roc_class_points],
             "D-",
+            ms=8,
             label=f"ASIF. AUC={asif_class_auc:.3f}",
             color="red",
         )
@@ -126,13 +132,15 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in roc_obj_points],
             [x[1] for x in roc_obj_points],
             "o-",
+            ms=8,
             label=f"Object level shuffle (ours). AUC={obj_auc:.3f}",
             color="green",
         )
         ax.plot(
             [x[0] for x in clip_obj_roc_points],
             [x[1] for x in clip_obj_roc_points],
-            "+-",
+            "^-",
+            ms=8,
             label=f"Object level shuffle ({clip_model_name}). AUC={clip_obj_auc:.3f}",
             color="green",
         )
@@ -140,6 +148,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[0] for x in asif_obj_roc_points],
             [x[1] for x in asif_obj_roc_points],
             "D-",
+            ms=8,
             label=f"ASIF. AUC={asif_obj_auc:.3f}",
             color="green",
         )

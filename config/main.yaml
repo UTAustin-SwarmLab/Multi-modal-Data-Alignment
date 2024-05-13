@@ -7,13 +7,13 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
 # TODO: add more datasets
-dataset: "flickr"
+dataset: "cosmos"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
-mislabel_llava_datasets: [imagenet, cosmos] # datasets whose plots contains llava
+mislabel_llava_datasets: [imagenet] # datasets whose plots contains llava
 dataset_size: {
   sop: 56222,
   musiccaps: 5397,
@@ -51,8 +51,8 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "clip"
-  text_encoder: "gtr"
+  img_encoder: "dino"
+  text_encoder: "clip"
   paths:
     dataset_path: "/nas/pohan/datasets/ImageNet/"
     save_path: ${imagenet.paths.dataset_path}embeddings/
@@ -69,7 +69,8 @@ tiil:
     plots_path: ${repo_root}plots/TIIL/
 
 cosmos:
-  sim_dim: 200 # dimension of the similarity score and the CCA transformation
+  sim_dim: 700 # dimension of the similarity score and the CCA transformation
+  detection_rule: "bilevel" # bilevel, mean
   equal_weights: False
   img_encoder: "clip"
   text_encoder: "gtr"
@@ -107,17 +108,16 @@ hydra:
 llava:
   model_path: '/nas/omama/llava-v1.5-13b'
   model_base: null
-  num_gpus: 6
+  num_gpus: 2
   conv_mode: null
   temperature: 0.2
   max_new_tokens: 512
   load_8bit: True
   load_4bit: False
   debug: False
-  num_processes: 6
+  num_processes: 2
 
-# Hyperparameters of asif baseline
-asif:
+asif:  # Hyperparameters of asif baseline
   non_zeros: 800
   val_exps: [8]
   max_gpu_mem_gb: 23

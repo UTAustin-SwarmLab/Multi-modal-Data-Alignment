@@ -6,14 +6,17 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.retrieval import (
-    cca_retrieval,
-    clip_like_retrieval,
-)
+from mmda.exps.retrieval import cca_retrieval, clip_like_retrieval
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: D103
+def main(cfg: DictConfig) -> None:
+    """Main function to generate the retrieval results of the bimodal datasets.
+
+    Args:
+        cfg: config file
+    """
+    assert cfg.dataset in cfg.retrieval_datasets, f"{cfg.dataset} is not for retrieval."
     cfg_dataset = cfg[cfg.dataset]
 
     clip_maps, clip_precision = clip_like_retrieval(cfg)

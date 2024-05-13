@@ -80,6 +80,9 @@ def llava_align(cfg: DictConfig) -> None:
         )
         _, img_paths = train_test_split(img_paths, train_idx, val_idx)
         _, text_descriptions = train_test_split(text_descriptions, train_idx, val_idx)
+    elif cfg.dataset == "cosmos":  # cosmos has 2 captions (1ooc 1 in) per image
+        img_paths = img_paths[-3400:][1::2]
+        text_descriptions = text_descriptions[-3400:][1::2]
 
     # query llava without shuffling
     aligned_answer = llava_img_text_align(cfg, img_paths, text_descriptions)
