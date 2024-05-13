@@ -5,18 +5,9 @@ from cca_zoo.linear import CCA
 from omegaconf import DictConfig
 
 import hydra
-from mmda.utils.data_utils import (
-    load_two_encoder_data,
-    origin_centered,
-)
-from mmda.utils.dataset_utils import (
-    filter_outliers,
-    load_musiccaps,
-)
-from mmda.utils.sim_utils import (
-    cosine_sim,
-    weighted_corr_sim,
-)
+from mmda.utils.data_utils import load_two_encoder_data, origin_centered
+from mmda.utils.dataset_utils import filter_outliers, load_musiccaps
+from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 
 def inspect_youtube_data(cfg: DictConfig, sim_score: np.ndarray) -> None:

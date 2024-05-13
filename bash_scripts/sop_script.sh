@@ -1,4 +1,3 @@
-# sop
 CUDA_VISIBLE_DEVICES=6 poetry run python mmda/bimodal_shuffled_data.py dataset=sop sop.sim_dim=10
 CUDA_VISIBLE_DEVICES=6 poetry run python mmda/bimodal_shuffled_data.py dataset=sop sop.sim_dim=25
 CUDA_VISIBLE_DEVICES=6 poetry run python mmda/bimodal_shuffled_data.py dataset=sop sop.sim_dim=50
