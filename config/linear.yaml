@@ -9,6 +9,8 @@ data_dim2: 70
 latent_dim: 40
 sim_dim: ${latent_dim}
 equal_weights: False
+paths:
+  plots_path: ${repo_root}/plots/linear/
 
 hydra:
   run:

@@ -10,6 +10,7 @@ from mmda.utils.linear_utils import (
     minimum_singular_value,
     solve_cca,
 )
+from mmda.utils.sim_utils import weighted_corr_sim
 
 
 def linear_exps(cfg: DictConfig) -> None:
@@ -44,11 +45,15 @@ def linear_exps(cfg: DictConfig) -> None:
     z1 = enc1 @ data1
     z2 = enc2 @ data2
     # the analytical solution of CCA
-    rho, cca_matrix1, cca_matrix2 = solve_cca(z1, z2)
-    print(f"Correlation: {rho}")
+    corr, cca_matrix1, cca_matrix2 = solve_cca(z1, z2)
+    cca_z1 = cca_matrix1 @ z1
+    cca_z2 = cca_matrix2 @ z2
+    cca_z1_shuffled, cca_z2_shuffled = cca_z1.copy(), cca_z2.copy()
+    np.random.shuffle(cca_z2_shuffled)
 
+    snr_list, lambda_list = [], []
+    sim_score_list, sim_score_shuffled_list = [], []
     for ss in range(1, cfg.latent_dim):
-        print(f"Latent dimension: {ss}")
         # calculate the SNR
         snr1 = np.linalg.norm(
             (cca_matrix1 @ enc1 @ transform1 @ latent)[:ss, :]
@@ -58,17 +63,23 @@ def linear_exps(cfg: DictConfig) -> None:
         ) / np.linalg.norm((cca_matrix2 @ enc2 @ noise2)[:ss, :])
         avg_snr = (snr1 + snr2) / 2
         avg_snr_db = 10 * np.log10(avg_snr)
-        print(f"Average SNR: {avg_snr_db:.4f} dB")
 
         # average distance between data
-        lambda1 = minimum_singular_value(cca_matrix1, ss) * minimum_singular_value(
-            enc1, ss
-        )
-        lambda2 = minimum_singular_value(cca_matrix2, ss) * minimum_singular_value(
-            enc2, ss
-        )
+        lambda1 = minimum_singular_value(cca_matrix1, ss) * minimum_singular_value(enc1)
+        lambda2 = minimum_singular_value(cca_matrix2, ss) * minimum_singular_value(enc2)
         avg_lambda = (lambda1 + lambda2) / 2
         avg_lambda_db = 10 * np.log10(avg_lambda)
-        print(f"Average lambda: {avg_lambda_db:.4f} dB")
+        snr_list.append(avg_snr_db)
+        lambda_list.append(avg_lambda_db)
 
-        #
+        # calculate weighted cosine similarity
+        sim_score = weighted_corr_sim(cca_z1, cca_z2, corr, ss)
+        sim_score_list.append(sim_score)
+
+        # calculate the shuffled similarity
+        sim_score_shuffled = weighted_corr_sim(
+            cca_z1_shuffled, cca_z2_shuffled, corr, ss
+        )
+        sim_score_shuffled_list.append(sim_score_shuffled)
+
+    return snr_list, lambda_list, sim_score_list, sim_score_shuffled_list

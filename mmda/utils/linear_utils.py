@@ -18,7 +18,7 @@ def svd(matrix: np.ndarray) -> np.ndarray:
     return u, s, vh
 
 
-def minimum_singular_value(matrix: np.ndarray, dim: int) -> np.ndarray:
+def minimum_singular_value(matrix: np.ndarray, dim: int | None = None) -> np.ndarray:
     """Compute the minimum singular value of a matrix.
 
     Args:
@@ -28,7 +28,7 @@ def minimum_singular_value(matrix: np.ndarray, dim: int) -> np.ndarray:
         np.ndarray: the minimum singular value of the matrix
     """
     _, s, _ = svd(matrix)
-    return s[dim - 1]
+    return s[dim - 1] if dim is not None else s[-1]
 
 
 def generate_gaussian(size: int, mean: float, std: float) -> np.ndarray:
