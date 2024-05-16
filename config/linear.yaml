@@ -1,0 +1,17 @@
+defaults:
+  - override hydra/launcher: joblib
+
+seed: 42
+repo_root: "/home/pl22767/Project/MMDA/"
+num_data: 2000
+data_dim1: 50
+data_dim2: 70
+latent_dim: 40
+sim_dim: ${latent_dim}
+equal_weights: False
+paths:
+  plots_path: ${repo_root}/plots/linear/
+
+hydra:
+  run:
+    dir: ${repo_root}hydra/linear/${now:%Y-%m-%d}/${now:%H-%M-%S}
