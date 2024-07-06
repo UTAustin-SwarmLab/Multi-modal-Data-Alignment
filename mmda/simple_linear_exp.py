@@ -37,7 +37,7 @@ def main(cfg: DictConfig) -> None:
             "linestyle": "-",
             "color": "blue",
         },
-        "Lambda (\u2191 higher is better)": {
+        "$\lambda_{min}$ (\u2191 higher is better)": {  # noqa: W605
             "x": s_range,
             "y": lambda_list,
             "lw": 2,
@@ -45,18 +45,19 @@ def main(cfg: DictConfig) -> None:
             "color": "red",
         },
     }
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     plot_overlaid_lineplot(
         ax=ax,
         normalized_dict=data_dict,
-        title_str="SNR and Lambda",
         ylabel="dB",
-        xlabel="Selected dimension for Similarity score score $s$",
+        xlabel="Selected dimension for similarity score $s$",
         legend_present=True,
     )
+    fig.tight_layout()
+    ax.legend(fontsize=20)
     save_fig(
         fig,
-        plots_path / f"snr_lambda{eq_label}.png",
+        plots_path / f"snr_lambda{eq_label}.pdf",
         dpi=600,
         tight_layout=True,
     )
@@ -65,7 +66,7 @@ def main(cfg: DictConfig) -> None:
     set_plot_properties(autolayout=True)
     df = pd.DataFrame(
         columns=[
-            "Selected dimension for Similarity score score $s$",
+            "Selected dimension for similarity score $s$",
             "Similarity score",
             "shuffled",
         ]
@@ -74,42 +75,43 @@ def main(cfg: DictConfig) -> None:
     for s, (sim_scores, sim_score_shuffled) in enumerate(
         zip(sim_score_list, sim_score_shuffled_list, strict=True)
     ):
-        if s % 5 != 0:
+        if s % 10 != 0:
             continue
         boxpairs.append(((s + 1, "original"), (s + 1, "shuffled")))
         for score in sim_scores:
             df.loc[len(df.index)] = [s + 1, score, "original"]
         for score in sim_score_shuffled:
             df.loc[len(df.index)] = [s + 1, score, "shuffled"]
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     plot_paired_boxplot(
         ax,
         df,
-        x_var="Selected dimension for Similarity score score $s$",
+        x_var="Selected dimension for similarity score $s$",
         y_var="Similarity score",
         hue="shuffled",
         showfliers=False,
     )
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, loc="lower right")
+    ax.legend(handles, labels, loc="upper right", fontsize=18)
     # calculate the p-value
     add_wilcoxon_value(
         ax=ax,
         df=df,
-        x_var="Selected dimension for Similarity score score $s$",
+        x_var="Selected dimension for similarity score $s$",
         y_var="Similarity score",
         hue="shuffled",
         box_pairs=boxpairs,
         test_type="Wilcoxon",
         text_format="full",
         loc="inside",
-        fontsize=14,
+        fontsize=18,
         verbose=2,
         pvalue_format_string="{:.4f}",
         show_test_name=False,
     )
+    fig.tight_layout()
     save_fig(
-        fig, plots_path / f"similarity_score{eq_label}.png", dpi=600, tight_layout=True
+        fig, plots_path / f"similarity_score{eq_label}.pdf", dpi=600, tight_layout=True
     )
 
 
