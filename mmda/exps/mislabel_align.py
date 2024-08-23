@@ -179,7 +179,6 @@ def cca_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
         xlabel="Similarity Score",
         ylabel="Frequency",
         ax=ax,
-        binwidth=0.05,
     )
     save_fig(
         fig,
@@ -295,4 +294,4 @@ def asif_detect_mislabeled_data(cfg: DictConfig) -> list[tuple[float, float]]:
     sim_unalign = np.diag(sims.detach().cpu().numpy())
 
     # plot ROC
-    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 150))
+    return roc_align_unalign_points(sim_align, sim_unalign, (-1, 1, 0))

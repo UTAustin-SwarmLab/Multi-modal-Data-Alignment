@@ -26,9 +26,8 @@ def main(cfg: DictConfig) -> None:
 
     # plot the ROC curve
     fig, ax = plt.subplots()
-    ax.set_title("ROC Curves of Detecting Out-of-context Captions and Images")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate")
     ax.plot(
         [x[0] for x in cca_roc_points],
         [x[1] for x in cca_roc_points],
