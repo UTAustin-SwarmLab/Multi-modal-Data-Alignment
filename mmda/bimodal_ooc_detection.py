@@ -68,6 +68,7 @@ def main(cfg: DictConfig) -> None:
     )
     plots_path.mkdir(parents=True, exist_ok=True)
     eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
+    plt.tight_layout()
     fig.savefig(plots_path / f"ROC_ooc_dim{cfg[cfg.dataset].sim_dim}{eq_label}.png")
 
 

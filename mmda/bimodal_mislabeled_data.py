@@ -22,7 +22,6 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg: config file
     """
-    assert cfg.dataset == "flickr", f"{cfg.dataset} is not a retrieval dataset."
     num_train_data = int(cfg.dataset_size[cfg.dataset] * cfg.train_test_ratio)
     clip_model_name = "CLAP" if cfg.dataset == "musiccaps" else "CLIP"
     print("number of training data", num_train_data)
@@ -41,7 +40,7 @@ def main(cfg: DictConfig) -> None:
         [x[1] for x in roc_points],
         "o-",
         ms=8,
-        label=f"Ours. AUC={auc:.3f}",
+        label=f"CSA (ours). AUC={auc:.3f}",
         color="blue",
     )
     ax.plot(
@@ -76,6 +75,7 @@ def main(cfg: DictConfig) -> None:
 
     ds_label = "" if cfg.noisy_train_set else "_clean"
     eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
+    plt.tight_layout()
     fig.savefig(
         Path(
             cfg[cfg.dataset].paths.plots_path,

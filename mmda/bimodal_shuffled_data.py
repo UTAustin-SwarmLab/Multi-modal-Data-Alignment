@@ -173,6 +173,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
     ax.legend(loc="lower right")
     ax.grid()
     eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
+    plt.tight_layout()
     fig.savefig(
         Path(
             cfg[cfg.dataset].paths.plots_path,
