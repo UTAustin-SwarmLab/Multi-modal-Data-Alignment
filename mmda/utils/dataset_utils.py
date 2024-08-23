@@ -376,7 +376,7 @@ def train_test_split(
     Return:
         training and validation set
     """
-    if type(data) != np.ndarray:
+    if data is np.ndarray:
         data = np.array(data)
     return data[train_idx], data[val_idx]
 
