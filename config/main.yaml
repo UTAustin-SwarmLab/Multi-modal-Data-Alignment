@@ -51,7 +51,7 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "dino"
+  img_encoder: "clip"
   text_encoder: "gtr"
   paths:
     dataset_path: "/nas/pohan/datasets/ImageNet/"

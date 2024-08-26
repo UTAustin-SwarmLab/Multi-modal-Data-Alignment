@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
     ax.yaxis.set_tick_params(labelsize=14)
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower right", fontsize=14)
     ax.grid()
 
     plots_path = (
