@@ -1,8 +1,12 @@
 """Dataset class for retrieval task."""
 
+from typing import Union
+
 import numpy as np
+import torch
 from omegaconf import DictConfig
 
+from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.dataset_utils import load_flickr
 
 
@@ -33,12 +37,13 @@ class BaseRetrievalDataset:
         assert data1.shape[0] == data2.shape[0], f"{data1.shape[0]}!={data2.shape[0]}"
 
     def map_precision_similarity(
-        self, sim_fn: callable
+        self, sim_fn: Union[callable, str], cfg: DictConfig = None  # noqa: UP007
     ) -> tuple[float, dict[float:float]]:
         """Calculate the mean average precision and precision at k (1 ~ num_gt).
 
         Args:
             sim_fn: similarity function
+            cfg: configuration file
         Returns:
             map: {mAP}
             precisions: {1: precision@1, 5:precision@5}
@@ -46,12 +51,40 @@ class BaseRetrievalDataset:
         """
         maps, precisions = [], []
         sim_scores = []
+        if sim_fn == "asif":
+            # set parameters
+            non_zeros = min(cfg.asif.non_zeros, self.traindata1.shape[0])
+            range_anch = [
+                2**i
+                for i in range(
+                    int(np.log2(non_zeros) + 1),
+                    int(np.log2(len(self.traindata1))) + 2,
+                )
+            ]
+            range_anch = range_anch[-1:]  # run just last anchor to be quick
+            val_labels = torch.zeros((1,), dtype=torch.float32)
+            _anchors, scores, sim_score_matrix = zero_shot_classification(
+                torch.tensor(self.testdata1, dtype=torch.float32),
+                torch.tensor(self.testdata2, dtype=torch.float32),
+                torch.tensor(self.traindata1, dtype=torch.float32),
+                torch.tensor(self.traindata2, dtype=torch.float32),
+                val_labels,
+                non_zeros,
+                range_anch,
+                cfg.asif.val_exps,
+                max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
+            )
+            sim_score_matrix = sim_score_matrix.numpy().astype(np.float32)
         for idx in range(0, self.testdata1.shape[0], self.num_gt):
             gt_img_id = self.test_img_ids[idx]
             test_datapoint = self.testdata1[idx, :].reshape(1, -1)
             # copy the test text to the number of images
             test_text_emb = np.repeat(test_datapoint, self.testdata2.shape[0], axis=0)
-            sim_score = sim_fn(test_text_emb, self.testdata2)
+            sim_score = (
+                sim_score_matrix[idx, :]
+                if sim_fn == "asif"
+                else sim_fn(test_text_emb, self.testdata2)
+            )
             # sort the similarity score in descending order and get the index
             sim_top_idx = np.argpartition(sim_score, -self.num_gt)[-self.num_gt :]
             sim_top_idx = sim_top_idx[np.argsort(sim_score[sim_top_idx])[::-1]]
@@ -70,16 +103,19 @@ class BaseRetrievalDataset:
         sim_scores = np.array(sim_scores)
         return maps, {1: precisions[0], 5: precisions[4]}, sim_scores
 
-    def top_k_presicion(self, sim_fn: callable) -> tuple[float, dict[float:float]]:
+    def top_k_presicion(
+        self, sim_fn: Union[callable, str], cfg: DictConfig = None  # noqa: UP007
+    ) -> tuple[float, dict[float:float]]:
         """Calculate the average precision and precision at k (1 ~ num_gt).
 
         Args:
             sim_fn: similarity function
+            cfg: configuration file
         Returns:
             map: {mAP}
             precisions: {1: precision@1, 5:precision@5}
         """
-        return self.map_precision_similarity(sim_fn)[0:2]
+        return self.map_precision_similarity(sim_fn, cfg)[0:2]
 
 
 class FlickrDataset(BaseRetrievalDataset):

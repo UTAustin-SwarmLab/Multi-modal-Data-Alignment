@@ -27,7 +27,10 @@ def cca_retrieval(
     retrieval_ds = load_retrieval_dataset(cfg)
     retrieval_ds.preprocess_retrieval_data(data1, data2)
 
-    cca_save_path = Path(cfg_dataset.paths.save_path) / "retrieval_cca_model.pkl"
+    cca_save_path = (
+        Path(cfg_dataset.paths.save_path)
+        / f"retrieval_cca_{cfg.flickr.img_encoder}_{cfg.flickr.text_encoder}.pkl"
+    )
     cca = NormalizedCCA()
     if not cca_save_path.exists():
         retrieval_ds.traindata1, retrieval_ds.traindata2, corr = (
@@ -68,3 +71,18 @@ def clip_like_retrieval(cfg: DictConfig) -> tuple[dict[float:float], dict[float:
     retrieval_ds = load_retrieval_dataset(cfg)
     retrieval_ds.preprocess_retrieval_data(data1, data2)
     return retrieval_ds.top_k_presicion(sim_fn=cosine_sim)
+
+
+def asif_retrieval(cfg: DictConfig) -> tuple[dict[float:float], dict[float:float]]:
+    """Retrieve data using the CLIP-like method.
+
+    Args:
+        cfg: configuration file
+    Returns:
+        maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
+        precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
+    """
+    cfg_dataset, data1, data2 = load_clip_like_data(cfg)
+    retrieval_ds = load_retrieval_dataset(cfg)
+    retrieval_ds.preprocess_retrieval_data(data1, data2)
+    return retrieval_ds.top_k_presicion(sim_fn="asif", cfg=cfg)

@@ -12,6 +12,7 @@ dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop, musiccaps]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
+retrieval_datasets: [flickr]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet] # datasets whose plots contains llava
 dataset_size: {

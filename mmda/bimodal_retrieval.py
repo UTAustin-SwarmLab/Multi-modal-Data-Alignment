@@ -6,7 +6,7 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.retrieval import cca_retrieval, clip_like_retrieval
+from mmda.exps.retrieval import asif_retrieval, cca_retrieval, clip_like_retrieval
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -19,6 +19,10 @@ def main(cfg: DictConfig) -> None:
     assert cfg.dataset in cfg.retrieval_datasets, f"{cfg.dataset} is not for retrieval."
     cfg_dataset = cfg[cfg.dataset]
 
+    print(f"Retrieval on {cfg.dataset} dataset")
+    asif_map, asif_precision = asif_retrieval(cfg)
+    print(f"ASIF: mAP: {asif_map}, Precision: {asif_precision}")
+
     clip_maps, clip_precision = clip_like_retrieval(cfg)
     print(f"CLIP-like: mAP: {clip_maps}, Precision: {clip_precision}")
 
@@ -27,12 +31,16 @@ def main(cfg: DictConfig) -> None:
 
     # write to csv file
     data = {
-        "method": ["CLIP-like"] + ["CCA" for _ in cca_maps_dict],
-        "projection dim": [1280, *cca_maps_dict.keys()],
-        "mAP": [clip_maps, *list(cca_maps_dict.values())],
-        "precision@1": [clip_precision[1]]
+        "method": ["CLIP-like", "ASIF"] + ["CCA" for _ in cca_maps_dict],
+        "projection dim": [1280, 0, *cca_maps_dict.keys()],
+        "mAP": [
+            clip_maps,
+            asif_map,
+            *list(cca_maps_dict.values()),
+        ],
+        "precision@1": [clip_precision[1], asif_precision[1]]
         + [cca_precision[1] for cca_precision in cca_precisions.values()],
-        "precision@5": [clip_precision[5]]
+        "precision@5": [clip_precision[5], asif_precision[5]]
         + [cca_precision[5] for cca_precision in cca_precisions.values()],
     }
     df = pd.DataFrame(data)
