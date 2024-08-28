@@ -29,7 +29,7 @@ def cca_retrieval(
 
     cca_save_path = (
         Path(cfg_dataset.paths.save_path)
-        / f"retrieval_cca_{cfg.flickr.img_encoder}_{cfg.flickr.text_encoder}.pkl"
+        / f"retrieval_cca_{cfg.flickr.img2text}_{cfg.flickr.img_encoder}_{cfg.flickr.text_encoder}.pkl"
     )
     cca = NormalizedCCA()
     if not cca_save_path.exists():
