@@ -20,14 +20,14 @@ def main(cfg: DictConfig) -> None:
     cfg_dataset = cfg[cfg.dataset]
 
     print(f"Retrieval on {cfg.dataset} dataset")
+    asif_map, asif_precision = asif_retrieval(cfg)
+    print(f"ASIF: mAP: {asif_map}, Precision: {asif_precision}")
+
     clip_maps, clip_precision = clip_like_retrieval(cfg)
     print(f"CLIP-like: mAP: {clip_maps}, Precision: {clip_precision}")
 
     cca_maps_dict, cca_precisions = cca_retrieval(cfg)
     print(f"CCA: mAP: {cca_maps_dict}, Precision: {cca_precisions}")
-
-    asif_map, asif_precision = asif_retrieval(cfg)
-    print(f"ASIF: mAP: {asif_map}, Precision: {asif_precision}")
 
     # write to csv file
     data = {

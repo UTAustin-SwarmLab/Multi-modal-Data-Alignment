@@ -82,7 +82,7 @@ def asif_retrieval(cfg: DictConfig) -> tuple[dict[float:float], dict[float:float
         maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
         precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
     """
-    cfg_dataset, data1, data2 = load_clip_like_data(cfg)
+    cfg_dataset, data1, data2 = load_two_encoder_data(cfg)
     retrieval_ds = load_retrieval_dataset(cfg)
     retrieval_ds.preprocess_retrieval_data(data1, data2)
     return retrieval_ds.top_k_presicion(sim_fn="asif", cfg=cfg)
