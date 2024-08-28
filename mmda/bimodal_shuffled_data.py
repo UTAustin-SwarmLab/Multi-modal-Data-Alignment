@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in roc_points],
             "o-",
             ms=8,
-            label=f"Random shuffle (ours). AUC={ds_auc:.3f}",
+            label=f"CSA (ours). AUC={ds_auc:.2f}",
             color="blue",
         )
         ax.plot(
@@ -50,16 +50,16 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in clip_roc_ds_points],
             "^-",
             ms=8,
-            label=f"Random shuffle ({clip_model_name}). AUC={clip_ds_auc:.3f}",
-            color="blue",
+            label=f"{clip_model_name}. AUC={clip_ds_auc:.2f}",
+            color="red",
         )
         ax.plot(
             [x[0] for x in asif_roc_points],
             [x[1] for x in asif_roc_points],
             "D-",
             ms=8,
-            label=f"ASIF. AUC={asif_ds_auc:.3f}",
-            color="blue",
+            label=f"ASIF. AUC={asif_ds_auc:.2f}",
+            color="green",
         )
         # LLaVA
         if cfg.dataset in cfg.shuffle_llava_datasets:
@@ -87,7 +87,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in roc_class_points],
             "o-",
             ms=8,
-            label=f"Class level shuffle (ours). AUC={class_auc:.3f}",
+            label=f"Class level shuffle (ours). AUC={class_auc:.2f}",
             color="red",
         )
         ax.plot(
@@ -95,7 +95,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in clip_roc_class_points],
             "^-",
             ms=8,
-            label=f"Class level shuffle ({clip_model_name}). AUC={clip_class_auc:.3f}",
+            label=f"Class level shuffle ({clip_model_name}). AUC={clip_class_auc:.2f}",
             color="red",
         )
         ax.plot(
@@ -103,7 +103,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in asif_roc_class_points],
             "D-",
             ms=8,
-            label=f"ASIF. AUC={asif_class_auc:.3f}",
+            label=f"ASIF. AUC={asif_class_auc:.2f}",
             color="red",
         )
         # LLAVA
@@ -133,7 +133,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in roc_obj_points],
             "o-",
             ms=8,
-            label=f"Object level shuffle (ours). AUC={obj_auc:.3f}",
+            label=f"Object level shuffle (ours). AUC={obj_auc:.2f}",
             color="green",
         )
         ax.plot(
@@ -141,7 +141,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in clip_obj_roc_points],
             "^-",
             ms=8,
-            label=f"Object level shuffle ({clip_model_name}). AUC={clip_obj_auc:.3f}",
+            label=f"Object level shuffle ({clip_model_name}). AUC={clip_obj_auc:.2f}",
             color="green",
         )
         ax.plot(
@@ -149,7 +149,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             [x[1] for x in asif_obj_roc_points],
             "D-",
             ms=8,
-            label=f"ASIF. AUC={asif_obj_auc:.3f}",
+            label=f"ASIF. AUC={asif_obj_auc:.2f}",
             color="green",
         )
         # LLAVA
@@ -165,12 +165,13 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
                 c="green",
             )
 
-    ax.set_title("ROC Curves of Detecting Modality Alignment")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
+    ax.set_xlabel("False positive rate", fontsize=16)
+    ax.set_ylabel("True positive rate", fontsize=16)
+    ax.xaxis.set_tick_params(labelsize=14)
+    ax.yaxis.set_tick_params(labelsize=14)
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower right", fontsize=14)
     ax.grid()
     eq_label = "_noweight" if cfg[cfg.dataset].equal_weights else ""
     plt.tight_layout()
