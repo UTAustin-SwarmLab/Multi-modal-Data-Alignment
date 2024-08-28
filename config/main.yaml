@@ -9,7 +9,7 @@ repo_root: "/home/pl22767/Project/MMDA/"
 # TODO: add more datasets
 dataset: "cosmos"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
-class_level_datasets: [sop, musiccaps]
+class_level_datasets: [sop] # musiccaps
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
@@ -95,7 +95,7 @@ flickr:
   cca_proj_dims: [10, 50, 100, 200] #, 500, 750]
   equal_weights: False
   img2text: True # whether to retrieve text to image or image to text
-  img_encoder: "clip"
+  img_encoder: "dino"
   text_encoder: "gtr"
   paths:
     dataset_path: "/nas/pohan/datasets/flickr30k/"
