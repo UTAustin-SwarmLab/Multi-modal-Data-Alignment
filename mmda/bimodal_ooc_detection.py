@@ -26,15 +26,12 @@ def main(cfg: DictConfig) -> None:
 
     # plot the ROC curve
     fig, ax = plt.subplots()
-    ax.set_title("ROC Curves of Detecting Out-of-context Captions and Images")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
     ax.plot(
         [x[0] for x in cca_roc_points],
         [x[1] for x in cca_roc_points],
         "o-",
         ms=6,
-        label=f"Ours. AUC={cal_auc(cca_roc_points):.3f}",
+        label=f"CSA (ours). AUC={cal_auc(cca_roc_points):.2f}",
         color="blue",
     )
     ax.plot(
@@ -42,7 +39,7 @@ def main(cfg: DictConfig) -> None:
         [x[1] for x in clip_roc_points],
         "^-",
         ms=6,
-        label=f"CLIP. AUC={cal_auc(clip_roc_points):.3f}",
+        label=f"CLIP. AUC={cal_auc(clip_roc_points):.2f}",
         color="red",
     )
     ax.plot(
@@ -50,16 +47,19 @@ def main(cfg: DictConfig) -> None:
         [x[1] for x in asif_roc_points],
         "D-",
         ms=6,
-        label=f"ASIF. AUC={cal_auc(asif_roc_points):.3f}",
+        label=f"ASIF. AUC={cal_auc(asif_roc_points):.2f}",
         color="green",
     )
     llava_fpr, llava_tpr = llava_ooc_detection(cfg)  # llava
-    ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="darkorange")
-    ax.plot(0.26, 0.74, "P", ms=12, mew=3, label="COSMOS", c="black")  # cosmos
-
+    ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="black")
+    ax.plot(0.26, 0.74, "P", ms=12, mew=3, label="COSMOS", c="darkorange")  # cosmos
+    ax.set_xlabel("False positive rate", fontsize=16)
+    ax.set_ylabel("True positive rate", fontsize=16)
+    ax.xaxis.set_tick_params(labelsize=14)
+    ax.yaxis.set_tick_params(labelsize=14)
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower right", fontsize=14)
     ax.grid()
 
     plots_path = (

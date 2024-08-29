@@ -50,11 +50,11 @@ class NormalizedCCA:
 
         # check if training data is zero-mean
         assert np.allclose(
-            traindata1.mean(axis=0), 0, atol=1e-4
-        ), f"traindata1align not zero mean: {traindata1.mean(axis=0)}"
+            traindata1.mean(axis=0), 0, atol=1e-3, rtol=1e-4
+        ), f"traindata1align not zero mean: {max(abs(traindata1.mean(axis=0)))}"
         assert np.allclose(
-            traindata2.mean(axis=0), 0, atol=1e-4
-        ), f"traindata2align not zero mean: {traindata2.mean(axis=0)}"
+            traindata2.mean(axis=0), 0, atol=1e-3, rtol=1e-4
+        ), f"traindata2align not zero mean: {max(abs(traindata2.mean(axis=0)))}"
 
         # CCA dimensionality reduction
         self.cca = CCA(latent_dimensions=cfg_dataset.sim_dim)

@@ -40,7 +40,7 @@ def main(cfg: DictConfig) -> None:
         [x[1] for x in roc_points],
         "o-",
         ms=8,
-        label=f"CSA (ours). AUC={auc:.3f}",
+        label=f"CSA (ours). AUC={auc:.2f}",
         color="blue",
     )
     ax.plot(
@@ -48,29 +48,30 @@ def main(cfg: DictConfig) -> None:
         [x[1] for x in clip_roc_ds_points],
         "^-",
         ms=8,
-        label=f"{clip_model_name}. AUC={clip_auc:.3f}",
-        color="blue",
+        label=f"{clip_model_name}. AUC={clip_auc:.2f}",
+        color="red",
     )
     ax.plot(
         [x[0] for x in asif_roc_points],
         [x[1] for x in asif_roc_points],
         "D-",
         ms=8,
-        label=f"ASIF. AUC={asif_auc:.3f}",
-        color="blue",
+        label=f"ASIF. AUC={asif_auc:.2f}",
+        color="green",
     )
 
     if cfg.dataset in cfg.mislabel_llava_datasets:
         # plot LLaVA result.
         llava_fpr, llava_tpr = llava_mislabeled_align(cfg)
-        ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="blue")
+        ax.plot(llava_fpr, llava_tpr, "x", ms=12, mew=3, label="LLaVA", c="black")
 
-    ax.set_title("ROC Curves of Detecting Mislabeled Data")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
+    ax.set_xlabel("False positive rate", fontsize=16)
+    ax.set_ylabel("True positive rate", fontsize=16)
+    ax.xaxis.set_tick_params(labelsize=14)
+    ax.yaxis.set_tick_params(labelsize=14)
     ax.set_xlim(0, 1.03)
     ax.set_ylim(0, 1.03)
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower right", fontsize=14)
     ax.grid()
 
     ds_label = "" if cfg.noisy_train_set else "_clean"

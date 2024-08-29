@@ -14,3 +14,6 @@ CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet train_test_ratio=0.1 imagenet.sim_dim=200
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet train_test_ratio=0.1 imagenet.sim_dim=500
 CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet train_test_ratio=0.1 imagenet.sim_dim=700
+
+# classification
+CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_classification.py dataset=imagenet
