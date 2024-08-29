@@ -55,7 +55,7 @@ imagenet:
   equal_weights: False
   img_encoder: "dino"
   text_encoder: "gtr"
-  train_test_ratios: [0.1] #, 0.3, 0.5, 0.7]
+  train_test_ratios: [0.1, 0.3, 0.5, 0.7]
   paths:
     dataset_path: "/nas/pohan/datasets/ImageNet/"
     save_path: ${imagenet.paths.dataset_path}embeddings/

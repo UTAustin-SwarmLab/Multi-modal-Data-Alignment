@@ -126,7 +126,7 @@ class ImageNetDataset(BaseClassificationDataset):
             print(f"asif sim_scores shape: {sim_scores.shape}")
         else:
             for label_idx in range(self.labels_emb.shape[0]):
-                print(f"Processing label {label_idx}") if label_idx % 50 == 0 else None
+                print(f"Processing label {label_idx}") if label_idx % 100 == 0 else None
                 label_emb = self.labels_emb[label_idx].reshape(1, -1)  # (768,)->(1,768)
                 label_emb = np.repeat(label_emb, self.test_text.shape[0], axis=0)
                 sim_score_matrix = sim_fn(self.test_img, label_emb)

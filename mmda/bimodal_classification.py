@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:
     if plot and save_path.exists():
         df = pd.read_csv(save_path)
         print(df, df.columns)
-        ratios = df["train_test_ratio"]
+        ratios = df["train_test_ratio"] * 50_000
         cca_accs = df["cca_accs"]
         clip_accs = df["clip_accs"]
         asif_accs = df["asif_accs"]
@@ -79,7 +79,6 @@ def main(cfg: DictConfig) -> None:
         ax.set_ylabel("Classification accuracy", fontsize=16)
         ax.xaxis.set_tick_params(labelsize=14)
         ax.yaxis.set_tick_params(labelsize=14)
-        ax.set_xlim(0, 1.03)
         ax.set_ylim(0, 1.03)
         ax.legend(loc="lower right", fontsize=14)
         ax.grid()
