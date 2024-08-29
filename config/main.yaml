@@ -14,7 +14,8 @@ object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
-mislabel_llava_datasets: [imagenet] # datasets whose plots contains llava
+mislabel_llava_datasets: [imagenet]
+classification_datasets: [imagenet]
 dataset_size: {
   sop: 56222,
   musiccaps: 5397,
@@ -52,12 +53,14 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "clip"
+  img_encoder: "dino"
   text_encoder: "gtr"
+  train_test_ratios: [0.1] #, 0.3, 0.5, 0.7]
   paths:
     dataset_path: "/nas/pohan/datasets/ImageNet/"
     save_path: ${imagenet.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/ImageNet/
+    label_embeddings: ${imagenet.paths.dataset_path}_${text_encoder}_label_embeddings.npy
 
 tiil:
   sim_dim: 200 # dimension of the similarity score and the CCA transformation

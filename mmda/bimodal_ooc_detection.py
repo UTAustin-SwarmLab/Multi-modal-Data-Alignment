@@ -26,8 +26,6 @@ def main(cfg: DictConfig) -> None:
 
     # plot the ROC curve
     fig, ax = plt.subplots()
-    ax.set_xlabel("False positive rate")
-    ax.set_ylabel("True positive rate")
     ax.plot(
         [x[0] for x in cca_roc_points],
         [x[1] for x in cca_roc_points],
