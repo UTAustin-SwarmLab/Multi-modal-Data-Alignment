@@ -27,25 +27,24 @@ def main(cfg: DictConfig) -> None:
     ), f"{cfg.dataset} is not for classification."
     cfg_dataset = cfg[cfg.dataset]
 
-    save_path = (
+    csv_save_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"classify_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
-        / "accuracy.csv"
+        / f"accuracy_{cfg_dataset.sim_dim}.csv"
     )
     for train_test_ratio in cfg_dataset.train_test_ratios:
         asif_accs = asif_classification(cfg, train_test_ratio)
         cca_accs = cca_classification(cfg, train_test_ratio)
         clip_accs = clip_like_classification(cfg, train_test_ratio)
         # write accuracy to file
-        if not save_path.exists():
-            with save_path.open("a") as f:
+        if not csv_save_path.exists():
+            with csv_save_path.open("a") as f:
                 f.write("train_test_ratio,cca_accs,clip_accs,asif_accs\n")
-        with save_path.open("a") as f:
+        with csv_save_path.open("a") as f:
             f.write(f"{train_test_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
 
-    if plot and save_path.exists():
-        df = pd.read_csv(save_path)
-        print(df, df.columns)
+    if plot and csv_save_path.exists():
+        df = pd.read_csv(csv_save_path)
         ratios = df["train_test_ratio"] * 50_000
         cca_accs = df["cca_accs"]
         clip_accs = df["clip_accs"]
@@ -55,32 +54,32 @@ def main(cfg: DictConfig) -> None:
             ratios,
             cca_accs,
             "o-",
-            ms=6,
+            ms=12,
             label="CSA (ours)",
             color="blue",
         )
         ax.plot(
             ratios,
             clip_accs,
-            "^-",
-            ms=6,
+            "^--",
+            ms=12,
             label="CLIP",
             color="red",
         )
         ax.plot(
             ratios,
             asif_accs,
-            "D-",
-            ms=6,
+            "D-.",
+            ms=12,
             label="ASIF",
             color="green",
         )
-        ax.set_xlabel("Number of training data", fontsize=16)
-        ax.set_ylabel("Classification accuracy", fontsize=16)
-        ax.xaxis.set_tick_params(labelsize=14)
-        ax.yaxis.set_tick_params(labelsize=14)
+        ax.set_xlabel("Amount of training data", fontsize=20)
+        ax.set_ylabel("Classification accuracy", fontsize=20)
+        ax.xaxis.set_tick_params(labelsize=15)
+        ax.yaxis.set_tick_params(labelsize=15)
         ax.set_ylim(0, 1.03)
-        ax.legend(loc="lower right", fontsize=14)
+        ax.legend(loc="lower right", fontsize=18)
         ax.grid()
 
         plots_path = (
@@ -89,7 +88,7 @@ def main(cfg: DictConfig) -> None:
         )
         plots_path.mkdir(parents=True, exist_ok=True)
         plt.tight_layout()
-        fig.savefig(plots_path / "trainsize_vs_accuracy.png")
+        fig.savefig(plots_path / f"trainsize_vs_accuracy_{cfg_dataset.sim_dim}.png")
 
 
 if __name__ == "__main__":

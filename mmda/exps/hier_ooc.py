@@ -63,11 +63,12 @@ def cca_hier_ooc(cfg: DictConfig) -> list[(float, float)]:
             / f"hier_ooc_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}_{cfg_dataset.detection_rule}/"
         )
         plots_path.mkdir(parents=True, exist_ok=True)
-        fig, ax = plt.subplots(figsize=(6, 6))
+        fig, ax = plt.subplots(figsize=(6, 4))
         ax.plot(corr)
-        ax.set_title("Correlation Coefficients of the Cross Covariance")
-        ax.set_xlabel("Dimension of Eigenvalues")
-        ax.set_ylabel("Correlation Coefficients")
+        ax.set_xlabel("Projected dimension $r$", fontsize=20)
+        ax.set_ylabel("Correlation coefficient", fontsize=20)
+        ax.xaxis.set_tick_params(labelsize=15)
+        ax.yaxis.set_tick_params(labelsize=15)
         ax.set_ylim(0, 1)
         save_fig(fig, plots_path / "correlation_coefficient.png")
 
