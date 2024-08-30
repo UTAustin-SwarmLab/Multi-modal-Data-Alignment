@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from omegaconf import DictConfig
 from swarm_visualizer import plot_overlaid_lineplot, plot_paired_boxplot
-from swarm_visualizer.utility import add_wilcoxon_value, save_fig, set_plot_properties
+from swarm_visualizer.utility import add_wilcoxon_value, save_fig
 
 import hydra
 from mmda.exps.linear_encoder import linear_exps
@@ -27,7 +27,6 @@ def main(cfg: DictConfig) -> None:
     plots_path.mkdir(parents=True, exist_ok=True)
     eq_label = "_noweight" if cfg.equal_weights else ""
 
-    set_plot_properties(autolayout=True)
     s_range = range(1, len(sim_score_list) + 1)
     data_dict = {
         "SNR (\u2191 higher is better)": {
@@ -55,6 +54,7 @@ def main(cfg: DictConfig) -> None:
     )
     fig.tight_layout()
     ax.legend(fontsize=20)
+    ax.grid()
     save_fig(
         fig,
         plots_path / f"snr_lambda{eq_label}.pdf",
@@ -63,7 +63,6 @@ def main(cfg: DictConfig) -> None:
     )
 
     # create a dataframe
-    set_plot_properties(autolayout=True)
     df = pd.DataFrame(
         columns=[
             "Selected dimension for similarity score $s$",
@@ -110,6 +109,7 @@ def main(cfg: DictConfig) -> None:
         show_test_name=False,
     )
     fig.tight_layout()
+    ax.grid(axis="y")
     save_fig(
         fig, plots_path / f"similarity_score{eq_label}.pdf", dpi=600, tight_layout=True
     )
