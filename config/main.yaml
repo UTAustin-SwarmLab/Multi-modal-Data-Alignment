@@ -15,7 +15,7 @@ mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
-classification_datasets: [imagenet]
+classification_datasets: [imagenet, leafy_spurge]
 dataset_size: {
   sop: 56222,
   musiccaps: 5397,
@@ -61,6 +61,18 @@ imagenet:
     save_path: ${imagenet.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/ImageNet/
     label_embeddings: ${imagenet.paths.dataset_path}_${text_encoder}_label_embeddings.npy
+
+leafy_spurge:
+  sim_dim: 700 # dimension of the similarity score and the CCA transformation
+  equal_weights: False
+  img_encoder: "dino"
+  text_encoder: "gtr"
+  train_test_ratios: [0.888]
+  paths:
+    dataset_path: "/nas/pohan/datasets/Leafy/"
+    save_path: ${leafy_spurge.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/Leafy/
+    label_embeddings: ${leafy_spurge.paths.dataset_path}_${text_encoder}_label_embeddings.npy
 
 tiil:
   sim_dim: 200 # dimension of the similarity score and the CCA transformation
