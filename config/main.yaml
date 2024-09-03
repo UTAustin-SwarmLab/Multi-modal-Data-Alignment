@@ -6,8 +6,7 @@ train_test_ratio: 0.7
 noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
-# TODO: add more datasets
-dataset: "cosmos"
+dataset: "leafy_spurge"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop] # musiccaps
 object_level_datasets: [pitts, sop]

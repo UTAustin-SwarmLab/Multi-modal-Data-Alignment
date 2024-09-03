@@ -35,13 +35,6 @@ class NormalizedCCA:
             corr_coeff: the correlation coefficient. shape: (dim,)
         """
         # Check the shape of the training data
-        assert (
-            traindata1.shape[0] >= traindata1.shape[1]
-        ), f"The number of samples {traindata1.shape[0]} should be larger than features {traindata1.shape[1]}"
-        assert (
-            traindata2.shape[0] >= traindata2.shape[1]
-        ), f"The number of samples {traindata2.shape[0]} should be larger than features {traindata2.shape[1]}"
-
         # zero mean data
         traindata1, traindata1_mean = origin_centered(traindata1)
         traindata2, traindata2_mean = origin_centered(traindata2)

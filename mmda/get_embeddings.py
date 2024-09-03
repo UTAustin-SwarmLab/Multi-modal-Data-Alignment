@@ -81,7 +81,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
         images, labels, idx2label = load_leafy_spurge(cfg_dataset)
         text_descriptions = [
             "An image of leafy spurge.",
-            "Not an image of leafy spurge.",
+            "An image of anything other than leafy spurge.",
         ]
         text = [text_descriptions[i] for i in labels]
 

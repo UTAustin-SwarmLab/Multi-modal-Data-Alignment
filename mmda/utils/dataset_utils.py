@@ -34,12 +34,14 @@ def load_leafy_spurge(
     else:
         trains_ds = datasets.load_dataset(
             "mpg-ranch/leafy_spurge",
-            "crop",
+            # "crop",
+            "context",
             split="train",
         )  # 800
         test_ds = datasets.load_dataset(
             "mpg-ranch/leafy_spurge",
-            "crop",
+            # "crop",
+            "context",
             split="test",
         )  # 100
 

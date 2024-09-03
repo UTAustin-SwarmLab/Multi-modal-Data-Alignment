@@ -178,17 +178,14 @@ class LeafySpurgeDataset(BaseClassificationDataset):
             self.text_emb[val_idx],
         )
         self.train_idx, self.test_idx = self.labels[:800], self.labels[800:]
-        print(f"train_img shape: {self.train_img.shape}")
-        print(f"test_img shape: {self.test_img.shape}")
-        print(f"train_text shape: {self.train_text.shape}")
-        print(f"test_text shape: {self.test_text.shape}")
 
     def get_labels_emb(self) -> None:
         """Get the text embeddings for all possible labels."""
         label_emb = []
+        self.labels_np = np.array(self.labels)
         for label_idx in self.clsidx_to_labels:
             # find where the label is in the train_idx
-            label_idx_in_ds = np.where(self.labels == label_idx)
+            label_idx_in_ds = np.where(self.labels_np == label_idx)[0]
             label_emb.append(self.text_emb[label_idx_in_ds[0]])
         self.labels_emb = np.array(label_emb)
         assert self.labels_emb.shape[0] == len(self.clsidx_to_labels)
@@ -215,31 +212,28 @@ class LeafySpurgeDataset(BaseClassificationDataset):
             ]
             range_anch = range_anch[-1:]  # run just last anchor to be quick
             val_labels = torch.zeros((1,), dtype=torch.float32)
-            for batch_idx in range(0, self.test_img.shape[0], self.labels_emb.shape[0]):
-                batch_test_img = self.test_img[
-                    batch_idx : batch_idx + self.labels_emb.shape[0]
-                ]
-                assert (
-                    batch_test_img.shape[0] == self.labels_emb.shape[0]
-                ), f"{batch_test_img.shape[0]}!={self.labels_emb.shape[0]}"
-                print(f"batch_test_img shape: {batch_test_img.shape}")
-                _anchors, scores, sim_score_matrix = zero_shot_classification(
-                    torch.tensor(batch_test_img, dtype=torch.float32),
-                    torch.tensor(self.labels_emb, dtype=torch.float32),
-                    torch.tensor(self.train_img, dtype=torch.float32),
-                    torch.tensor(self.train_text, dtype=torch.float32),
-                    val_labels,
-                    non_zeros,
-                    range_anch,
-                    cfg.asif.val_exps,
-                    max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
-                )
-                sim_score_matrix = sim_score_matrix.numpy().astype(np.float32)
-                sim_scores.append(sim_score_matrix)  # (batch, labels)
-
-            sim_scores = np.concatenate(sim_scores, axis=0)  # test_img_size x labels
-            sim_scores = sim_scores.T  # labels x test_img_size
-            print(f"asif sim_scores shape: {sim_scores.shape}")
+            # generate noise in the shape of the labels_emb
+            noise = np.random.rand(
+                self.test_img.shape[0] - self.labels_emb.shape[0],
+                self.labels_emb.shape[1],
+            ).astype(np.float32)
+            self.test_label = np.concatenate((self.labels_emb, noise), axis=0)
+            assert (
+                self.test_img.shape[0] == self.test_label.shape[0]
+            ), f"{self.test_img.shape[0]}!={self.test_label.shape[0]}"
+            _anchors, scores, sim_score_matrix = zero_shot_classification(
+                torch.tensor(self.test_img, dtype=torch.float32),
+                torch.tensor(self.test_label, dtype=torch.float32),
+                torch.tensor(self.train_img, dtype=torch.float32),
+                torch.tensor(self.train_text, dtype=torch.float32),
+                val_labels,
+                non_zeros,
+                range_anch,
+                cfg.asif.val_exps,
+                max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
+            )
+            sim_score_matrix = sim_score_matrix.numpy().astype(np.float32)[:, :2]
+            sim_scores = sim_score_matrix.T  # labels x test_img_size
         else:
             for label_idx in range(self.labels_emb.shape[0]):
                 print(f"Processing label {label_idx}") if label_idx % 100 == 0 else None
