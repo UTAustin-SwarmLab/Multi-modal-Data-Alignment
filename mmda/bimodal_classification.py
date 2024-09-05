@@ -37,15 +37,14 @@ def main(cfg: DictConfig) -> None:
         for shuffle_ratio in cfg_dataset.shuffle_ratios:
             asif_accs = asif_classification(cfg, 0.7, shuffle_ratio)
             cca_accs = cca_classification(cfg, 0.7, shuffle_ratio)
-            clip_accs = 0.0
             # write accuracy to file
             if not csv_save_path.exists():
                 # create the file and write the header
                 csv_save_path.parent.mkdir(parents=True, exist_ok=True)
                 with csv_save_path.open("a") as f:
-                    f.write("shuffle_ratio,cca_accs,clip_accs,asif_accs\n")
+                    f.write("shuffle_ratio,cca_accs,asif_accs\n")
             with csv_save_path.open("a") as f:
-                f.write(f"{shuffle_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
+                f.write(f"{shuffle_ratio},{cca_accs},{asif_accs}\n")
     else:
         for train_test_ratio in cfg_dataset.train_test_ratios:
             asif_accs = asif_classification(cfg, train_test_ratio)
@@ -68,7 +67,6 @@ def main(cfg: DictConfig) -> None:
             else df["shuffle_ratio"] * 0.7 * ds_size
         )
         cca_accs = df["cca_accs"]
-        clip_accs = df["clip_accs"]
         asif_accs = df["asif_accs"]
         fig, ax = plt.subplots()
         ax.plot(
@@ -80,6 +78,7 @@ def main(cfg: DictConfig) -> None:
             color="blue",
         )
         if not cfg_dataset.shuffle:
+            clip_accs = df["clip_accs"]
             ax.plot(
                 ratios,
                 clip_accs,
