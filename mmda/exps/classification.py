@@ -69,7 +69,6 @@ def asif_classification(
         maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
         precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
     """
-    print(f"shuffle_ratio: {shuffle_ratio}")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)
     ds.get_labels_emb()
