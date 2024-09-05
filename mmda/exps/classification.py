@@ -9,13 +9,14 @@ from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 
 def cca_classification(
-    cfg: DictConfig, train_test_ratio: float
+    cfg: DictConfig, train_test_ratio: float, shuffle_bool: bool = False
 ) -> tuple[dict[float:float], dict[float : dict[float:float]]]:
     """Retrieve data using the proposed CCA method.
 
     Args:
         cfg: configuration file
         train_test_ratio: ratio of training data
+        shuffle_bool: shuffle the data or not
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
@@ -23,7 +24,7 @@ def cca_classification(
     # set random seed
     np.random.seed(cfg.seed)
     ds = load_classification_dataset(cfg)
-    ds.load_data(train_test_ratio, clip_bool=False)
+    ds.load_data(train_test_ratio, clip_bool=False, shuffle_bool=shuffle_bool)
     cca = NormalizedCCA()
     ds.train_img, ds.train_text, corr = cca.fit_transform_train_data(
         cfg_dataset, ds.train_img, ds.train_text
@@ -60,13 +61,14 @@ def clip_like_classification(
 
 
 def asif_classification(
-    cfg: DictConfig, train_test_ratio: float
+    cfg: DictConfig, train_test_ratio: float, shuffle_bool: bool = False
 ) -> tuple[dict[float:float], dict[float:float]]:
     """Retrieve data using the CLIP-like method.
 
     Args:
         cfg: configuration file
         train_test_ratio: ratio of training data
+        shuffle_bool: shuffle the data or not
     Returns:
         maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
         precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
@@ -74,6 +76,6 @@ def asif_classification(
     # set random seed
     np.random.seed(cfg.seed)
     ds = load_classification_dataset(cfg)
-    ds.load_data(train_test_ratio, clip_bool=False)
+    ds.load_data(train_test_ratio, clip_bool=False, shuffle_bool=shuffle_bool)
     ds.get_labels_emb()
     return ds.classification(sim_fn="asif")

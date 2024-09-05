@@ -12,6 +12,7 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_imagenet,
     load_leafy_spurge,
+    shuffle_by_level,
     train_test_split,
 )
 
@@ -43,7 +44,12 @@ class ImageNetDataset(BaseClassificationDataset):
         self.cfg = cfg
         _, _, self.orig_idx, self.clsidx_to_labels = load_imagenet(cfg.imagenet)
 
-    def load_data(self, train_test_ratio: float, clip_bool: bool = False) -> None:
+    def load_data(
+        self,
+        train_test_ratio: float,
+        clip_bool: bool = False,
+        shuffle_bool: bool = False,
+    ) -> None:
         """Load the data for ImageNet dataset.
 
         Args:
@@ -67,6 +73,15 @@ class ImageNetDataset(BaseClassificationDataset):
         self.train_idx, self.test_idx = train_test_split(
             self.orig_idx, train_idx, val_idx
         )
+        if shuffle_bool:
+            self.train_img, self.train_text = shuffle_by_level(
+                self.cfg,
+                "dataset",
+                self.train_img,
+                self.train_text,
+                self.train_idx,
+                self.test_idx,
+            )
 
     def get_labels_emb(self) -> None:
         """Get the text embeddings for all possible labels."""
