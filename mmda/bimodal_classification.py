@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
         ratios = (
             df["train_test_ratio"] * ds_size
             if not cfg_dataset.shuffle
-            else df["shuffle_ratio"]
+            else df["shuffle_ratio"] * 0.7 * ds_size
         )
         cca_accs = df["cca_accs"]
         clip_accs = df["clip_accs"]
@@ -101,7 +101,11 @@ def main(cfg: DictConfig) -> None:
         ax.xaxis.set_tick_params(labelsize=15)
         ax.yaxis.set_tick_params(labelsize=15)
         ax.set_ylim(0, 1.03) if cfg.dataset == "imagenet" else ax.set_ylim(0.4, 0.65)
-        ax.legend(loc="lower right", fontsize=18)
+        (
+            ax.legend(loc="lower right", fontsize=18)
+            if not cfg_dataset.shuffle
+            else ax.legend(loc="lower left", fontsize=18)
+        )
         ax.grid()
 
         plots_path = (
