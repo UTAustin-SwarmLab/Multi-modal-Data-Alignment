@@ -8,7 +8,7 @@ repo_root: "/home/pl22767/Project/MMDA/"
 
 dataset: "leafy_spurge"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
-class_level_datasets: [sop] # musiccaps
+class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
@@ -66,7 +66,7 @@ leafy_spurge:
   equal_weights: False
   img_encoder: "dino"
   text_encoder: "gtr"
-  train_test_ratios: [0.888]
+  train_test_ratios: [0.4, 0.6, 0.7, 0.888]
   paths:
     dataset_path: "/nas/pohan/datasets/Leafy/"
     save_path: ${leafy_spurge.paths.dataset_path}embeddings/

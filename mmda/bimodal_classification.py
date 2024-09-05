@@ -80,7 +80,7 @@ def main(cfg: DictConfig) -> None:
         ax.set_ylabel("Classification accuracy", fontsize=20)
         ax.xaxis.set_tick_params(labelsize=15)
         ax.yaxis.set_tick_params(labelsize=15)
-        ax.set_ylim(0, 1.03)
+        ax.set_ylim(0, 1.03) if cfg.dataset == "imagenet" else ax.set_ylim(0.4, 0.65)
         ax.legend(loc="lower right", fontsize=18)
         ax.grid()
 

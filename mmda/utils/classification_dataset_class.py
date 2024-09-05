@@ -148,16 +148,11 @@ class LeafySpurgeDataset(BaseClassificationDataset):
         Args:
             cfg: configuration file
         """
-        # set random seed
-        np.random.seed(cfg.seed)
         super().__init__(cfg)
         self.cfg = cfg
         self.images, self.labels, self.clsidx_to_labels = load_leafy_spurge(
             cfg.leafy_spurge
         )
-        assert (
-            cfg["leafy_spurge"].train_test_ratios[0] == 0.888  # noqa: PLR2004
-        ), "Only 0.888 train_test_ratio"
 
     def load_data(self, train_test_ratio: float, clip_bool: bool = False) -> None:
         """Load the data for ImageNet dataset.
@@ -171,13 +166,20 @@ class LeafySpurgeDataset(BaseClassificationDataset):
             _, self.img_emb, self.text_emb = load_clip_like_data(self.cfg)
         else:
             _, self.img_emb, self.text_emb = load_two_encoder_data(self.cfg)
-        train_idx, val_idx = np.arange(800), np.arange(800, 900)
-        self.train_img, self.test_img = self.img_emb[train_idx], self.img_emb[val_idx]
-        self.train_text, self.test_text = (
-            self.text_emb[train_idx],
-            self.text_emb[val_idx],
+        train_size = int(self.train_test_ratio * self.img_emb.shape[0])
+        test_size = 100
+        self.train_img, self.test_img = (
+            self.img_emb[:train_size],
+            self.img_emb[-test_size:],
         )
-        self.train_idx, self.test_idx = self.labels[:800], self.labels[800:]
+        self.train_text, self.test_text = (
+            self.text_emb[:train_size],
+            self.text_emb[-test_size:],
+        )
+        self.train_idx, self.test_idx = (
+            self.labels[:train_size],
+            self.labels[-test_size:],
+        )
 
     def get_labels_emb(self) -> None:
         """Get the text embeddings for all possible labels."""
