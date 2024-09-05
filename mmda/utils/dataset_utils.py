@@ -457,6 +457,28 @@ def shuffle_data_by_indices(
     return data
 
 
+def shuffle_percentage_of_data(data: np.ndarray, x: float) -> np.ndarray:
+    """Shuffle a percentage of the data.
+
+    Args:
+        data: data
+        x: percentage of data to shuffle
+    Return:
+        shuffled_data
+    """
+    # Calculate the number of elements to shuffle
+    num_to_shuffle = int(data.shape[0] * x)
+    # Get the indices of the elements to shuffle
+    shuffled_indices = np.random.choice(data.shape[0], num_to_shuffle, replace=False)
+    # Create a copy of the data to avoid modifying the original array
+    shuffled_data = data.copy()
+    # Apply the shuffle to the selected indices
+    shuffled_data[shuffled_indices, :] = np.random.permutation(
+        shuffled_data[shuffled_indices, :]
+    )
+    return shuffled_data
+
+
 def filter_outliers(
     scores: np.ndarray, threshold: float, right_tail: bool = False
 ) -> np.ndarray:

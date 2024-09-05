@@ -12,6 +12,7 @@ from mmda.utils.dataset_utils import (
     get_train_test_split_index,
     load_imagenet,
     load_leafy_spurge,
+    shuffle_percentage_of_data,
     train_test_split,
 )
 
@@ -43,12 +44,18 @@ class ImageNetDataset(BaseClassificationDataset):
         self.cfg = cfg
         _, _, self.orig_idx, self.clsidx_to_labels = load_imagenet(cfg.imagenet)
 
-    def load_data(self, train_test_ratio: float, clip_bool: bool = False) -> None:
+    def load_data(
+        self,
+        train_test_ratio: float,
+        clip_bool: bool = False,
+        shuffle_ratio: float = 0.0,
+    ) -> None:
         """Load the data for ImageNet dataset.
 
         Args:
             train_test_ratio: ratio of training data
             clip_bool: whether to use CLIP-like method
+            shuffle_ratio: ratio of data to shuffle
         """
         self.train_test_ratio = train_test_ratio
         if clip_bool:
@@ -67,6 +74,9 @@ class ImageNetDataset(BaseClassificationDataset):
         self.train_idx, self.test_idx = train_test_split(
             self.orig_idx, train_idx, val_idx
         )
+        if shuffle_ratio > 0.0:
+            # shuffle the X% of the training data
+            self.train_img = shuffle_percentage_of_data(self.train_img, shuffle_ratio)
 
     def get_labels_emb(self) -> None:
         """Get the text embeddings for all possible labels."""
@@ -104,10 +114,6 @@ class ImageNetDataset(BaseClassificationDataset):
                 batch_test_img = self.test_img[
                     batch_idx : batch_idx + self.labels_emb.shape[0]
                 ]
-                assert (
-                    batch_test_img.shape[0] == self.labels_emb.shape[0]
-                ), f"{batch_test_img.shape[0]}!={self.labels_emb.shape[0]}"
-
                 _anchors, scores, sim_score_matrix = zero_shot_classification(
                     torch.tensor(batch_test_img, dtype=torch.float32),
                     torch.tensor(self.labels_emb, dtype=torch.float32),
@@ -124,7 +130,6 @@ class ImageNetDataset(BaseClassificationDataset):
 
             sim_scores = np.concatenate(sim_scores, axis=0)  # test_img_size x labels
             sim_scores = sim_scores.T  # labels x test_img_size
-            print(f"asif sim_scores shape: {sim_scores.shape}")
         else:
             for label_idx in range(self.labels_emb.shape[0]):
                 print(f"Processing label {label_idx}") if label_idx % 100 == 0 else None
