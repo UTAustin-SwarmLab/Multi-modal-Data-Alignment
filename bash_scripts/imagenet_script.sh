@@ -17,6 +17,4 @@
 
 # # classification
 # CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_classification.py dataset=imagenet
-
-# shuffle
-CUDA_VISIBLE_DEVICES=6 poetry run python mmda/bimodal_shuffled_data.py dataset=imagenet imagenet.sim_dim=500
+CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_classification.py dataset=imagenet imagenet.shuffle=True

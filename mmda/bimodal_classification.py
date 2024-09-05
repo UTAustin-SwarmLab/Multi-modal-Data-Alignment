@@ -26,28 +26,49 @@ def main(cfg: DictConfig) -> None:
         cfg.dataset in cfg.classification_datasets
     ), f"{cfg.dataset} is not for classification."
     cfg_dataset = cfg[cfg.dataset]
+    shuffle_tag = "shuffled" if cfg_dataset.shuffle else ""
     ds_size = 50_000 if cfg.dataset == "imagenet" else 900
     csv_save_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"classify_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
-        / f"accuracy_{cfg_dataset.sim_dim}.csv"
+        / f"accuracy_{cfg_dataset.sim_dim}{shuffle_tag}.csv"
     )
-    for train_test_ratio in cfg_dataset.train_test_ratios:
-        asif_accs = asif_classification(cfg, train_test_ratio)
-        cca_accs = cca_classification(cfg, train_test_ratio)
-        clip_accs = clip_like_classification(cfg, train_test_ratio)
-        # write accuracy to file
-        if not csv_save_path.exists():
-            # create the file and write the header
-            csv_save_path.parent.mkdir(parents=True, exist_ok=True)
+    if cfg_dataset.shuffle:
+        for shuffle_ratio in cfg_dataset.shuffle_ratios:
+            print(f"shuffle_ratio: {shuffle_ratio}")
+            asif_accs = asif_classification(cfg, 0.7, shuffle_ratio)
+            cca_accs = cca_classification(cfg, 0.7, shuffle_ratio)
+            clip_accs = 0.0
+            # write accuracy to file
+            if not csv_save_path.exists():
+                # create the file and write the header
+                csv_save_path.parent.mkdir(parents=True, exist_ok=True)
+                with csv_save_path.open("a") as f:
+                    f.write("shuffle_ratio,cca_accs,clip_accs,asif_accs\n")
             with csv_save_path.open("a") as f:
-                f.write("train_test_ratio,cca_accs,clip_accs,asif_accs\n")
-        with csv_save_path.open("a") as f:
-            f.write(f"{train_test_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
+                f.write(f"{shuffle_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
+    else:
+        for train_test_ratio in cfg_dataset.train_test_ratios:
+            print(f"train_test_ratio: {train_test_ratio}")
+            asif_accs = asif_classification(cfg, train_test_ratio)
+            cca_accs = cca_classification(cfg, train_test_ratio)
+            clip_accs = clip_like_classification(cfg, train_test_ratio)
+            # write accuracy to file
+            if not csv_save_path.exists():
+                # create the file and write the header
+                csv_save_path.parent.mkdir(parents=True, exist_ok=True)
+                with csv_save_path.open("a") as f:
+                    f.write("train_test_ratio,cca_accs,clip_accs,asif_accs\n")
+            with csv_save_path.open("a") as f:
+                f.write(f"{train_test_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
 
     if plot and csv_save_path.exists():
         df = pd.read_csv(csv_save_path)
-        ratios = df["train_test_ratio"] * ds_size
+        ratios = (
+            df["train_test_ratio"] * ds_size
+            if not cfg_dataset.shuffle
+            else df["shuffle_ratio"]
+        )
         cca_accs = df["cca_accs"]
         clip_accs = df["clip_accs"]
         asif_accs = df["asif_accs"]
@@ -60,14 +81,16 @@ def main(cfg: DictConfig) -> None:
             label="CSA (ours)",
             color="blue",
         )
-        ax.plot(
-            ratios,
-            clip_accs,
-            "^--",
-            ms=12,
-            label="CLIP",
-            color="red",
-        )
+        if not cfg_dataset.shuffle:
+            ax.plot(
+                ratios,
+                clip_accs,
+                "^--",
+                ms=12,
+                label="CLIP",
+                color="red",
+            )
+        ax.set_xlabel(f"Amount of {shuffle_tag} training data", fontsize=20)
         ax.plot(
             ratios,
             asif_accs,
@@ -76,7 +99,6 @@ def main(cfg: DictConfig) -> None:
             label="ASIF",
             color="green",
         )
-        ax.set_xlabel("Amount of training data", fontsize=20)
         ax.set_ylabel("Classification accuracy", fontsize=20)
         ax.xaxis.set_tick_params(labelsize=15)
         ax.yaxis.set_tick_params(labelsize=15)
@@ -90,7 +112,9 @@ def main(cfg: DictConfig) -> None:
         )
         plots_path.mkdir(parents=True, exist_ok=True)
         plt.tight_layout()
-        fig.savefig(plots_path / f"trainsize_vs_accuracy_{cfg_dataset.sim_dim}.png")
+        fig.savefig(
+            plots_path / f"trainsize_vs_accuracy_{cfg_dataset.sim_dim}{shuffle_tag}.png"
+        )
 
 
 if __name__ == "__main__":
