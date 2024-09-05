@@ -26,7 +26,7 @@ def main(cfg: DictConfig) -> None:
         cfg.dataset in cfg.classification_datasets
     ), f"{cfg.dataset} is not for classification."
     cfg_dataset = cfg[cfg.dataset]
-
+    ds_size = 50_000 if cfg.dataset == "imagenet" else 900
     csv_save_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"classify_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
@@ -38,6 +38,8 @@ def main(cfg: DictConfig) -> None:
         clip_accs = clip_like_classification(cfg, train_test_ratio)
         # write accuracy to file
         if not csv_save_path.exists():
+            # create the file and write the header
+            csv_save_path.parent.mkdir(parents=True, exist_ok=True)
             with csv_save_path.open("a") as f:
                 f.write("train_test_ratio,cca_accs,clip_accs,asif_accs\n")
         with csv_save_path.open("a") as f:
@@ -45,7 +47,7 @@ def main(cfg: DictConfig) -> None:
 
     if plot and csv_save_path.exists():
         df = pd.read_csv(csv_save_path)
-        ratios = df["train_test_ratio"] * 50_000
+        ratios = df["train_test_ratio"] * ds_size
         cca_accs = df["cca_accs"]
         clip_accs = df["clip_accs"]
         asif_accs = df["asif_accs"]
@@ -78,7 +80,7 @@ def main(cfg: DictConfig) -> None:
         ax.set_ylabel("Classification accuracy", fontsize=20)
         ax.xaxis.set_tick_params(labelsize=15)
         ax.yaxis.set_tick_params(labelsize=15)
-        ax.set_ylim(0, 1.03)
+        ax.set_ylim(0, 1.03) if cfg.dataset == "imagenet" else ax.set_ylim(0.4, 0.65)
         ax.legend(loc="lower right", fontsize=18)
         ax.grid()
 

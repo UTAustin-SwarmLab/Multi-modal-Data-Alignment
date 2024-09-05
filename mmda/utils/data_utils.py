@@ -111,6 +111,19 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
                 + f"FLICKR_text_emb_{cfg_dataset.text_encoder}.pkl",
             )
         )
+    elif dataset == "leafy_spurge":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"LeafySpurge_img_emb_{cfg_dataset.img_encoder}.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"LeafySpurge_text_emb_{cfg_dataset.text_encoder}.pkl",
+            )
+        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
@@ -177,6 +190,17 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         )
         data2 = joblib.load(
             Path(cfg_dataset.paths.save_path + "FLICKR_text_emb_clip.pkl")
+        )
+    elif dataset == "leafy_spurge":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path + "LeafySpurge_img_emb_clip.pkl",
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path + "LeafySpurge_text_emb_clip.pkl",
+            )
         )
     # TODO: add more datasets
     else:

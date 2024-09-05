@@ -10,6 +10,7 @@ from mmda.utils.dataset_utils import (
     load_cosmos,
     load_flickr,
     load_imagenet,
+    load_leafy_spurge,
     load_musiccaps,
     load_pitts,
     load_sop,
@@ -75,6 +76,44 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             "wb"
         ) as f:
             pickle.dump(clap_audio_features, f)
+
+    elif dataset == "leafy_spurge":
+        images, labels, idx2label = load_leafy_spurge(cfg_dataset)
+        text_descriptions = [
+            "An image of leafy spurge.",
+            "An image of anything other than leafy spurge.",
+        ]
+        text = [text_descriptions[i] for i in labels]
+
+        # get text embeddings
+        text_emb = clip_text(text, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "LeafySpurge_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text)
+        with Path(cfg_dataset.paths.save_path, "LeafySpurge_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
+
+        # get img embeddings
+        img_emb = dinov2(images, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "LeafySpurge_img_emb_dino.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(images, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "LeafySpurge_img_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
 
     elif dataset == "cosmos":
         img_files, text_descriptions, _, _ = load_cosmos(cfg_dataset)

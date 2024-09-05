@@ -138,12 +138,14 @@ def clip_imgs(
         for i in tqdm(range(0, len(img_files), batch_size)):
             batch = []
             for img_file in img_files[i : i + batch_size]:
-                if noise:
+                if noise and isinstance(img_file, str):
                     image = Image.open(img_file)
                     image.filter(ImageFilter.GaussianBlur(5))
                     image = preprocess(image).unsqueeze(0)
-                else:
+                elif not noise and isinstance(img_file, str):
                     image = preprocess(Image.open(img_file)).unsqueeze(0)
+                elif not noise and isinstance(img_file, Image.Image):
+                    image = preprocess(img_file).unsqueeze(0)
                 batch.append(image)
             batch = torch.cat(batch, dim=0)
             batch = batch.cuda()
@@ -243,9 +245,12 @@ def dinov2(img_files: list[str], batch_size: int = 32) -> np.ndarray:
     with torch.no_grad():
         for i in tqdm(range(0, len(img_files), batch_size)):
             images = []
-            for img_file in img_files[i : i + batch_size]:
-                image = Image.open(img_file)
-                images.append(image)
+            if isinstance(img_files[i], str):
+                for img_file in img_files[i : i + batch_size]:
+                    image = Image.open(img_file)
+                    images.append(image)
+            elif isinstance(img_files[i], Image.Image):
+                images = img_files[i : i + batch_size]
             batch = processor(images, return_tensors="pt").to("cuda")
             outputs = model(**batch)
             image_features = outputs.last_hidden_state

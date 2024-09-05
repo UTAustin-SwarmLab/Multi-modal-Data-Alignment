@@ -13,6 +13,46 @@ from omegaconf import DictConfig
 import hydra
 
 
+def load_leafy_spurge(
+    cfg_dataset: DictConfig,
+) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the mpg-ranch/leafy_spurge dataset (https://huggingface.co/datasets/mpg-ranch/leafy_spurge).
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        images: list of image (in PIL format) (train + test)
+        labels: list of binary labels (train + test)
+        idx2label: a dict of index to label
+    """
+    # We only take the crop set of 39x39 pixel images
+    # load the dataset from huggingface
+    if Path(cfg_dataset.paths.dataset_path + "train").exists():
+        trains_ds = datasets.load_from_disk(cfg_dataset.paths.dataset_path + "train")
+        test_ds = datasets.load_from_disk(cfg_dataset.paths.dataset_path + "test")
+    else:
+        trains_ds = datasets.load_dataset(
+            "mpg-ranch/leafy_spurge",
+            # "crop",
+            "context",
+            split="train",
+        )  # 800
+        test_ds = datasets.load_dataset(
+            "mpg-ranch/leafy_spurge",
+            # "crop",
+            "context",
+            split="test",
+        )  # 100
+
+    idx2label = {0: "not leafy spurge", 1: "leafy spurge"}
+    return (
+        trains_ds["image"] + test_ds["image"],
+        trains_ds["label"] + test_ds["label"],
+        idx2label,
+    )
+
+
 def load_flickr(
     cfg_dataset: DictConfig,
 ) -> tuple[list[str], list[str], np.ndarray, list[str]]:
@@ -521,7 +561,7 @@ def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
-    load_flickr(cfg.flickr)
+    load_leafy_spurge(cfg.leafy_spurge)
 
 
 if __name__ == "__main__":
