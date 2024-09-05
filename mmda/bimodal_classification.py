@@ -35,7 +35,6 @@ def main(cfg: DictConfig) -> None:
     )
     if cfg_dataset.shuffle:
         for shuffle_ratio in cfg_dataset.shuffle_ratios:
-            print(f"shuffle_ratio: {shuffle_ratio}")
             asif_accs = asif_classification(cfg, 0.7, shuffle_ratio)
             cca_accs = cca_classification(cfg, 0.7, shuffle_ratio)
             clip_accs = 0.0
@@ -49,7 +48,6 @@ def main(cfg: DictConfig) -> None:
                 f.write(f"{shuffle_ratio},{cca_accs},{clip_accs},{asif_accs}\n")
     else:
         for train_test_ratio in cfg_dataset.train_test_ratios:
-            print(f"train_test_ratio: {train_test_ratio}")
             asif_accs = asif_classification(cfg, train_test_ratio)
             cca_accs = cca_classification(cfg, train_test_ratio)
             clip_accs = clip_like_classification(cfg, train_test_ratio)
