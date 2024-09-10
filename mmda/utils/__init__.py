@@ -1,1 +1,1 @@
-"""tife.utils package."""
+"""mmda.utils package."""

@@ -25,6 +25,17 @@ dataset_size: {
   flickr: 155070
 }
 
+KITTI:
+  sim_dim: 10 # dimension of the similarity score and the CCA transformation
+  equal_weights: False
+  img_encoder: "liploc"
+  lidar_encoder: "liploc"
+  text_encoder: "gtr"
+  paths:
+    dataset_path: "/nas/pohan/datasets/KITTI/"
+    save_path: ${KITTI.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/KITTI/
+
 sop:
   sim_dim: 150 # dimension of the similarity score and the CCA transformation
   equal_weights: False
@@ -144,3 +155,4 @@ asif:  # Hyperparameters of asif baseline
 # gtr: 768
 # dino: 1536
 # clip: 1280
+# liploc: ???
