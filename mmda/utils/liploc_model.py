@@ -159,7 +159,7 @@ def get_liploc_embeddings(cfg: DictConfig):
     # get embeddings
     print("Getting Lidar Embeddings...")
     lidar_embeddigs = get_lidar_image_embeddings(all_filenames, model).cpu().numpy()
-    print(type(lidar_embeddigs), lidar_embeddigs.shape)
+    print(lidar_embeddigs.shape)
     with Path(cfg_dataset.paths.save_path, "KITTI_lidar_emb_liploc.pkl").open(
         "wb"
     ) as f:
@@ -168,7 +168,7 @@ def get_liploc_embeddings(cfg: DictConfig):
 
     print("Getting Camera Embeddings...")
     camera_embeddings = get_camera_image_embeddings(all_filenames, model).cpu().numpy()
-    print(type(camera_embeddings), camera_embeddings.shape)
+    print(camera_embeddings.shape)
     with Path(cfg_dataset.paths.save_path, "KITTI_camera_emb_liploc.pkl").open(
         "wb"
     ) as f:

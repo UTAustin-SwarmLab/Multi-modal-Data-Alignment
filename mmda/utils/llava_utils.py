@@ -139,6 +139,10 @@ def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
         )
     elif cfg.dataset == "sop":
         prompt_list = ["Describe the object in the image."] * len(img_paths)
+    elif cfg.dataset == "KITTI":
+        prompt_list = [
+            "Describe the static objects in the image like buildings, cars in detail."
+        ] * len(img_paths)
     # TODO: Add more datasets
     else:
         msg = f"Dataset {cfg.dataset} not supported."

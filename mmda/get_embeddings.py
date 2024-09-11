@@ -3,7 +3,7 @@
 import pickle
 from pathlib import Path
 
-import albumentations as A  # noqa: N812
+import albumentations
 from omegaconf import DictConfig
 
 import hydra
@@ -321,7 +321,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
 
     elif dataset == "KITTI":
         filenames = load_eval_filenames()
-        transforms = A.Compose([])
+        transforms = albumentations.Compose([])
         dataset = KITTIBothDataset(
             transforms=transforms,
             CFG=CFG,
