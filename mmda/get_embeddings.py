@@ -3,9 +3,11 @@
 import pickle
 from pathlib import Path
 
+import albumentations as A  # noqa: N812
 from omegaconf import DictConfig
 
 import hydra
+from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.dataset_utils import (
     load_cosmos,
     load_flickr,
@@ -25,6 +27,7 @@ from mmda.utils.embed_data import (
     dinov2,
     gtr_text,
 )
+from mmda.utils.liploc_model import CFG, load_eval_filenames
 
 BATCH_SIZE = 128
 
@@ -311,6 +314,33 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
 
         img_emb = clip_imgs(img_files, BATCH_SIZE)
         with Path(cfg_dataset.paths.save_path, "Flickr_img_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+
+    elif dataset == "KITTI":
+        filenames = load_eval_filenames()
+        transforms = A.Compose([])
+        dataset = KITTIBothDataset(
+            transforms=transforms,
+            CFG=CFG,
+            filenames=filenames,
+        )
+        image_paths, lidar_paths = dataset.get_image_lidar_paths()
+
+        # get img embeddings
+        img_emb = dinov2(image_paths, BATCH_SIZE)
+        print(img_emb.shape)
+        with Path(cfg_dataset.paths.save_path, "KITTI_camera_emb_dino.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("DINO embeddings saved")
+
+        img_emb = clip_imgs(image_paths, BATCH_SIZE)
+        print(img_emb.shape)
+        with Path(cfg_dataset.paths.save_path, "KITTI_camera_emb_clip.pkl").open(
             "wb"
         ) as f:
             pickle.dump(img_emb, f)

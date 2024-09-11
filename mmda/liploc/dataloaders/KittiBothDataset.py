@@ -118,8 +118,8 @@ class KITTIBothDataset(torch.utils.data.Dataset):
 
         image = self.transforms(image=image)["image"]
         item["camera_image"] = torch.tensor(image).permute(2, 0, 1).float()
-        lidar_image = createRangeImage(lidar_points, self.CFG.crop)
 
+        lidar_image = createRangeImage(lidar_points, self.CFG.crop)
         lidar_image = self.transforms(image=lidar_image)["image"]
         item["lidar_image"] = torch.tensor(lidar_image).permute(2, 0, 1).float()
         return item
@@ -129,3 +129,19 @@ class KITTIBothDataset(torch.utils.data.Dataset):
 
     def flush(self):
         pass
+
+    def get_image_lidar_paths(self):
+        image_paths, lidar_paths = [], []
+        for filename in self.data_filenames:
+            seq = filename.split("/")[0]
+            instance = filename.split("/")[1]
+            if len(seq) == 2:
+                image_path = f"{self.data_path}/{seq}/image_2/{instance}.png"
+                lidar_path = f"{self.data_path}/{seq}/velodyne/{instance}.bin"
+            elif len(seq) == 4:
+                image_path = f"{self.data_path_360}/data_2d_raw/2013_05_28_drive_{seq}_sync/image_00/data_rect/{instance}.png"
+                lidar_path = f"{self.data_path_360}/data_3d_raw/2013_05_28_drive_{seq}_sync/velodyne_points/data/{instance}.bin"
+            image_paths.append(image_path)
+            lidar_paths.append(lidar_path)
+
+        return image_paths, lidar_paths
