@@ -7,6 +7,45 @@ import numpy as np
 from omegaconf import DictConfig
 
 
+def load_three_encoder_data(
+    cfg: DictConfig,
+) -> tuple[DictConfig, np.ndarray, np.ndarray]:
+    """Load the data in three modalities.
+
+    Args:
+        cfg: configuration file
+    Returns:
+        cfg_dataset: configuration file for the dataset
+        data1: data in modality image. shape: (N, D1)
+        data2: data in modality lidar. shape: (N, D2)
+        data3: data in modality text. shape: (N, D3)
+    """
+    dataset = cfg.dataset
+    cfg_dataset = cfg[cfg.dataset]
+    # load image & lidar & text embeddings
+    if dataset == "KITTI":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"KITTI_camera_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "KITTI_lidar_emb_liploc.pkl")
+        )
+        data3 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"KITTI_text_emb_{cfg_dataset.text_encoder}.pkl"
+            )
+        )
+    # TODO: add more datasets
+    else:
+        msg = f"Dataset {dataset} not supported."
+        raise ValueError(msg)
+    return cfg_dataset, data1, data2, data3
+
+
 def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.ndarray]:
     """Load the data in two modalities.
 

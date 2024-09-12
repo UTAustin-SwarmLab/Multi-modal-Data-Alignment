@@ -141,7 +141,7 @@ def llava_caption(cfg: DictConfig, img_paths: list[str]) -> list[str]:
         prompt_list = ["Describe the object in the image."] * len(img_paths)
     elif cfg.dataset == "KITTI":
         prompt_list = [
-            "Describe the static objects in the image like buildings, cars in detail."
+            "Describe the static objects and the numbers of objects in the image within 20 words."
         ] * len(img_paths)
     # TODO: Add more datasets
     else:
