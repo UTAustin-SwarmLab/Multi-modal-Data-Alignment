@@ -3,15 +3,14 @@
 import pickle
 from pathlib import Path
 
-import albumentations
 from omegaconf import DictConfig
 
 import hydra
-from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.dataset_utils import (
     load_cosmos,
     load_flickr,
     load_imagenet,
+    load_kitti,
     load_leafy_spurge,
     load_musiccaps,
     load_pitts,
@@ -27,7 +26,6 @@ from mmda.utils.embed_data import (
     dinov2,
     gtr_text,
 )
-from mmda.utils.liploc_model import CFG, load_eval_filenames
 
 BATCH_SIZE = 128
 
@@ -320,17 +318,25 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
         print("CLIP embeddings saved")
 
     elif dataset == "KITTI":
-        filenames = load_eval_filenames()
-        transforms = albumentations.Compose([])
-        dataset = KITTIBothDataset(
-            transforms=transforms,
-            CFG=CFG,
-            filenames=filenames,
-        )
-        image_paths, lidar_paths = dataset.get_image_lidar_paths()
+        img_paths, lidar_paths, text_descriptions = load_kitti(cfg_dataset)
+
+        # get text embeddings
+        text_emb = clip_text(text_descriptions, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "KITTI_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(text_descriptions)
+        with Path(cfg_dataset.paths.save_path, "KITTI_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
 
         # get img embeddings
-        img_emb = dinov2(image_paths, BATCH_SIZE)
+        img_emb = dinov2(img_paths, BATCH_SIZE)
         print(img_emb.shape)
         with Path(cfg_dataset.paths.save_path, "KITTI_camera_emb_dino.pkl").open(
             "wb"
@@ -338,7 +344,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             pickle.dump(img_emb, f)
         print("DINO embeddings saved")
 
-        img_emb = clip_imgs(image_paths, BATCH_SIZE)
+        img_emb = clip_imgs(img_paths, BATCH_SIZE)
         print(img_emb.shape)
         with Path(cfg_dataset.paths.save_path, "KITTI_camera_emb_clip.pkl").open(
             "wb"
