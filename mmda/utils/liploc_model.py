@@ -192,9 +192,11 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
     """
     # query_predict = []
     all_filenames = load_eval_filenames()
+    # sanity check
     assert (
         all_filenames.size == ref_embeddings.shape[0]
     ), f"Mismatch {all_filenames.size} != {ref_embeddings.size(0)}"
+    assert top_k < len(all_filenames), f"top_k greater than the number of files"
 
     translation_poses = None
     indices = None
@@ -314,11 +316,11 @@ if __name__ == "__main__":
     # get_liploc_embeddings()
 
     # test eval_liploc_query
-    # np.random.seed(0)
-    # ref_emb = np.random.randint(0, 100, size=(12097, 256))
-    # query_emb = np.random.randint(0, 100, size=(13, 256))
-    ref_emb = np.zeros((12097, 256))
-    query_emb = np.zeros((13, 256))
+    np.random.seed(0)
+    ref_emb = np.random.randint(0, 100, size=(12097, 256))
+    query_emb = np.random.randint(0, 100, size=(13, 256))
+    # ref_emb = np.zeros((12097, 256))
+    # query_emb = np.zeros((13, 256))
     eval_liploc_query(ref_emb, query_emb, query_ids=np.arange(13), top_k=5)
 
 # CUDA_VISIBLE_DEVICES=1 poetry run python ./mmda/utils/liploc_model.py
