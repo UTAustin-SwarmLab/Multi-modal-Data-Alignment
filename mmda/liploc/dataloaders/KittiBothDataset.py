@@ -60,14 +60,11 @@ def get_poses(eval_sequence, CFG):
     # get all poses in training
     if len(eval_sequence) == 2:
         pose_file = CFG.data_path + "/" + eval_sequence + "/poses.txt"
-
         poses = pd.read_csv(pose_file, header=None, delim_whitespace=True).to_numpy()
-
         translation_poses = poses[:, [3, 7, 11]]
 
         return translation_poses
-
-    if len(eval_sequence) == 4:
+    elif len(eval_sequence) == 4:
         pose_file = f"{CFG.data_path_360}/data_poses/2013_05_28_drive_{eval_sequence}_sync/poses.txt"
         poses = pd.read_csv(pose_file, header=None, delim_whitespace=True).to_numpy()
         # X, Y, Z in Camera Init Frame | (We require Y and Z)
@@ -78,6 +75,8 @@ def get_poses(eval_sequence, CFG):
             indices[poses[i, 0]] = poses[i, [4, 8, 12]]
 
         return translation_poses, indices
+    else:
+        raise ValueError("Sequence length not supported")
 
 
 class KITTIBothDataset(torch.utils.data.Dataset):
