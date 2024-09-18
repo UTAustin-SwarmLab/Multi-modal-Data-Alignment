@@ -27,7 +27,8 @@ dataset_size: {
 }
 
 KITTI:
-  sim_dim: 10 # dimension of the similarity score and the CCA transformation
+  sim_dim: 256 # dimension of the CCA transformation
+  retrieval_dim: 200 # dimension of the similarity score
   equal_weights: False
   img_encoder: "liploc"
   lidar_encoder: "liploc"

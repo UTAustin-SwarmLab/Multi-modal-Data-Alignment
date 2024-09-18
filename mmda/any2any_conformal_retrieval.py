@@ -3,7 +3,7 @@
 from omegaconf import DictConfig
 
 import hydra
-from mmda.exps.any_retrieval import any2any_retrieval
+from mmda.exps.any2any_retrieval import any2any_retrieval
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")

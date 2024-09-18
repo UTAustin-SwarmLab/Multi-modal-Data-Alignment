@@ -258,8 +258,8 @@ class KITTIDataset:
         if self.img2lidar == "csa":
             cca_save_path = Path(
                 cfg_dataset.paths.save_path
-                + "any2any_cca"
-                + f"{cfg_dataset.img_encoder}_{cfg_dataset.lidar_encoder}_{cfg_dataset.sim_dim}.pkl"
+                + "any2any_cca_"
+                + f"{cfg_dataset.img_encoder}_{cfg_dataset.lidar_encoder}.pkl"
             )
             self.img2lidar_cca = NormalizedCCA()
             if not cca_save_path.exists():
@@ -277,8 +277,8 @@ class KITTIDataset:
         if self.img2txt == "csa":
             cca_save_path = Path(
                 cfg_dataset.paths.save_path
-                + "any2any_cca"
-                + f"{cfg_dataset.img_encoder}_{cfg_dataset.text_encoder}_{cfg_dataset.sim_dim}.pkl"
+                + "any2any_cca_"
+                + f"{cfg_dataset.img_encoder}_{cfg_dataset.text_encoder}.pkl"
             )
             self.img2txt_cca = NormalizedCCA()
             if not cca_save_path.exists():
@@ -296,8 +296,8 @@ class KITTIDataset:
         if self.txt2lidar == "csa":
             cca_save_path = Path(
                 cfg_dataset.paths.save_path
-                + "any2any_cca"
-                + f"{cfg_dataset.text_encoder}_{cfg_dataset.lidar_encoder}_{cfg_dataset.sim_dim}.pkl"
+                + "any2any_cca_"
+                + f"{cfg_dataset.text_encoder}_{cfg_dataset.lidar_encoder}.pkl"
             )
             self.txt2lidar_cca = NormalizedCCA()
             if not cca_save_path.exists():
@@ -371,7 +371,7 @@ class KITTIDataset:
                         x=x1_,
                         y=x2_,
                         corr=corr,
-                        dim=self.cfg_dataset.sim_dim,
+                        dim=self.cfg_dataset.retrieval_dim,
                     )[0]
                 else:
                     sim_mat[i, j] = cosine_sim(
@@ -380,7 +380,7 @@ class KITTIDataset:
         return sim_mat
 
     def calibrate_crossmodal_similarity(self) -> None:
-        """Calibrate the cross-modal similarity."""
+        """Calibrate the cross-modal similarity. Save the similarity matrix in the format of (sim_score, gt_label)."""
         # cca transformation
         if self.img2lidar == "csa":
             self.cca_img2lidar_cali, self.cca_lidar2img_cali = (
@@ -434,6 +434,7 @@ def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset | KITTIDataset:
 
     Args:
         cfg: configuration file
+
     Returns:
         dataset: dataset class
     """
@@ -442,8 +443,11 @@ def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset | KITTIDataset:
     elif cfg.dataset == "KITTI":
         dataset = KITTIDataset(cfg)
     else:
-        msg = f"Dataset {cfg.dataset} not supported"
-        raise ValueError(msg)
+        error_message = (
+            f"{cfg.dataset} is not supported. Try {cfg.any_retrieval_datasets}."
+        )
+        raise ValueError(error_message)
+
     return dataset
 
 

@@ -312,8 +312,8 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
     return np.array(mAPs).mean(), np.array(precisions).mean(), np.array(recalls).mean()
 
 
-def eval_retrieval_ids(query_id:int, ref_id:int)->int:
-    """ Only for KITTI
+def eval_retrieval_ids(query_id: int, ref_id: int) -> int:
+    """Only for KITTI dataset.
 
     Args:
         query_id: int
@@ -353,16 +353,8 @@ def eval_retrieval_ids(query_id:int, ref_id:int)->int:
     # query_predict.append([queryPose, predictedPose])
     # only considers x and y coordinates of a prediction
     distance = math.sqrt(
-        (
-            translation_poses[queryPose][1]
-            - translation_poses[predictedPose][1]
-        )
-        ** 2
-        + (
-            translation_poses[queryPose][2]
-            - translation_poses[predictedPose][2]
-        )
-        ** 2
+        (translation_poses[queryPose][1] - translation_poses[predictedPose][1]) ** 2
+        + (translation_poses[queryPose][2] - translation_poses[predictedPose][2]) ** 2
     )
     return int(distance < args.threshold_dist)
 
