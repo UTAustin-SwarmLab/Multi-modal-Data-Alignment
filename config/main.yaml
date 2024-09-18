@@ -12,6 +12,7 @@ class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
+any_retrieval_datasets: [KITTI]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
 classification_datasets: [imagenet, leafy_spurge]
@@ -31,6 +32,7 @@ KITTI:
   img_encoder: "liploc"
   lidar_encoder: "liploc"
   text_encoder: "gtr"
+  calibrate: True
   paths:
     dataset_path: "/nas/pohan/datasets/KITTI/"
     save_path: ${KITTI.paths.dataset_path}embeddings/

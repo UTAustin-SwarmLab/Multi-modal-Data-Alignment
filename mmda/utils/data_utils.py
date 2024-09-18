@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 
 def load_three_encoder_data(
     cfg: DictConfig,
-) -> tuple[DictConfig, np.ndarray, np.ndarray]:
+) -> tuple[DictConfig, np.ndarray, np.ndarray, np.ndarray]:
     """Load the data in three modalities.
 
     Args:
@@ -31,7 +31,10 @@ def load_three_encoder_data(
             )
         )
         data2 = joblib.load(
-            Path(cfg_dataset.paths.save_path + "KITTI_lidar_emb_liploc.pkl")
+            Path(
+                cfg_dataset.paths.save_path
+                + f"KITTI_lidar_emb_{cfg_dataset.lidar_encoder}.pkl"
+            )
         )
         data3 = joblib.load(
             Path(
