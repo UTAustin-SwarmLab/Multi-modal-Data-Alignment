@@ -3,7 +3,6 @@
 import pickle
 from pathlib import Path
 
-import albumentations
 import joblib
 from omegaconf import DictConfig
 
@@ -44,9 +43,8 @@ def get_caption(cfg: DictConfig) -> None:
         img_paths = [path_text[0] for path_text in path_text_descriptions]
     elif cfg.dataset == "KITTI":
         filenames = load_eval_filenames()
-        transforms = albumentations.Compose([])
         dataset = KITTIBothDataset(
-            transforms=transforms,
+            transforms=[],
             CFG=CFG,
             filenames=filenames,
         )

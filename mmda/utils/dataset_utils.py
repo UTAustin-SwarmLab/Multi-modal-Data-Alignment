@@ -4,7 +4,6 @@ import ast
 import json
 from pathlib import Path
 
-import albumentations
 import datasets
 import joblib
 import numpy as np
@@ -30,7 +29,7 @@ def load_kitti(
         text_descriptions: list of text descriptions
     """
     filenames = load_eval_filenames()
-    transforms = albumentations.Compose([])
+    transforms = []
     dataset = KITTIBothDataset(
         transforms=transforms,
         CFG=CFG,
@@ -147,7 +146,6 @@ def load_pitts(
         cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl"
     ).open("rb") as f:
         path_text_descriptions_threads = joblib.load(f)
-    # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
     for i in range(len(path_text_descriptions_threads)):
         path_text_descriptions.extend(path_text_descriptions_threads[i])
