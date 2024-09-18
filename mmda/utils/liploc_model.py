@@ -312,6 +312,61 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
     return np.array(mAPs).mean(), np.array(precisions).mean(), np.array(recalls).mean()
 
 
+def eval_retrieval_ids(query_id:int, ref_id:int)->int:
+    """ Only for KITTI
+
+    Args:
+        query_id: int
+        ref_id: int
+
+    Returns:
+        int: 1 if the distance is less than the threshold, 0 otherwise
+    """
+    translation_poses = None
+    indices = None
+    for sequence in args.eval_sequence:
+        if len(sequence) == 2:  # KITTI
+            translation_pose = get_poses(sequence, CFG)
+        elif len(sequence) == 4:  # KITTI360
+            translation_pose, indice = get_poses(sequence, CFG)
+            all_filenames = all_filenames[indices.astype(int)]
+            # merge dictionary of indices
+            if indices is None:
+                indices = indice
+            else:
+                indices.update(indice)
+        else:
+            raise ValueError("Invalid sequence")
+        # concatenate all translation poses
+        if translation_poses is None:
+            translation_poses = translation_pose
+        else:
+            translation_poses = np.concatenate(
+                (translation_poses, translation_pose), axis=0
+            )
+
+    all_filenames = load_eval_filenames()
+    queryimagefilename = all_filenames[query_id]
+    pred_filename = all_filenames[ref_id]
+    predictedPose = int(pred_filename.split("/")[1])
+    queryPose = int(queryimagefilename.split("/")[1])
+    # query_predict.append([queryPose, predictedPose])
+    # only considers x and y coordinates of a prediction
+    distance = math.sqrt(
+        (
+            translation_poses[queryPose][1]
+            - translation_poses[predictedPose][1]
+        )
+        ** 2
+        + (
+            translation_poses[queryPose][2]
+            - translation_poses[predictedPose][2]
+        )
+        ** 2
+    )
+    return int(distance < args.threshold_dist)
+
+
 if __name__ == "__main__":
     # get_liploc_embeddings()
 
