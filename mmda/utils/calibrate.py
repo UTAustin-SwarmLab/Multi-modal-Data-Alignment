@@ -1,6 +1,7 @@
 """Calibration for the similarity matrix."""
 
 import warnings
+from bisect import bisect_left
 
 
 def get_non_conformity_scores(
@@ -35,7 +36,11 @@ def get_non_conformity_scores(
         else:  # invalid label
             msg = f"Invalid label: {label}"
             raise ValueError(msg)
-
+    # sort the scores in ascending order
+    nc_scores.sort()
+    c_scores.sort()
+    assert nc_scores[0] < nc_scores[-1]
+    assert c_scores[0] < c_scores[-1]
     return nc_scores, c_scores
 
 
@@ -49,8 +54,9 @@ def calibrate(score: float, nc_scores: list[float]) -> float:
     Returns:
         The calibrated score.
     """
-    count = 0
-    for i in nc_scores:
-        if i < score:
-            count += 1
-    return count / len(nc_scores)
+    # see score is bigger than how many scores in nc_scores
+    # since nc_scores is sorted in ascending order,
+    # we can use binary search to find the index of score in nc_scores
+    idx = bisect_left(nc_scores, score)
+    # the calibrated score is the index divided by the total number of scores
+    return idx / len(nc_scores)
