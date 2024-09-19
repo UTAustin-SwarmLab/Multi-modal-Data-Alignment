@@ -33,7 +33,7 @@ KITTI:
   img_encoder: "liploc"
   lidar_encoder: "liploc"
   text_encoder: "gtr"
-  calibrate: True
+  mask_ratio: 2
   paths:
     dataset_path: "/nas/pohan/datasets/KITTI/"
     save_path: ${KITTI.paths.dataset_path}embeddings/

@@ -359,6 +359,27 @@ def eval_retrieval_ids(query_id: int, ref_id: int) -> int:
     return int(distance < args.threshold_dist)
 
 
+def get_top_k(retrieved_pairs: list[tuple[int, int, float]], k: int) -> list[bool]:
+    """Calculate the top k hit for the test data's similarity matrix.
+
+    Args:
+        retrieved_pairs: the retrieved pairs in the format of (idx_1, idx_2, conformal_probability)
+            and in descending order of the conformal probability
+        k: the number of top k pairs to retrieve
+
+    Returns:
+        top_k_hit: the top k hit
+    """
+    top_k_hit = []
+    preds = retrieved_pairs[:k]
+    for _, _, _, gt_label in preds:
+        if gt_label == 1:
+            top_k_hit.append(True)
+        else:
+            top_k_hit.append(False)
+    return top_k_hit
+
+
 if __name__ == "__main__":
     # get_liploc_embeddings()
 
