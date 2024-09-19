@@ -7,6 +7,7 @@ from typing import Union
 import numpy as np
 import torch
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 import hydra
 from mmda.baselines.asif_core import zero_shot_classification
@@ -31,7 +32,7 @@ class BaseRetrievalDataset:
         self.img_path = None
         self.txt_descriptions = None
         self.num_gt = None
-        self.img2text = None
+        self.img2txt = None
         self.test_img_ids = None
 
     def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
@@ -138,7 +139,7 @@ class FlickrDataset(BaseRetrievalDataset):
         self.img_path, self.txt_descriptions, self.splits, self.img_ids = load_flickr(
             cfg["flickr"]
         )
-        self.img2text = cfg["flickr"].img2text
+        self.img2txt = cfg["flickr"].img2txt
 
     def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
         """Preprocess the data for retrieval.
@@ -157,7 +158,7 @@ class FlickrDataset(BaseRetrievalDataset):
         ), f"{data1.shape[0]}!={self.img_ids.shape[0]}"
 
         super().preprocess_retrieval_data(data1, data2)
-        if self.img2text:  # image to retrieve text
+        if self.img2txt:  # image to retrieve text
             self.data1, self.data2 = data1, data2
             self.num_gt = 5  # Total number of relevant texts in the database
         else:  # text to retrieve image
@@ -244,13 +245,13 @@ class KITTIDataset:
 
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         mask_num = int(self.test_size / 2)
+        self.modal0mask = np.random.choice(self.test_size, mask_num, replace=False)
         self.modal1mask = np.random.choice(self.test_size, mask_num, replace=False)
         self.modal2mask = np.random.choice(self.test_size, mask_num, replace=False)
-        self.modal3mask = np.random.choice(self.test_size, mask_num, replace=False)
 
-        self.imgdata["test"][self.modal1mask] = np.nan
-        self.lidardata["test"][self.modal2mask] = np.nan
-        self.txtdata["test"][self.modal3mask] = np.nan
+        self.imgdata["test"][self.modal0mask] = np.nan
+        self.lidardata["test"][self.modal1mask] = np.nan
+        self.txtdata["test"][self.modal2mask] = np.nan
 
     def train_crossmodal_similarity(self) -> None:
         """Train the cross-modal similarity, aka the CSA method."""
@@ -282,7 +283,7 @@ class KITTIDataset:
             )
             self.img2txt_cca = NormalizedCCA()
             if not cca_save_path.exists():
-                self.cca_img2text, self.cca_txt2img, self.img2txt_corr = (
+                self.cca_img2txt, self.cca_txt2img, self.img2txt_corr = (
                     self.img2txt_cca.fit_transform_train_data(
                         self.cfg_dataset, self.imgdata["train"], self.txtdata["train"]
                     )
@@ -290,7 +291,7 @@ class KITTIDataset:
                 self.img2txt_cca.save_model(cca_save_path)
             else:
                 self.img2txt_cca.load_model(cca_save_path)
-                self.cca_img2text = self.img2txt_cca.traindata1
+                self.cca_img2txt = self.img2txt_cca.traindata1
                 self.cca_txt2img = self.img2txt_cca.traindata2
                 self.img2txt_corr = self.img2txt_cca.corr_coeff
         if self.txt2lidar == "csa":
@@ -301,7 +302,7 @@ class KITTIDataset:
             )
             self.txt2lidar_cca = NormalizedCCA()
             if not cca_save_path.exists():
-                self.cca_txt2lidar, self.cca_lidar2text, self.txt2lidar_corr = (
+                self.cca_txt2lidar, self.cca_lidar2txt, self.txt2lidar_corr = (
                     self.txt2lidar_cca.fit_transform_train_data(
                         self.cfg_dataset, self.txtdata["train"], self.lidardata["train"]
                     )
@@ -310,19 +311,19 @@ class KITTIDataset:
             else:
                 self.txt2lidar_cca.load_model(cca_save_path)
                 self.cca_txt2lidar = self.txt2lidar_cca.traindata1
-                self.cca_lidar2text = self.txt2lidar_cca.traindata2
+                self.cca_lidar2txt = self.txt2lidar_cca.traindata2
                 self.txt2lidar_corr = self.txt2lidar_cca.corr_coeff
 
-    def calculate_similarity_matrix(  # noqa: PLR0912, C901
+    def calculate_similarity_matrix(
         self,
-        x1: tuple[np.ndarray, np.ndarray, np.ndarray],
-        x2: tuple[np.ndarray, np.ndarray, np.ndarray],
+        x1: list[list[np.array]],
+        x2: list[list[np.array]],
     ) -> np.ndarray:
         """Calculate the similarity matrix.
 
         Args:
-            x1: the first data (image, lidar, text) (masked if possible)
-            x2: the second data (image, lidar, text) (masked if possible)
+            x1: the first data (masked if possible) shape is (3, 3, emb_dim)
+            x2: the second data (masked if possible) shape is (3, 3, emb_dim)
 
         Returns:
             similarity_matrix: the similarity matrix of a pair of data
@@ -331,102 +332,200 @@ class KITTIDataset:
         for i in range(3):
             for j in range(3):
                 csa = False
-                if np.any(np.isnan(x1[i])) or np.any(np.isnan(x2[j])):
+                x1_, x2_ = x1[i][j], x2[j][i]
+                if np.any(np.isnan(x1[i][i])) or np.any(np.isnan(x2[j][j])):
                     sim_mat[i, j] = -1
                 elif i == j:
                     csa = False
                 elif i + j == 1 and self.img2lidar == "csa":
+                    csa = True
                     corr = self.img2lidar_corr
-                    if i == 1 and j == 0:  # img and lidar
-                        x1_, x2_ = x1[i].copy(), x2[j].copy()
-                    else:  # lidar and img
-                        x1_, x2_ = x2[j].copy(), x1[i].copy()
-                    x1_, x2_ = self.img2lidar_cca.transform_data(
-                        x1_.reshape(1, -1), x2_.reshape(1, -1)
-                    )
-                    csa = True
                 elif i + j == 2 and self.img2txt == "csa":  # noqa: PLR2004
-                    corr = self.img2txt_corr
-                    if i == 0 and j == 2:  # img and text # noqa: PLR2004
-                        x1_, x2_ = x1[i].copy(), x2[j].copy()
-                    else:  # text and img
-                        x1_, x2_ = x2[j].copy(), x1[i].copy()
-                    x1_, x2_ = self.img2txt_cca.transform_data(
-                        x1_.reshape(1, -1), x2_.reshape(1, -1)
-                    )
                     csa = True
+                    corr = self.img2txt_corr
                 elif i + j == 3 and self.txt2lidar == "csa":  # noqa: PLR2004
                     corr = self.txt2lidar_corr
-                    if i == 2 and j == 1:  # text and lidar  # noqa: PLR2004
-                        x1_, x2_ = x1[i].copy(), x2[j].copy()
-                    else:  # lidar and text
-                        x1_, x2_ = x2[j].copy(), x1[i].copy()
-                    x1_, x2_ = self.txt2lidar_cca.transform_data(
-                        x1_.reshape(1, -1), x2_.reshape(1, -1)
-                    )
                     csa = True
 
                 if csa:
                     sim_mat[i, j] = weighted_corr_sim(
-                        x=x1_,
-                        y=x2_,
+                        x=x1_.reshape(1, -1),
+                        y=x2_.reshape(1, -1),
                         corr=corr,
                         dim=self.cfg_dataset.retrieval_dim,
                     )[0]
                 else:
                     sim_mat[i, j] = cosine_sim(
-                        x1[i].reshape(1, -1), x2[j].reshape(1, -1)
+                        x1[i][j].reshape(1, -1), x2[j][i].reshape(1, -1)
                     )[0]
         return sim_mat
 
-    def calibrate_crossmodal_similarity(self) -> None:
-        """Calibrate the cross-modal similarity. Save the similarity matrix in the format of (sim_score, gt_label)."""
+    def transform_with_cca(
+        self,
+        img_data: list[list[np.array]],
+        lidar_data: list[list[np.array]],
+        txt_data: list[list[np.array]],
+    ) -> list[list[np.array]]:
+        """Transform the data with cca.
+
+        Args:
+            img_data: the image data
+            lidar_data: the lidar data
+            txt_data: the text data
+
+        Returns:
+            cca_img2lidar: the cca transformed image data to img-lidar space
+            cca_lidar2img: the cca transformed lidar data to lidar-img space
+            cca_img2txt: the cca transformed image data to img-text space
+            cca_txt2img: the cca transformed text data to text-img space
+            cca_txt2lidar: the cca transformed text data to text-lidar space
+            cca_lidar2txt: the cca transformed lidar data to lidar-text space
+        """
         # cca transformation
         if self.img2lidar == "csa":
-            self.cca_img2lidar_cali, self.cca_lidar2img_cali = (
+            cca_img2lidar, cca_lidar2img = self.img2lidar_cca.transform_data(
+                img_data, lidar_data
+            )
+        else:
+            cca_img2lidar, cca_lidar2img = (img_data, lidar_data)
+        if self.img2txt == "csa":
+            cca_img2txt, cca_txt2img = self.img2txt_cca.transform_data(
+                img_data, txt_data
+            )
+        else:
+            cca_img2txt, cca_txt2img = (img_data, txt_data)
+        if self.txt2lidar == "csa":
+            cca_txt2lidar, cca_lidar2txt = self.txt2lidar_cca.transform_data(
+                txt_data, lidar_data
+            )
+        else:
+            cca_txt2lidar, cca_lidar2txt = (txt_data, lidar_data)
+        return (
+            cca_img2lidar,
+            cca_lidar2img,
+            cca_img2txt,
+            cca_txt2img,
+            cca_txt2lidar,
+            cca_lidar2txt,
+        )
+
+    def calculate_pairs_data_similarity(
+        self,
+        img_data: np.array,
+        lidar_data: np.array,
+        txt_data: np.array,
+        idx_offset: int,
+    ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
+        """Calculate the similarity matrices of all pairs of data, given in the args.
+
+        Args:
+            img_data: the image data
+            lidar_data: the lidar data
+            txt_data: the text data
+            idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
+
+        Returns:
+            sim_mat: the similarity matrices of a pair of data.
+                key is the pair of indices, value is the similarity matrix and ground truth label.
+        """
+        (
+            cca_img2lidar,
+            cca_lidar2img,
+            cca_img2txt,
+            cca_txt2img,
+            cca_txt2lidar,
+            cca_lidar2txt,
+        ) = self.transform_with_cca(img_data, lidar_data, txt_data)
+        ds_size = img_data.shape[0]
+        # calculate the similarity matrix, we do not mask the data here
+        sim_mat_cali = {}  # (i, j) -> (sim_mat, gt_label)
+        for i in tqdm(range(ds_size), desc="Calibrate cross-modal similarity i"):
+            for j in tqdm(range(i, ds_size), desc="Calibrate cross-modal similarity j"):
+                ds_idx_q = self.shuffle2idx[i + idx_offset]
+                ds_idx_r = self.shuffle2idx[j + idx_offset]
+                gt_label = eval_retrieval_ids(ds_idx_q, ds_idx_r)
+                # if gt_label == 0:  # only consider the negative pairs
+                sim_mat = self.calculate_similarity_matrix(
+                    x1=[
+                        [
+                            img_data[i],
+                            cca_img2lidar[i],
+                            cca_img2txt[i],
+                        ],
+                        [
+                            cca_lidar2img[i],
+                            lidar_data[i],
+                            cca_lidar2txt[i],
+                        ],
+                        [
+                            cca_txt2img[i],
+                            cca_txt2lidar[i],
+                            txt_data[i],
+                        ],
+                    ],
+                    x2=[
+                        [
+                            img_data[j],
+                            cca_img2lidar[j],
+                            cca_img2txt[j],
+                        ],
+                        [
+                            cca_lidar2img[j],
+                            lidar_data[j],
+                            cca_lidar2txt[j],
+                        ],
+                        [
+                            cca_txt2img[j],
+                            cca_txt2lidar[j],
+                            txt_data[j],
+                        ],
+                    ],
+                )
+                sim_mat_cali[(ds_idx_q, ds_idx_r)] = (sim_mat, gt_label)
+        return sim_mat_cali
+
+    def calibrate_crossmodal_similarity(self) -> None:
+        """Calibrate the cross-modal similarity. Save the similarity matrix in the format of (sim_score, gt_label)."""
+        img_data = self.imgdata["cali"]
+        lidar_data = self.lidardata["cali"]
+        txt_data = self.txtdata["cali"]
+        idx_offset = self.train_size + self.test_size
+        sim_mat_cali = self.calculate_pairs_data_similarity(
+            img_data, lidar_data, txt_data, idx_offset
+        )
+        # save the calibration data in the format of (sim_score, gt_label)
+        with Path(
+            self.cfg_dataset.paths.save_path,
+            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}.pkl",
+        ).open("wb") as f:
+            pickle.dump(sim_mat_cali, f)
+
+    def retrieve_data(self) -> np.ndarray:
+        """Retrieve the data for retrieval task on the test set.
+
+        Returns:
+            similarity_matrix: the similarity matrix of a pair of data
+        """
+        # mask the data (the original test data is masked, but not the cca transformed data)
+        # cca transformation
+        if self.img2lidar == "csa":
+            self.cca_img2lidar_test, self.cca_lidar2img_test = (
                 self.img2lidar_cca.transform_data(
-                    self.imgdata["cali"], self.lidardata["cali"]
+                    self.imgdata["test"], self.lidardata["test"]
                 )
             )
         if self.img2txt == "csa":
-            self.cca_img2text_cali, self.cca_txt2img_cali = (
+            self.cca_img2txt_test, self.cca_txt2img_test = (
                 self.img2txt_cca.transform_data(
-                    self.imgdata["cali"], self.txtdata["cali"]
+                    self.imgdata["test"], self.txtdata["test"]
                 )
             )
         if self.txt2lidar == "csa":
-            self.cca_txt2lidar_cali, self.cca_lidar2text_cali = (
+            self.cca_txt2lidar_test, self.cca_lidar2txt_test = (
                 self.txt2lidar_cca.transform_data(
-                    self.txtdata["cali"], self.lidardata["cali"]
+                    self.txtdata["test"], self.lidardata["test"]
                 )
             )
-        # calculate the similarity matrix, we do not mask the data here
-        sim_mat_cali = {}  # (i, j) -> (sim_mat, gt_label)
-        for cali_q in range(self.cali_size):
-            for cali_r in range(cali_q, self.cali_size):
-                ds_idx_q = self.shuffle2idx[cali_q + self.train_size + self.test_size]
-                ds_idx_r = self.shuffle2idx[cali_r + self.train_size + self.test_size]
-                gt_label = eval_retrieval_ids(ds_idx_q, ds_idx_r)
-                if gt_label == 0:  # only consider the negative pairs
-                    sim_mat = self.calculate_similarity_matrix(
-                        (
-                            self.imgdata["cali"][cali_q],
-                            self.lidardata["cali"][cali_q],
-                            self.txtdata["cali"][cali_q],
-                        ),
-                        (
-                            self.imgdata["cali"][cali_r],
-                            self.lidardata["cali"][cali_r],
-                            self.txtdata["cali"][cali_r],
-                        ),
-                    )
-                    sim_mat_cali[(ds_idx_q, ds_idx_r)] = (sim_mat, gt_label)
-
-        # save the calibration data in the format of (sim_score, gt_label)
-        with (
-            Path(self.cfg_dataset.paths.save_path) / "sim_mat_cali.pkl".open("wb") as f
-        ):
-            pickle.dump(sim_mat_cali, f)
 
 
 def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset | KITTIDataset:
