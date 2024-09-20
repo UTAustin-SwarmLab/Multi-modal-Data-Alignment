@@ -80,7 +80,7 @@ class KITTIDataset:
         }
 
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
-        mask_num = int(self.test_size / 2)
+        mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
         self.mask = {}
         self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
         self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
