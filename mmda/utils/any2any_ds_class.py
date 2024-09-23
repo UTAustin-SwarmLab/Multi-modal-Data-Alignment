@@ -3,6 +3,7 @@
 import concurrent.futures
 import pickle
 from pathlib import Path
+from typing import Literal
 
 import joblib
 import numpy as np
@@ -12,8 +13,8 @@ from tqdm import tqdm
 from mmda.utils.calibrate import calibrate, get_non_conformity_scores
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
-from mmda.utils.liploc_model import eval_retrieval_ids, get_top_k
-from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
+from mmda.utils.liploc_model import KITTI_file_Retrieval, get_top_k
+from mmda.utils.sim_utils import batch_weighted_corr_sim, cosine_sim
 
 
 class KITTIDataset:
@@ -149,27 +150,30 @@ class KITTIDataset:
 
     def calculate_similarity_matrix(
         self,
-        x1: list[list[np.array]],
-        x2: list[list[np.array]],
+        x1: list[list[list[np.array]]],
+        x2: list[list[list[np.array]]],
     ) -> np.ndarray:
         """Calculate the similarity matrix.
 
         Args:
-            x1: the first data (not masked) shape is (3, 3, emb_dim)
-            x2: the second data (not masked) shape is (3, 3, emb_dim)
+            x1: the first data (not masked) shape is [3, 3], np: num_data, emb_dim)
+            x2: the second data (not masked) shape is [3, 3], np: num_data, emb_dim)
 
         Returns:
-            similarity_matrix: the similarity matrix of a pair of data
+            similarity_matrix: the similarity matrix of a pair of data shape is (num_data, 3, 3)
         """
-        sim_mat = np.zeros((3, 3))
+        num_data = x1[0][0].shape[0]
+        sim_mat = np.zeros((num_data, 3, 3))
         for i in range(3):
             for j in range(3):
                 csa = False
-                x1_, x2_ = x1[i][j], x2[j][i]
-                if np.any(np.isnan(x1[i][i])) or np.any(np.isnan(x2[j][j])):
-                    sim_mat[i, j] = -1
+                # concatenate num_data data of vector i, j into shape (num_data, emb_dim)
+                x1_ = x1[i][j]
+                x2_ = x2[i][j]
+                if np.any(np.isnan(x1_)) or np.any(np.isnan(x2_)):
+                    sim_mat[:, i, j] = -1
                     msg = "NaN in the data, did you mask the data?"
-                    raise msg
+                    raise ValueError(msg)
                 if i == j:
                     csa = False
                 elif i + j == 1 and self.img2lidar == "csa":
@@ -183,16 +187,14 @@ class KITTIDataset:
                     csa = True
 
                 if csa:
-                    sim_mat[i, j] = weighted_corr_sim(
-                        x=x1_.reshape(1, -1),
-                        y=x2_.reshape(1, -1),
+                    sim_mat[:, i, j] = batch_weighted_corr_sim(
+                        x=x1_,
+                        y=x2_,
                         corr=corr,
                         dim=self.cfg_dataset.retrieval_dim,
-                    )[0]
+                    )
                 else:
-                    sim_mat[i, j] = cosine_sim(
-                        x1[i][j].reshape(1, -1), x2[j][i].reshape(1, -1)
-                    )[0]
+                    sim_mat[:, i, j] = cosine_sim(x1_, x2_)
         return sim_mat
 
     def transform_with_cca(
@@ -201,7 +203,7 @@ class KITTIDataset:
         lidar_data: list[list[np.array]],
         txt_data: list[list[np.array]],
     ) -> list[list[np.array]]:
-        """Transform the data with cca.
+        """Transform the data with cca or keep the data as is.
 
         Args:
             img_data: the image data
@@ -277,54 +279,61 @@ class KITTIDataset:
         ds_size = img_data.shape[0]
         # calculate the similarity matrix, we do not mask the data here
         sim_mat_cali = {}  # (i, j) -> (sim_mat, gt_label)
+        ds_retrieval_cls = KITTI_file_Retrieval()
 
         def process_chunk(
             chunk: np.ndarray,
         ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
-            local_sim_mat_cali = {}
-            for i in tqdm(chunk, desc="Processing chunk i"):
-                for j in tqdm(range(i, ds_size), desc="Processing chunk j"):
+            process_sim_mat_cali = {}
+            ds_indices_q = []
+            ds_indices_r = []
+            gt_labels = []
+            x1_3x3_data = [[[] for _ in range(3)] for _ in range(3)]
+            x2_3x3_data = [[[] for _ in range(3)] for _ in range(3)]
+            i_j_list = []
+            for i in tqdm(chunk, desc="Processing chunk idx i"):
+                for j in range(i, ds_size):
                     ds_idx_q = self.shuffle2idx[i + idx_offset]
                     ds_idx_r = self.shuffle2idx[j + idx_offset]
-                    gt_label = eval_retrieval_ids(ds_idx_q, ds_idx_r)
-                    sim_mat = self.calculate_similarity_matrix(
-                        x1=[
-                            [
-                                img_data[i],
-                                cca_img2lidar[i],
-                                cca_img2txt[i],
-                            ],
-                            [
-                                cca_lidar2img[i],
-                                lidar_data[i],
-                                cca_lidar2txt[i],
-                            ],
-                            [
-                                cca_txt2img[i],
-                                cca_txt2lidar[i],
-                                txt_data[i],
-                            ],
-                        ],
-                        x2=[
-                            [
-                                img_data[j],
-                                cca_img2lidar[j],
-                                cca_img2txt[j],
-                            ],
-                            [
-                                cca_lidar2img[j],
-                                lidar_data[j],
-                                cca_lidar2txt[j],
-                            ],
-                            [
-                                cca_txt2img[j],
-                                cca_txt2lidar[j],
-                                txt_data[j],
-                            ],
-                        ],
-                    )
-                    local_sim_mat_cali[(ds_idx_q, ds_idx_r)] = (sim_mat, gt_label)
-            return local_sim_mat_cali
+                    gt_label = ds_retrieval_cls.eval_retrieval_ids(ds_idx_q, ds_idx_r)
+
+                    ds_indices_q.append(ds_idx_q)
+                    ds_indices_r.append(ds_idx_r)
+                    gt_labels.append(gt_label)
+                    i_j_list.append((i, j))
+
+                    x1_3x3_data[0][0].append(img_data[i])
+                    x1_3x3_data[0][1].append(cca_img2lidar[i])
+                    x1_3x3_data[0][2].append(cca_img2txt[i])
+                    x2_3x3_data[0][0].append(img_data[j])
+                    x2_3x3_data[0][1].append(cca_img2lidar[j])
+                    x2_3x3_data[0][2].append(cca_img2txt[j])
+
+                    x1_3x3_data[1][0].append(cca_lidar2img[i])
+                    x1_3x3_data[1][1].append(lidar_data[i])
+                    x1_3x3_data[1][2].append(cca_lidar2txt[i])
+                    x2_3x3_data[1][0].append(cca_lidar2img[j])
+                    x2_3x3_data[1][1].append(lidar_data[j])
+                    x2_3x3_data[1][2].append(cca_lidar2txt[j])
+
+                    x1_3x3_data[2][0].append(cca_txt2img[i])
+                    x1_3x3_data[2][1].append(cca_txt2lidar[i])
+                    x1_3x3_data[2][2].append(txt_data[i])
+                    x2_3x3_data[2][0].append(cca_txt2img[j])
+                    x2_3x3_data[2][1].append(cca_txt2lidar[j])
+                    x2_3x3_data[2][2].append(txt_data[j])
+
+            for i in range(3):
+                for j in range(3):
+                    x1_3x3_data[i][j] = np.stack(x1_3x3_data[i][j], axis=0)
+                    x2_3x3_data[i][j] = np.stack(x2_3x3_data[i][j], axis=0)
+
+            sim_mat = self.calculate_similarity_matrix(x1_3x3_data, x2_3x3_data)
+            for result_idx in range(sim_mat.shape[0]):
+                process_sim_mat_cali[
+                    (ds_indices_q[result_idx], ds_indices_r[result_idx])
+                ] = (sim_mat[result_idx], gt_labels[result_idx])
+            return process_sim_mat_cali
 
         chunks = np.array_split(range(ds_size), num_workers)
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
@@ -335,14 +344,18 @@ class KITTIDataset:
                     desc="Processing chunks",
                 )
             )
-
-        for result in tqdm(results, desc="Updating sim_mat_cali"):
+        print("len of results: ", len(results))
+        for result in results:
             sim_mat_cali.update(result)
 
         return sim_mat_cali
 
     def generate_cali_data(self) -> None:
-        """Generate the calibration data. Save the similarity matrix in the format of (sim_score, gt_label)."""
+        """Generate the calibration data.
+
+        Calculate and save the similarity matrix in the format of (sim_score, gt_label).
+        Then, we run the calibration to get the conformal scores and obtain the prediction bands.
+        """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
             f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
@@ -352,27 +365,21 @@ class KITTIDataset:
             lidar_data = self.lidardata["cali"]
             txt_data = self.txtdata["cali"]
             idx_offset = self.train_size + self.test_size
-            sim_mat_cali = self.calculate_pairs_data_similarity(
+            self.sim_mat_cali = self.calculate_pairs_data_similarity(
                 img_data, lidar_data, txt_data, idx_offset
             )
             # save the calibration data in the format of (sim_score, gt_label)
             with sim_mat_path.open("wb") as f:
-                pickle.dump(sim_mat_cali, f)
+                pickle.dump(self.sim_mat_cali, f)
+        else:
+            self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
-    def run_calibration(self) -> None:
-        """Run the calibration. Calculate the nonconformity scores and conformal scores."""
-        sim_mat_cali = joblib.load(
-            Path(
-                self.cfg_dataset.paths.save_path,
-                f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
-            )
-        )
         self.pred_band = {}
         # calculate the nonconformity scores and conformal scores
         # for all pairs of modalities
         for i in range(3):
             for j in range(i, 3):
-                nc_scores_ij, _ = get_non_conformity_scores(sim_mat_cali, i, j)
+                nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)
 
                 # define calibration method with nc_scores
                 def calibrate_ij(score: float) -> callable:
@@ -381,12 +388,17 @@ class KITTIDataset:
                 self.pred_band[(i, j)] = calibrate_ij
 
     def generate_test_data(self) -> None:
-        """Generate the test data. Create the similarity matrix in the format of (sim_score, gt_label)."""
+        """Generate the test data. Create the similarity matrix in the format of (sim_score, gt_label).
+
+        This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
+        and use batch processing to speed up the process.
+        """
         sim_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
             f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
         )
         if not sim_mat_test_path.exists():
+            print("Generating test data...")
             img_data = self.imgdata["test"]
             lidar_data = self.lidardata["test"]
             txt_data = self.txtdata["test"]
@@ -399,13 +411,18 @@ class KITTIDataset:
         else:
             self.sim_mat_test = joblib.load(sim_mat_test_path.open("rb"))
 
-    def calculate_conformal_prob(self) -> None:
-        """Calculate the conformal probabilities for the test data's similarity matrix."""
+    def cal_test_conformal_prob(self) -> None:
+        """Calculate the conformal probabilities for the test data's similarity matrix.
+
+        This step is extremely time-consuming, so we cache the conformal probability matrix in the pickle format
+        and use batch processing to speed up the process.
+        """
         con_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
             f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
         )
         if not con_mat_test_path.exists():
+            print("Calculating conformal probabilities...")
             con_mat = {}
             # pass all entries in sim_mat_test to pred_band to get the conformal probabilities
             for (idx_q, idx_r), (sim_mat, gt_label) in self.sim_mat_test.items():
@@ -427,6 +444,7 @@ class KITTIDataset:
             f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
         )
         if not con_mat_test_miss_path.exists():
+            print("Calculating conformal probabilities for missing data...")
             self.con_mat_test_miss = {}
             # mask the conformal probability matrix
             for (idx_q, idx_r), (probs, gt_label) in self.con_mat_test.items():
@@ -459,8 +477,8 @@ class KITTIDataset:
             range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
 
         Returns:
-            retrieved_pairs: the retrieved pairs in the format of (idx_1, idx_2, conformal_probability, gt_label)
-                and in descending order of the conformal probability
+            retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
+                and in descending order of the conformal probability.
         """
         retrieved_pairs = []
         ds_idx_q = self.shuffle2idx[idx_q + idx_offset]
@@ -486,20 +504,27 @@ class KITTIDataset:
         retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
         return retrieved_pairs
 
-    def retrieve_data(self) -> np.ndarray:
+    def retrieve_data(self, mode: Literal["miss", "full"]) -> tuple[dict, dict, dict]:
         """Retrieve the data for retrieval task on the test set.
 
+        Args:
+            mode: the mode of the retrieval. "miss" for the retrieval on the missing data,
+                "full" for the retrieval on the full data.
+
         Returns:
-            similarity_matrix: the similarity matrix of a pair of data
+            recalls: dict of the recall at 1, 5, 20. {int: list}
+            precisions: dict of the precision at 1, 5, 20. {int: list}
+            maps: dict of the mean average precision at 5, 20. {int: list}
         """
-        # now we only use the missing data for retrieval
+        con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
+
         recalls = {1: [], 5: [], 20: []}
         precisions = {1: [], 5: [], 20: []}
         maps = {5: [], 20: []}
 
         for idx_q in range(self.test_size):
             retrieved_pairs = self.retrieve_one_data(
-                self.con_mat_test_miss, idx_q, self.train_size, self.test_size
+                con_mat, idx_q, self.train_size, self.test_size
             )
             top_1_hit = get_top_k(retrieved_pairs, k=1)
             top_5_hit = get_top_k(retrieved_pairs, k=5)

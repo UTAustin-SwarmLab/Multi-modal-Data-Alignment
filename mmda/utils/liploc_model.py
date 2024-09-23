@@ -312,51 +312,55 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
     return np.array(mAPs).mean(), np.array(precisions).mean(), np.array(recalls).mean()
 
 
-def eval_retrieval_ids(query_id: int, ref_id: int) -> int:
-    """Only for KITTI dataset.
-
-    Args:
-        query_id: int
-        ref_id: int
-
-    Returns:
-        int: 1 if the distance is less than the threshold, 0 otherwise
-    """
-    translation_poses = None
-    indices = None
-    for sequence in args.eval_sequence:
-        if len(sequence) == 2:  # KITTI
-            translation_pose = get_poses(sequence, CFG)
-        elif len(sequence) == 4:  # KITTI360
-            translation_pose, indice = get_poses(sequence, CFG)
-            all_filenames = all_filenames[indices.astype(int)]
-            # merge dictionary of indices
-            if indices is None:
-                indices = indice
+class KITTI_file_Retrieval:
+    def __init__(self):
+        self.args = tyro.cli(Args)
+        self.translation_poses = {}
+        indices = {}
+        for sequence in self.args.eval_sequence:
+            if len(sequence) == 2:  # KITTI
+                translation_pose = get_poses(sequence, CFG)
+            elif len(sequence) == 4:  # KITTI360
+                translation_pose, indice = get_poses(sequence, CFG)
+                # merge dictionary of indicess
+                indices[sequence] = indice
             else:
-                indices.update(indice)
-        else:
-            raise ValueError("Invalid sequence")
-        # concatenate all translation poses
-        if translation_poses is None:
-            translation_poses = translation_pose
-        else:
-            translation_poses = np.concatenate(
-                (translation_poses, translation_pose), axis=0
-            )
+                raise ValueError("Invalid sequence")
+            # concatenate all translation poses
+            self.translation_poses[int(sequence)] = translation_pose
 
-    all_filenames = load_eval_filenames()
-    queryimagefilename = all_filenames[query_id]
-    pred_filename = all_filenames[ref_id]
-    predictedPose = int(pred_filename.split("/")[1])
-    queryPose = int(queryimagefilename.split("/")[1])
-    # query_predict.append([queryPose, predictedPose])
-    # only considers x and y coordinates of a prediction
-    distance = math.sqrt(
-        (translation_poses[queryPose][1] - translation_poses[predictedPose][1]) ** 2
-        + (translation_poses[queryPose][2] - translation_poses[predictedPose][2]) ** 2
-    )
-    return int(distance < args.threshold_dist)
+        self.all_filenames = load_eval_filenames()
+
+    def eval_retrieval_ids(self, query_id: int, ref_id: int) -> int:
+        """Only for KITTI dataset.
+
+        Args:
+            query_id: int
+            ref_id: int
+
+        Returns:
+            int: 1 if the distance is less than the threshold, 0 otherwise
+        """
+        queryimagefilename = self.all_filenames[query_id]
+        pred_filename = self.all_filenames[ref_id]
+        query_sequence = int(queryimagefilename.split("/")[0])
+        pred_sequence = int(pred_filename.split("/")[0])
+        predictedPose = int(pred_filename.split("/")[1])
+        queryPose = int(queryimagefilename.split("/")[1])
+        # only considers x and y coordinates of a prediction
+        distance = math.sqrt(
+            (
+                self.translation_poses[query_sequence][queryPose][1]
+                - self.translation_poses[pred_sequence][predictedPose][1]
+            )
+            ** 2
+            + (
+                self.translation_poses[query_sequence][queryPose][2]
+                - self.translation_poses[pred_sequence][predictedPose][2]
+            )
+            ** 2
+        )
+        return int(distance < args.threshold_dist)
 
 
 def get_top_k(retrieved_pairs: list[tuple[int, int, float]], k: int) -> list[bool]:
@@ -389,6 +393,8 @@ if __name__ == "__main__":
     query_emb = np.random.randint(0, 100, size=(13, 256))
     # ref_emb = np.zeros((12097, 256))
     # query_emb = np.zeros((13, 256))
-    eval_liploc_query(ref_emb, query_emb, query_ids=np.arange(13), top_k=5)
+    # eval_liploc_query(ref_emb, query_emb, query_ids=np.arange(13), top_k=5)
+    a = LiplocRetrieval()
+    a.eval_retrieval_ids(query_id=0, ref_id=1)
 
 # CUDA_VISIBLE_DEVICES=1 poetry run python ./mmda/utils/liploc_model.py
