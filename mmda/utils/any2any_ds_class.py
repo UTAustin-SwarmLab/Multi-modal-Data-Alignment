@@ -291,7 +291,7 @@ class KITTIDataset:
             x1_3x3_data = [[[] for _ in range(3)] for _ in range(3)]
             x2_3x3_data = [[[] for _ in range(3)] for _ in range(3)]
             i_j_list = []
-            for i in tqdm(chunk, desc="Processing chunk idx i"):
+            for i in tqdm(chunk, desc="Processing chunk"):
                 for j in range(i, ds_size):
                     ds_idx_q = self.shuffle2idx[i + idx_offset]
                     ds_idx_r = self.shuffle2idx[j + idx_offset]
@@ -375,8 +375,7 @@ class KITTIDataset:
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
         self.pred_band = {}
-        # calculate the nonconformity scores and conformal scores
-        # for all pairs of modalities
+        # calculate the nonconformity scores and conformal scores for all pairs of modalities
         for i in range(3):
             for j in range(i, 3):
                 nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)

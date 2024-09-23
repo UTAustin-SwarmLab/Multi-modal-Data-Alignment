@@ -27,12 +27,12 @@ def main(cfg: DictConfig) -> None:
     print(f"Recall@1: {recalls[1]}, Recall@5: {recalls[5]}, Recall@20: {recalls[20]}")
 
     full_maps, full_precisions, full_recalls = any2any_retrieval(cfg, mode="full")
-    print(f"Full mAP@5: {full_maps[5]}, Full mAP@20: {full_maps[20]}")
+    print(f"mAP@5: {full_maps[5]}, mAP@20: {full_maps[20]}")
     print(
-        f"Full Precision@1: {full_precisions[1]}, Full Precision@5: {full_precisions[5]}, Full Precision@20: {full_precisions[20]}"
+        f"Precision@1: {full_precisions[1]}, Precision@5: {full_precisions[5]}, Precision@20: {full_precisions[20]}"
     )
     print(
-        f"Full Recall@1: {full_recalls[1]}, Full Recall@5: {full_recalls[5]}, Full Recall@20: {full_recalls[20]}"
+        f"Recall@1: {full_recalls[1]}, Recall@5: {full_recalls[5]}, Recall@20: {full_recalls[20]}"
     )
 
     # write the results to a csv file
