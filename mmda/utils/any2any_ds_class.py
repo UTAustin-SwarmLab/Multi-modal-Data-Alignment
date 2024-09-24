@@ -1,5 +1,6 @@
 """Dataset class for any2any retrieval task."""
 
+import copy
 import pickle
 from pathlib import Path
 from typing import Literal
@@ -81,7 +82,7 @@ class KITTIDataset:
 
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
-        self.mask = {}
+        self.mask = {}  # modality -> masked idx
         self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
         self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
         self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
@@ -452,7 +453,7 @@ class KITTIDataset:
             f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
         )
         if not con_mat_test_miss_path.exists():
-            self.con_mat_test_miss = self.con_mat_test.copy()
+            self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
             for (idx_q, idx_r), (_, _) in tqdm(
                 self.con_mat_test.items(),
                 desc="Calculating conformal probabilities for missing data",
@@ -524,6 +525,7 @@ class KITTIDataset:
             precisions: dict of the precision at 1, 5, 20. {int: list}
             maps: dict of the mean average precision at 5, 20. {int: list}
         """
+        assert mode in ["miss", "full"], "mode must be 'miss' or 'full'"
         con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
 
         recalls = {1: [], 5: [], 20: []}
