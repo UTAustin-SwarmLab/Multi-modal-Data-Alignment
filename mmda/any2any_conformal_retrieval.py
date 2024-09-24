@@ -19,14 +19,15 @@ def main(cfg: DictConfig) -> None:
     assert (
         cfg.dataset in cfg.any_retrieval_datasets
     ), f"{cfg.dataset} is not for any2any retrieval."
-    maps, precisions, recalls = any2any_retrieval(cfg, mode="miss")
+    (maps, precisions, recalls), (full_maps, full_precisions, full_recalls) = (
+        any2any_retrieval(cfg)
+    )
+
     print(f"mAP@5: {maps[5]}, mAP@20: {maps[20]}")
     print(
         f"Precision@1: {precisions[1]}, Precision@5: {precisions[5]}, Precision@20: {precisions[20]}"
     )
     print(f"Recall@1: {recalls[1]}, Recall@5: {recalls[5]}, Recall@20: {recalls[20]}")
-
-    full_maps, full_precisions, full_recalls = any2any_retrieval(cfg, mode="full")
     print(f"mAP@5: {full_maps[5]}, mAP@20: {full_maps[20]}")
     print(
         f"Precision@1: {full_precisions[1]}, Precision@5: {full_precisions[5]}, Precision@20: {full_precisions[20]}"

@@ -394,7 +394,7 @@ if __name__ == "__main__":
     # ref_emb = np.zeros((12097, 256))
     # query_emb = np.zeros((13, 256))
     # eval_liploc_query(ref_emb, query_emb, query_ids=np.arange(13), top_k=5)
-    a = LiplocRetrieval()
+    a = KITTI_file_Retrieval()
     a.eval_retrieval_ids(query_id=0, ref_id=1)
 
 # CUDA_VISIBLE_DEVICES=1 poetry run python ./mmda/utils/liploc_model.py
