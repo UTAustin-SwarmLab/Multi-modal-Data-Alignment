@@ -6,7 +6,9 @@ import numpy as np
 import torch
 from omegaconf import DictConfig
 
+import hydra
 from mmda.baselines.asif_core import zero_shot_classification
+from mmda.utils.any2any_ds_class import KITTIDataset
 from mmda.utils.dataset_utils import load_flickr
 
 
@@ -24,7 +26,7 @@ class BaseRetrievalDataset:
         self.img_path = None
         self.txt_descriptions = None
         self.num_gt = None
-        self.img2text = None
+        self.img2txt = None
         self.test_img_ids = None
 
     def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
@@ -79,11 +81,11 @@ class BaseRetrievalDataset:
             gt_img_id = self.test_img_ids[idx]
             test_datapoint = self.testdata1[idx, :].reshape(1, -1)
             # copy the test text to the number of images
-            test_text_emb = np.repeat(test_datapoint, self.testdata2.shape[0], axis=0)
+            test_txt_emb = np.repeat(test_datapoint, self.testdata2.shape[0], axis=0)
             sim_score = (
                 sim_score_matrix[idx, :]
                 if sim_fn == "asif"
-                else sim_fn(test_text_emb, self.testdata2)
+                else sim_fn(test_txt_emb, self.testdata2)
             )
             # sort the similarity score in descending order and get the index
             sim_top_idx = np.argpartition(sim_score, -self.num_gt)[-self.num_gt :]
@@ -131,7 +133,7 @@ class FlickrDataset(BaseRetrievalDataset):
         self.img_path, self.txt_descriptions, self.splits, self.img_ids = load_flickr(
             cfg["flickr"]
         )
-        self.img2text = cfg["flickr"].img2text
+        self.img2txt = cfg["flickr"].img2txt
 
     def preprocess_retrieval_data(self, data1: np.ndarray, data2: np.ndarray) -> None:
         """Preprocess the data for retrieval.
@@ -150,7 +152,7 @@ class FlickrDataset(BaseRetrievalDataset):
         ), f"{data1.shape[0]}!={self.img_ids.shape[0]}"
 
         super().preprocess_retrieval_data(data1, data2)
-        if self.img2text:  # image to retrieve text
+        if self.img2txt:  # image to retrieve text
             self.data1, self.data2 = data1, data2
             self.num_gt = 5  # Total number of relevant texts in the database
         else:  # text to retrieve image
@@ -172,17 +174,40 @@ class FlickrDataset(BaseRetrievalDataset):
         self.test_img_ids = self.img_ids[self.test_idx]
 
 
-def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset:
+def load_retrieval_dataset(cfg: DictConfig) -> FlickrDataset | KITTIDataset:
     """Load the dataset for retrieval task.
 
     Args:
         cfg: configuration file
+
     Returns:
         dataset: dataset class
     """
     if cfg.dataset == "flickr":
         dataset = FlickrDataset(cfg)
+    elif cfg.dataset == "KITTI":
+        dataset = KITTIDataset(cfg)
     else:
-        msg = f"Dataset {cfg.dataset} not supported"
-        raise ValueError(msg)
+        error_message = (
+            f"{cfg.dataset} is not supported in {cfg.any_retrieval_datasets}."
+        )
+        raise ValueError(error_message)
+
     return dataset
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="main")
+def test(cfg: DictConfig) -> None:
+    """Test the retrieval dataset class.
+
+    Args:
+        cfg: configuration file
+    """
+    ds = KITTIDataset(cfg)
+    ds.preprocess_retrieval_data()
+    ds.train_crossmodal_similarity()
+    ds.generate_cali_data()
+
+
+if __name__ == "__main__":
+    test()

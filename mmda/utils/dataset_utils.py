@@ -11,6 +11,45 @@ import pandas as pd
 from omegaconf import DictConfig
 
 import hydra
+from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
+from mmda.utils.liploc_model import CFG, load_eval_filenames
+
+
+def load_kitti(
+    cfg_dataset: DictConfig,
+) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the KITTI dataset (https://www.cvlibs.net/datasets/kitti/eval_odometry.php).
+
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        img_paths: list of image absolute paths
+        lidar_paths: list of LIDAR absolute paths
+        text_descriptions: list of text descriptions
+    """
+    filenames = load_eval_filenames()
+    transforms = []
+    dataset = KITTIBothDataset(
+        transforms=transforms,
+        CFG=CFG,
+        filenames=filenames,
+    )
+    img_paths, lidar_paths = dataset.get_image_lidar_paths()
+    # load pickle file
+    with Path(
+        cfg_dataset.paths.dataset_path + "KITTI_llava-v1.5-13b_captions.pkl"
+    ).open("rb") as f:
+        path_text_descriptions = joblib.load(f)
+    # merge outputs of multiprocesses
+    merged_path_text_descriptions = []
+    if len(path_text_descriptions) <= 10:  # noqa: PLR2004
+        for multi_thread_results in path_text_descriptions:
+            merged_path_text_descriptions += multi_thread_results
+    else:
+        merged_path_text_descriptions = path_text_descriptions
+    text_descriptions = [x[1] for x in merged_path_text_descriptions]
+    return img_paths, lidar_paths, text_descriptions
 
 
 def load_leafy_spurge(
@@ -107,7 +146,6 @@ def load_pitts(
         cfg_dataset.paths.dataset_path + "pitts_llava-v1.5-13b_captions.pkl"
     ).open("rb") as f:
         path_text_descriptions_threads = joblib.load(f)
-    # /store/pohan/datasets/pitts250k/000/000000_pitch1_yaw1.jpg
     path_text_descriptions = []
     for i in range(len(path_text_descriptions_threads)):
         path_text_descriptions.extend(path_text_descriptions_threads[i])

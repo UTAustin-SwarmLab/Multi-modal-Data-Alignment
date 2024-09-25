@@ -66,8 +66,7 @@ def asif_classification(
         train_test_ratio: ratio of training data
         shuffle_ratio: ratio of shuffling data
     Returns:
-        maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
-        precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
+        data_size2accuracy: {data_size: accuracy}
     """
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)

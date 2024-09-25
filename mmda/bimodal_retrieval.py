@@ -1,4 +1,4 @@
-"""This script is used to detect mislabeled data in the bimodal datasets."""
+"""This script is used to retrieve bimodal datasets."""
 
 from pathlib import Path
 

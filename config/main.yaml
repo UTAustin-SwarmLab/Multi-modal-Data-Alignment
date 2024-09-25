@@ -6,12 +6,13 @@ train_test_ratio: 0.7
 noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
-dataset: "leafy_spurge"
+dataset: "KITTI"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
+any_retrieval_datasets: [KITTI]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
 classification_datasets: [imagenet, leafy_spurge]
@@ -24,6 +25,19 @@ dataset_size: {
   pitts: 17608,
   flickr: 155070
 }
+
+KITTI:
+  sim_dim: 256 # dimension of the CCA transformation
+  retrieval_dim: 200 # dimension of the similarity score
+  equal_weights: False
+  img_encoder: "liploc"
+  lidar_encoder: "liploc"
+  text_encoder: "gtr"
+  mask_ratio: 2 # ratio of the missing data : size of test data
+  paths:
+    dataset_path: "/nas/pohan/datasets/KITTI/"
+    save_path: ${KITTI.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/KITTI/
 
 sop:
   sim_dim: 150 # dimension of the similarity score and the CCA transformation
@@ -125,14 +139,14 @@ hydra:
 llava:
   model_path: '/nas/omama/llava-v1.5-13b'
   model_base: null
-  num_gpus: 2
+  num_gpus: 6
   conv_mode: null
   temperature: 0.2
   max_new_tokens: 512
   load_8bit: True
   load_4bit: False
   debug: False
-  num_processes: 2
+  num_processes: 6
 
 asif:  # Hyperparameters of asif baseline
   non_zeros: 800
@@ -144,3 +158,4 @@ asif:  # Hyperparameters of asif baseline
 # gtr: 768
 # dino: 1536
 # clip: 1280
+# liploc: 256

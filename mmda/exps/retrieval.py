@@ -64,7 +64,7 @@ def clip_like_retrieval(cfg: DictConfig) -> tuple[dict[float:float], dict[float:
     Args:
         cfg: configuration file
     Returns:
-        maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
+        map: mAP
         precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
     """
     cfg_dataset, data1, data2 = load_clip_like_data(cfg)
@@ -79,7 +79,7 @@ def asif_retrieval(cfg: DictConfig) -> tuple[dict[float:float], dict[float:float
     Args:
         cfg: configuration file
     Returns:
-        maps: {1: recall@1, 5:recall@5} if img2text else {1:recall@1}
+        map: mAP
         precisions: {1: precision@1, 5:precision@5} if img2text else {1:precision@1}
     """
     cfg_dataset, data1, data2 = load_two_encoder_data(cfg)

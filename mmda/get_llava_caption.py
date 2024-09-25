@@ -7,6 +7,8 @@ import joblib
 from omegaconf import DictConfig
 
 import hydra
+from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
+from mmda.utils.liploc_model import CFG, load_eval_filenames
 from mmda.utils.llava_utils import llava_caption
 
 
@@ -24,6 +26,7 @@ def get_caption(cfg: DictConfig) -> None:
         )
         for path_text in path_text_descriptions:
             path_text[0] = path_text[0].replace("/store/", "/nas/")
+        img_paths = [path_text[0] for path_text in path_text_descriptions]
     elif cfg.dataset == "pitts":
         # val set
         val_path_text_descriptions = joblib.load(
@@ -37,12 +40,20 @@ def get_caption(cfg: DictConfig) -> None:
                 .replace("TextMapReduce", "datasets")
             )
         path_text_descriptions = val_path_text_descriptions
+        img_paths = [path_text[0] for path_text in path_text_descriptions]
+    elif cfg.dataset == "KITTI":
+        filenames = load_eval_filenames()
+        dataset = KITTIBothDataset(
+            transforms=[],
+            CFG=CFG,
+            filenames=filenames,
+        )
+        img_paths, lidar_paths = dataset.get_image_lidar_paths()
     # TODO: add more datasets
     else:
         msg = f"Dataset {cfg.dataset} not supported."
         raise ValueError(msg)
 
-    img_paths = [path_text[0] for path_text in path_text_descriptions]
     # query llava without shuffling
     llava_captions = llava_caption(cfg, img_paths)
     model_name = cfg.llava.model_path.split("/")[-1]
@@ -57,4 +68,4 @@ def get_caption(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     get_caption()
-# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 poetry run python mmda/get_llava_caption.py
+# CUDA_VISIBLE_DEVICES=1,2,3,4,5,6 poetry run python mmda/get_llava_caption.py
