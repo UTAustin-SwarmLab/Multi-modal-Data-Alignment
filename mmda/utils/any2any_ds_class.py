@@ -602,12 +602,12 @@ class KITTIDataset:
                     retrieved_pairs_ij = sorted(
                         retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
                     )
-                    top_5_hit = get_top_k(retrieved_pairs_ij, k=5)
-                    recall_5 = 1 if any(top_5_hit) else 0
-                    precision_5 = sum(top_5_hit) / len(top_5_hit)
-                    recalls[modal_pair].append(recall_5)
-                    precisions[modal_pair].append(precision_5)
-                    maps[modal_pair].append(precision_5)
+                    top_1_hit = get_top_k(retrieved_pairs_ij, k=1)
+                    recall_1 = 1 if any(top_1_hit) else 0
+                    precision_1 = sum(top_1_hit) / len(top_1_hit)
+                    recalls[modal_pair].append(recall_1)
+                    precisions[modal_pair].append(precision_1)
+                    maps[modal_pair].append(precision_1)
 
         for modal_pair in recalls:
             recalls[modal_pair] = np.mean(recalls[modal_pair])

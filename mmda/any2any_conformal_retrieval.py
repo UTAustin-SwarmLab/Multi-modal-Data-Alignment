@@ -26,7 +26,7 @@ def main(cfg: DictConfig) -> None:
     (
         (maps, precisions, recalls),
         (full_maps, full_precisions, full_recalls),
-        (single5_aps, single5_precisions, single5_recalls),
+        (single1_aps, single1_precisions, single1_recalls),
     ) = any2any_retrieval(cfg)
 
     # write the results to a csv file
@@ -53,17 +53,17 @@ def main(cfg: DictConfig) -> None:
     df.to_csv(df_path, index=False)
 
     # plot heatmap of single modality retrieval
-    single5_recalls = np.array(list(single5_recalls.values())).reshape(3, 3) * 100
+    single1_recalls = np.array(list(single1_recalls.values())).reshape(3, 3) * 100
     plt.figure(figsize=(8, 8))
     ax = sns.heatmap(
-        single5_recalls,
+        single1_recalls,
         fmt=".1f",
         cmap="YlGnBu",
         cbar=False,
         square=True,
         xticklabels=["Image", "Lidar", "Text"],
         yticklabels=["Image", "Lidar", "Text"],
-        annot=single5_recalls,
+        annot=True,
         annot_kws={"size": 16, "weight": "bold"},
     )
     ax.xaxis.tick_top()
@@ -73,7 +73,7 @@ def main(cfg: DictConfig) -> None:
     plt.yticks(fontsize=16)
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
-        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
+        / f"single_modal_recall1_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
     )
 
 
