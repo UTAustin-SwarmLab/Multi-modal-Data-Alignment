@@ -369,6 +369,7 @@ class KITTIDataset:
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
         self.pred_band = {}
+        print("Calculating nonconformity scores...")
         # calculate the nonconformity scores and conformal scores for all pairs of modalities
         for i in range(3):
             for j in range(i, 3):
@@ -505,7 +506,7 @@ class KITTIDataset:
             ) in con_mat, (
                 f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
             )
-            probs = con_mat[(idx_1, idx_2)][0]
+            probs = con_mat[(idx_1, idx_2)][0]  # 3x3 matrix
             retrieved_pairs.append(
                 (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
             )
