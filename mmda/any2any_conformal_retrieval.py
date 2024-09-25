@@ -2,7 +2,10 @@
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 from omegaconf import DictConfig
 
 import hydra
@@ -16,32 +19,21 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg: config file
     """
+    cfg_dataset = cfg[cfg.dataset]
     assert (
         cfg.dataset in cfg.any_retrieval_datasets
     ), f"{cfg.dataset} is not for any2any retrieval."
-    (maps, precisions, recalls), (full_maps, full_precisions, full_recalls) = (
-        any2any_retrieval(cfg)
-    )
-
-    print(f"mAP@5: {maps[5]}, mAP@20: {maps[20]}")
-    print(
-        f"Precision@1: {precisions[1]}, Precision@5: {precisions[5]}, Precision@20: {precisions[20]}"
-    )
-    print(f"Recall@1: {recalls[1]}, Recall@5: {recalls[5]}, Recall@20: {recalls[20]}")
-    print(f"mAP@5: {full_maps[5]}, mAP@20: {full_maps[20]}")
-    print(
-        f"Precision@1: {full_precisions[1]}, Precision@5: {full_precisions[5]}, Precision@20: {full_precisions[20]}"
-    )
-    print(
-        f"Recall@1: {full_recalls[1]}, Recall@5: {full_recalls[5]}, Recall@20: {full_recalls[20]}"
-    )
+    (
+        (maps, precisions, recalls),
+        (full_maps, full_precisions, full_recalls),
+        (single5_aps, single5_precisions, single5_recalls),
+    ) = any2any_retrieval(cfg)
 
     # write the results to a csv file
-    cfg_dataset = cfg[cfg.dataset]
     data = {
         "method": [
-            "Conformal Retrieval (Missing Data)",
-            "Conformal Retrieval (Full Data)",
+            "Conformal Retrieval (Missing)",
+            "Conformal Retrieval (Full)",
         ],
         "mAP@5": [maps[5], full_maps[5]],
         "mAP@20": [maps[20], full_maps[20]],
@@ -59,6 +51,30 @@ def main(cfg: DictConfig) -> None:
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
+
+    # plot heatmap of single modality retrieval
+    single5_recalls = np.array(list(single5_recalls.values())).reshape(3, 3) * 100
+    plt.figure(figsize=(8, 8))
+    ax = sns.heatmap(
+        single5_recalls,
+        fmt=".1f",
+        cmap="YlGnBu",
+        cbar=False,
+        square=True,
+        xticklabels=["Image", "Lidar", "Text"],
+        yticklabels=["Image", "Lidar", "Text"],
+        annot=single5_recalls,
+        annot_kws={"size": 16, "weight": "bold"},
+    )
+    ax.xaxis.tick_top()
+    plt.xlabel("Reference modality", fontsize=18)
+    plt.ylabel("Query modality", fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.savefig(
+        Path(cfg_dataset.paths.plots_path)
+        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
+    )
 
 
 if __name__ == "__main__":

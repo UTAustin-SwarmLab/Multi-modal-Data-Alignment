@@ -373,10 +373,7 @@ def get_top_k(retrieved_pairs: list[tuple[int, int, float]], k: int) -> list[boo
     top_k_hit = []
     preds = retrieved_pairs[:k]
     for _, _, _, gt_label in preds:
-        if gt_label == 1:
-            top_k_hit.append(True)
-        else:
-            top_k_hit.append(False)
+        top_k_hit.append(bool(gt_label))
     return top_k_hit
 
 

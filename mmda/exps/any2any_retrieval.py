@@ -23,30 +23,39 @@ def any2any_retrieval(cfg: DictConfig) -> tuple[list, list, list]:
     ds.get_cali_data()
     ds.get_test_data()
     ds.cal_test_conformal_prob()
-    recalls, precisions, aps = ds.retrieve_data(mode="miss")
-    full_recalls, full_precisions, full_aps = ds.retrieve_data(mode="full")
+    single5_aps, single5_precisions, single5_recalls = ds.retrieve_data(mode="single")
+    aps, precisions, recalls = ds.retrieve_data(mode="miss")
+    full_aps, full_precisions, full_recalls = ds.retrieve_data(mode="full")
     return (
-        {5: np.mean(aps[5]), 20: np.mean(aps[20])},
-        {
-            1: np.mean(precisions[1]),
-            5: np.mean(precisions[5]),
-            20: np.mean(precisions[20]),
-        },
-        {
-            1: np.mean(recalls[1]),
-            5: np.mean(recalls[5]),
-            20: np.mean(recalls[20]),
-        },
-    ), (
-        {5: np.mean(full_aps[5]), 20: np.mean(full_aps[20])},
-        {
-            1: np.mean(full_precisions[1]),
-            5: np.mean(full_precisions[5]),
-            20: np.mean(full_precisions[20]),
-        },
-        {
-            1: np.mean(full_recalls[1]),
-            5: np.mean(full_recalls[5]),
-            20: np.mean(full_recalls[20]),
-        },
+        (
+            {5: np.mean(aps[5]), 20: np.mean(aps[20])},
+            {
+                1: np.mean(precisions[1]),
+                5: np.mean(precisions[5]),
+                20: np.mean(precisions[20]),
+            },
+            {
+                1: np.mean(recalls[1]),
+                5: np.mean(recalls[5]),
+                20: np.mean(recalls[20]),
+            },
+        ),
+        (
+            {5: np.mean(full_aps[5]), 20: np.mean(full_aps[20])},
+            {
+                1: np.mean(full_precisions[1]),
+                5: np.mean(full_precisions[5]),
+                20: np.mean(full_precisions[20]),
+            },
+            {
+                1: np.mean(full_recalls[1]),
+                5: np.mean(full_recalls[5]),
+                20: np.mean(full_recalls[20]),
+            },
+        ),
+        (
+            single5_aps,
+            single5_precisions,
+            single5_recalls,
+        ),
     )

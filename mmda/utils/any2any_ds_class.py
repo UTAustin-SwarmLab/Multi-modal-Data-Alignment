@@ -478,6 +478,7 @@ class KITTIDataset:
         idx_q: int,
         idx_offset: int,
         range_r: int,
+        single_modal: bool = False,
     ) -> np.ndarray:
         """Retrieve one data from the similarity matrix.
 
@@ -486,6 +487,7 @@ class KITTIDataset:
             idx_q: the index of the query data
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
             range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
+            single_modal: whether to retrieve the single modality data.
 
         Returns:
             retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
@@ -507,64 +509,108 @@ class KITTIDataset:
                 f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
             )
             probs = con_mat[(idx_1, idx_2)][0]  # 3x3 matrix
-            retrieved_pairs.append(
-                (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
-            )
-        # sort the retrieved pairs by the conformal probability in descending order
-        retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
+            # move all the values in probs besides modal_pair to the first dimension
+            if not single_modal:  # full modality retrieval
+                retrieved_pairs.append(
+                    (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
+                )
+                # sort the retrieved pairs by the conformal probability in descending order
+                retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
+            else:  # single modality retrieval
+                retrieved_pairs.append(
+                    (idx_1, idx_2, probs, con_mat[(idx_1, idx_2)][1])
+                )
         return retrieved_pairs
 
-    def retrieve_data(self, mode: Literal["miss", "full"]) -> tuple[dict, dict, dict]:
+    def retrieve_data(
+        self,
+        mode: Literal["miss", "full", "single"],
+    ) -> tuple[dict, dict, dict]:
         """Retrieve the data for retrieval task on the test set.
 
         Args:
             mode: the mode of the retrieval. "miss" for the retrieval on the missing data,
-                "full" for the retrieval on the full data.
+                "full" for the retrieval on the full data, "single" for the retrieval on single pair of modalities.
 
         Returns:
             recalls: dict of the recall at 1, 5, 20. {int: list}
             precisions: dict of the precision at 1, 5, 20. {int: list}
             maps: dict of the mean average precision at 5, 20. {int: list}
         """
-        assert mode in ["miss", "full"], "mode must be 'miss' or 'full'"
+        assert mode in [
+            "miss",
+            "full",
+            "single",
+        ], f"mode must be 'miss' or 'full' or 'single', got {mode}"
+
         con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
 
-        recalls = {1: [], 5: [], 20: []}
-        precisions = {1: [], 5: [], 20: []}
-        maps = {5: [], 20: []}
+        if mode != "single":
+            recalls = {1: [], 5: [], 20: []}
+            precisions = {1: [], 5: [], 20: []}
+            maps = {5: [], 20: []}
 
+            for idx_q in tqdm(
+                range(self.test_size), desc="Retrieving data", leave=True
+            ):
+                retrieved_pairs = self.retrieve_one_data(
+                    con_mat, idx_q, self.train_size, self.test_size
+                )
+                top_1_hit = get_top_k(retrieved_pairs, k=1)
+                top_5_hit = get_top_k(retrieved_pairs, k=5)
+                top_20_hit = get_top_k(retrieved_pairs, k=20)
+
+                # calculate recall@1, recall@5, recall@20
+                recall_1 = 1 if any(top_1_hit) else 0
+                recall_5 = 1 if any(top_5_hit) else 0
+                recall_20 = 1 if any(top_20_hit) else 0
+
+                # calculate precision@1, precision@5, precision@20
+                precision_1 = sum(top_1_hit) / len(top_1_hit)
+                precision_5 = sum(top_5_hit) / len(top_5_hit)
+                precision_20 = sum(top_20_hit) / len(top_20_hit)
+
+                # calculate AP@5, AP@20
+                precisions_at_5 = np.cumsum(top_5_hit) / (np.arange(5) + 1)  # array
+                ap_5 = np.sum(precisions_at_5 * top_5_hit) / 5
+                precisions_at_20 = np.cumsum(top_20_hit) / (np.arange(20) + 1)  # array
+                ap_20 = np.sum(precisions_at_20 * top_20_hit) / 20
+
+                # record the results
+                recalls[1].append(recall_1)
+                recalls[5].append(recall_5)
+                recalls[20].append(recall_20)
+                precisions[1].append(precision_1)
+                precisions[5].append(precision_5)
+                precisions[20].append(precision_20)
+                maps[5].append(ap_5)
+                maps[20].append(ap_20)
+            return maps, precisions, recalls
+
+        # if mode is "single"
+        recalls = {(i, j): [] for i in range(3) for j in range(3)}
+        precisions = {(i, j): [] for i in range(3) for j in range(3)}
+        maps = {(i, j): [] for i in range(3) for j in range(3)}
         for idx_q in tqdm(range(self.test_size), desc="Retrieving data", leave=True):
             retrieved_pairs = self.retrieve_one_data(
-                con_mat, idx_q, self.train_size, self.test_size
+                con_mat, idx_q, self.train_size, self.test_size, single_modal=True
             )
-            top_1_hit = get_top_k(retrieved_pairs, k=1)
-            top_5_hit = get_top_k(retrieved_pairs, k=5)
-            top_20_hit = get_top_k(retrieved_pairs, k=20)
+            for i in range(3):
+                for j in range(3):
+                    # sort the retrieved pairs not inplace
+                    modal_pair = (i, j)
+                    retrieved_pairs_ij = sorted(
+                        retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
+                    )
+                    top_5_hit = get_top_k(retrieved_pairs_ij, k=5)
+                    recall_5 = 1 if any(top_5_hit) else 0
+                    precision_5 = sum(top_5_hit) / len(top_5_hit)
+                    recalls[modal_pair].append(recall_5)
+                    precisions[modal_pair].append(precision_5)
+                    maps[modal_pair].append(precision_5)
 
-            # calculate recall@1, recall@5, recall@20
-            recall_1 = 1 if any(top_1_hit) else 0
-            recall_5 = 1 if any(top_5_hit) else 0
-            recall_20 = 1 if any(top_20_hit) else 0
-
-            # calculate precision@1, precision@5, precision@20
-            precision_1 = sum(top_1_hit) / len(top_1_hit)
-            precision_5 = sum(top_5_hit) / len(top_5_hit)
-            precision_20 = sum(top_20_hit) / len(top_20_hit)
-
-            # calculate AP@5, AP@20
-            precisions_at_5 = np.cumsum(top_5_hit) / (np.arange(5) + 1)  # array
-            ap_5 = np.sum(precisions_at_5 * top_5_hit) / 20
-            precisions_at_20 = np.cumsum(top_20_hit) / (np.arange(20) + 1)  # array
-            ap_20 = np.sum(precisions_at_20 * top_20_hit) / 20
-
-            # record the results
-            recalls[1].append(recall_1)
-            recalls[5].append(recall_5)
-            recalls[20].append(recall_20)
-            precisions[1].append(precision_1)
-            precisions[5].append(precision_5)
-            precisions[20].append(precision_20)
-            maps[5].append(ap_5)
-            maps[20].append(ap_20)
-
-        return recalls, precisions, maps
+        for modal_pair in recalls:
+            recalls[modal_pair] = np.mean(recalls[modal_pair])
+            precisions[modal_pair] = np.mean(precisions[modal_pair])
+            maps[modal_pair] = np.mean(maps[modal_pair])
+        return maps, precisions, recalls
