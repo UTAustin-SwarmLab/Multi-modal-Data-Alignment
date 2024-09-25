@@ -69,6 +69,7 @@ yt-dlp = "*"
 tqdm = "*"
 timm = "*"
 albumentations = "*"
+kaggle = "*"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
