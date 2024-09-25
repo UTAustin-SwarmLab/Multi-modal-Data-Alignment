@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:
     df = pd.DataFrame(data)
     df_path = (
         Path(cfg_dataset.paths.plots_path)
-        / f"any2any_retrieval_{cfg_dataset.sim_dim}_{cfg_dataset.mask_ratio}.csv"
+        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
