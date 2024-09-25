@@ -68,7 +68,6 @@ sentence-transformers = "2.4.0"
 yt-dlp = "*"
 tqdm = "*"
 timm = "*"
-tyro = "^0.5.3"
 albumentations = "*"
 
 [project.optional-dependencies]

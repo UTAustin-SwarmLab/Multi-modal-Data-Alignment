@@ -4,8 +4,6 @@
 
 import math
 from pathlib import Path
-import tyro
-from dataclasses import dataclass
 import numpy as np
 import torch
 from tqdm.autonotebook import tqdm
@@ -76,7 +74,6 @@ class CFG:
     )
 
 
-@dataclass
 class Args:
     expid: str = "exp_default"
     eval_sequence = ["04", "05", "06", "07", "08", "09", "10"]
@@ -90,7 +87,6 @@ get_topk = importlib.import_module(model_import_path).get_topk
 get_dataloader = importlib.import_module(dataloader_import_path).get_dataloader
 get_filenames = importlib.import_module(dataloader_import_path).get_filenames
 get_poses = importlib.import_module(dataloader_import_path).get_poses
-args = tyro.cli(Args)
 
 
 def get_lidar_image_embeddings(filenames, model):
@@ -137,7 +133,7 @@ def load_liploc_model():
 
 def load_eval_filenames():
     all_filenames = np.array([])
-    for sequence in args.eval_sequence:
+    for sequence in Args.eval_sequence:
         filenames = get_filenames([sequence], CFG.data_path, CFG.data_path_360)
         # merge all filenames in np.array
         all_filenames = np.append(all_filenames, filenames)
@@ -147,14 +143,14 @@ def load_eval_filenames():
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def get_liploc_embeddings(cfg: DictConfig):
-    print("Evaluating On: ", args.eval_sequence)
+    print("Evaluating On: ", Args.eval_sequence)
     cfg_dataset = cfg.KITTI
 
     model = load_liploc_model()
     all_filenames = load_eval_filenames()
 
-    if len(args.eval_sequence) == 4:  # KITTI360
-        translation_poses, indices = get_poses(args.eval_sequence, CFG)
+    if len(Args.eval_sequence) == 4:  # KITTI360
+        translation_poses, indices = get_poses(Args.eval_sequence, CFG)
         all_filenames = all_filenames[indices.astype(int)]
 
     # create dictionary of embeddings
@@ -200,7 +196,7 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
 
     translation_poses = None
     indices = None
-    for sequence in args.eval_sequence:
+    for sequence in Args.eval_sequence:
         if len(sequence) == 2:  # KITTI
             translation_pose = get_poses(sequence, CFG)
             # print("Translation Poses: ", translation_poses.shape)  # (271, 3)
@@ -222,7 +218,7 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
                 (translation_poses, translation_pose), axis=0
             )
 
-    print("Evaluating On: ", args.eval_sequence)
+    print("Evaluating On: ", Args.eval_sequence)
     recalls = []
     precisions = []
     mAPs = []
@@ -231,7 +227,7 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
     for i in query_ids:
         filename = all_filenames[i]
         distances = []
-        if len(args.eval_sequence[0]) == 2:
+        if len(Args.eval_sequence[0]) == 2:
             queryimagefilename = filename.split("/")[1]
             predictions = find_matches(  # return filenames
                 ref_embeddings=ref_embeddings,
@@ -277,7 +273,7 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
         false_positives = 0
         hit = []
         for distance in distances:
-            if distance < args.threshold_dist:
+            if distance < Args.threshold_dist:
                 num_matches += 1
                 true_positives += 1
                 hit.append(1.0)
@@ -301,7 +297,7 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
         mAPs.append(ap)
 
     # query_predict = np.array([query_predict])
-    # np.save(f"data/eval_predictions_{args.eval_sequence}.np", query_predict)
+    # np.save(f"data/eval_predictions_{Args.eval_sequence}.np", query_predict)
 
     # Output the results
     print("=========================================\nTop_k: ", top_k)
@@ -314,10 +310,10 @@ def eval_liploc_query(ref_embeddings, query_embeddings, query_ids, top_k: int = 
 
 class KITTI_file_Retrieval:
     def __init__(self):
-        self.args = tyro.cli(Args)
+        self.eval_sequence = Args.eval_sequence
         self.translation_poses = {}
         indices = {}
-        for sequence in self.args.eval_sequence:
+        for sequence in self.eval_sequence:
             if len(sequence) == 2:  # KITTI
                 translation_pose = get_poses(sequence, CFG)
             elif len(sequence) == 4:  # KITTI360
@@ -360,7 +356,7 @@ class KITTI_file_Retrieval:
             )
             ** 2
         )
-        return int(distance < args.threshold_dist)
+        return int(distance < Args.threshold_dist)
 
 
 def get_top_k(retrieved_pairs: list[tuple[int, int, float]], k: int) -> list[bool]:
@@ -395,6 +391,6 @@ if __name__ == "__main__":
     # query_emb = np.zeros((13, 256))
     # eval_liploc_query(ref_emb, query_emb, query_ids=np.arange(13), top_k=5)
     a = KITTI_file_Retrieval()
-    a.eval_retrieval_ids(query_id=0, ref_id=1)
+    print(a.eval_retrieval_ids(query_id=0, ref_id=1))
 
 # CUDA_VISIBLE_DEVICES=1 poetry run python ./mmda/utils/liploc_model.py
