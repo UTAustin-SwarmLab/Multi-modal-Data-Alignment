@@ -12,6 +12,7 @@ from mmda.utils.dataset_utils import (
     load_imagenet,
     load_kitti,
     load_leafy_spurge,
+    load_msrvtt,
     load_musiccaps,
     load_pitts,
     load_sop,
@@ -31,7 +32,7 @@ BATCH_SIZE = 128
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: PLR0915
+def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
     """Get feature embeddings for the datasets.
 
     Args:
@@ -77,6 +78,33 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915
             "wb"
         ) as f:
             pickle.dump(clap_audio_features, f)
+
+    elif dataset == "MSRVTT":
+        _, captions, _, audio_list, _ = load_msrvtt(cfg_dataset)
+        # skip image embeddings (CLIP is already done from the dataset)
+        # get audio embeddings
+        print(audio_list)
+        audio_emb = clap_audio(audio_list, batch_size=BATCH_SIZE, max_length_s=60)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(audio_emb, f)
+        print("CLAP embeddings saved")
+
+        # get text embeddings
+        text_emb = clip_text(captions, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLIP embeddings saved")
+
+        text_emb = gtr_text(captions)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("GTR embeddings saved")
 
     elif dataset == "leafy_spurge":
         images, labels, idx2label = load_leafy_spurge(cfg_dataset)
