@@ -12,7 +12,7 @@ class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
-any_retrieval_datasets: [KITTI]
+any_retrieval_datasets: [KITTI, MSRVTT]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
 classification_datasets: [imagenet, leafy_spurge]
@@ -26,9 +26,21 @@ dataset_size: {
   flickr: 155070
 }
 
-KITTI:
+MSRVTT:
   sim_dim: 256 # dimension of the CCA transformation
   retrieval_dim: 200 # dimension of the similarity score
+  equal_weights: False
+  img_encoder: "clip"
+  audio_encoder: "clap"
+  text_encoder: "clip"
+  paths:
+    dataset_path: "/nas/pohan/datasets/MSR-VTT/"
+    save_path: ${MSRVTT.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/MSR-VTT/
+
+KITTI:
+  sim_dim: 256 # dimension of the CCA transformation
+  retrieval_dim: 5 # dimension of the similarity score
   equal_weights: False
   img_encoder: "liploc"
   lidar_encoder: "liploc"

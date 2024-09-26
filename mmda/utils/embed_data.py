@@ -54,7 +54,7 @@ def cosplace_img(img_files: list, batch_size: int = 32) -> np.ndarray:
 
 
 def clap_audio(
-    audio_files: list[np.ndarray],
+    audio_files: list[str],
     batch_size: int = 32,
     sample_rate: int = 48_000,
     max_length_s: int = 10,
