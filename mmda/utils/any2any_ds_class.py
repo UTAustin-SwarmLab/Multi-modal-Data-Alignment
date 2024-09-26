@@ -510,16 +510,17 @@ class KITTIDataset:
             )
             probs = con_mat[(idx_1, idx_2)][0]  # 3x3 matrix
             # move all the values in probs besides modal_pair to the first dimension
-            if not single_modal:  # full modality retrieval
+            if single_modal:  # single modality retrieval
+                retrieved_pairs.append(
+                    (idx_1, idx_2, probs, con_mat[(idx_1, idx_2)][1])
+                )
+            else:  # full modality retrieval
                 retrieved_pairs.append(
                     (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
                 )
                 # sort the retrieved pairs by the conformal probability in descending order
-                retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
-            else:  # single modality retrieval
-                retrieved_pairs.append(
-                    (idx_1, idx_2, probs, con_mat[(idx_1, idx_2)][1])
-                )
+        if not single_modal:
+            retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
         return retrieved_pairs
 
     def retrieve_data(
@@ -551,7 +552,9 @@ class KITTIDataset:
             maps = {5: [], 20: []}
 
             for idx_q in tqdm(
-                range(self.test_size), desc="Retrieving data", leave=True
+                range(self.test_size),
+                desc=f"Retrieving {mode} data",
+                leave=True,
             ):
                 retrieved_pairs = self.retrieve_one_data(
                     con_mat, idx_q, self.train_size, self.test_size
@@ -591,7 +594,11 @@ class KITTIDataset:
         recalls = {(i, j): [] for i in range(3) for j in range(3)}
         precisions = {(i, j): [] for i in range(3) for j in range(3)}
         maps = {(i, j): [] for i in range(3) for j in range(3)}
-        for idx_q in tqdm(range(self.test_size), desc="Retrieving data", leave=True):
+        for idx_q in tqdm(
+            range(self.test_size),
+            desc=f"Retrieving {mode} data",
+            leave=True,
+        ):
             retrieved_pairs = self.retrieve_one_data(
                 con_mat, idx_q, self.train_size, self.test_size, single_modal=True
             )
