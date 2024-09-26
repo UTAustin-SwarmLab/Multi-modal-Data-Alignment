@@ -519,8 +519,6 @@ class KITTIDataset:
                     (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
                 )
                 # sort the retrieved pairs by the conformal probability in descending order
-        if not single_modal:
-            retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
         return retrieved_pairs
 
     def retrieve_data(
@@ -559,6 +557,7 @@ class KITTIDataset:
                 retrieved_pairs = self.retrieve_one_data(
                     con_mat, idx_q, self.train_size, self.test_size
                 )
+                retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
                 top_1_hit = get_top_k(retrieved_pairs, k=1)
                 top_5_hit = get_top_k(retrieved_pairs, k=5)
                 top_20_hit = get_top_k(retrieved_pairs, k=20)
