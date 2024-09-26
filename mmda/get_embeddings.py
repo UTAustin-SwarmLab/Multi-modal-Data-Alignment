@@ -34,7 +34,7 @@ BATCH_SIZE = 128
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
+def main(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
     """Get feature embeddings for the datasets.
 
     Args:
