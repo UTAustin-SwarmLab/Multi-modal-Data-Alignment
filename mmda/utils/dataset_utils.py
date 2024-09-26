@@ -18,31 +18,25 @@ from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.liploc_model import CFG, load_eval_filenames
 
 
-def extract_audio_from_video(mp4_file: str, output_wav_file: str) -> bool:
+def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
     """Extract audio from a video file.
 
     Args:
         mp4_file: path to the video file
-        output_wav_file: path to the output WAV file
 
     Returns:
         True if the audio is extracted successfully, False otherwise
     """
-    # Load the video file
-    video = VideoFileClip(mp4_file)
     # Extract the audio from the entire video
+    video = VideoFileClip(mp4_file)
     audio = video.audio
     if audio is None:
-        video.close()
-        return False
-    # Write the audio to a WAV file
-    audio.write_audiofile(
-        output_wav_file, codec="pcm_s16le", fps=48000, verbose=False, logger=None
-    )
-    # Close the video and audio objects
-    video.close()
-    audio.close()
-    return True
+        return False, None
+    # Extract the audio as a list of samples
+    audio_samples = list(audio.iter_frames())
+    # Convert the list of samples to a NumPy array
+    sound_array = np.array(audio_samples)
+    return True, sound_array
 
 
 def load_msrvtt(
@@ -58,7 +52,6 @@ def load_msrvtt(
         sen_ids: list of sentence_ids
         captions: list of captions
         video_info_sen_order: list of video information (in the order of sen_ids)
-        audio_paths: list of audio absolute paths
         video_dict: a dict of video information (video_id to video_info)
     """
     # load MSR-VTT json file
@@ -71,10 +64,8 @@ def load_msrvtt(
             "sentences"
         ]  # "sen_id": int, "video_id": str, "caption": str
 
-    wav_dir = Path(cfg_dataset.paths.dataset_path, "wavs")
     # if no video_dict.pkl, extract audio from videos
     if not Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").exists():
-        print(f"Number of videos: {len(videos)}")
         list_video_ids = [video_json["video_id"] for video_json in videos]
         video_dict = {}
         for video_json in videos:
@@ -92,26 +83,25 @@ def load_msrvtt(
                 "category": category,
                 "url": url,
             }
-        print(f"Extracting audio from videos to {wav_dir}")
-        wav_dir.mkdir(parents=True, exist_ok=True)
         for video_id in tqdm(list_video_ids):
             mp4_file = str(
                 Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.mp4")
             )
-            audio_path = str(Path(wav_dir, f"{video_id}.wav"))
-            audio_exist = extract_audio_from_video(mp4_file, audio_path)
+            audio_exist, audio = extract_audio_from_video(mp4_file)
             if not audio_exist:
                 # remove the video info from the video_dict
                 del video_dict[video_id]
+            else:
+                audio = (audio[:, 0] + audio[:, 1]) / 2
+                video_dict[video_id]["audio_np"] = audio
         # save the video_dict
         with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("wb") as f:
             pickle.dump(video_dict, f)
     else:
-        print(f"Audio files already extracted to {wav_dir}")
         with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("rb") as f:
             video_dict = joblib.load(f)
 
-    captions, sen_ids, audio_paths = [], [], []
+    captions, sen_ids = [], []
     video_info_sen_order = []
     for sentence_json in sentences:
         video_id = sentence_json["video_id"]
@@ -120,8 +110,8 @@ def load_msrvtt(
         video_info_sen_order.append(video_dict[video_id])
         sen_ids.append(sentence_json["sen_id"])
         captions.append(sentence_json["caption"])
-        audio_paths.append(str(Path(wav_dir, f"{video_id}.wav")))
-    return sen_ids, captions, video_info_sen_order, audio_paths, video_dict
+
+    return sen_ids, captions, video_info_sen_order, video_dict
 
 
 def load_kitti(
