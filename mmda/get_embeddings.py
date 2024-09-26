@@ -80,11 +80,12 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
-        _, captions, _, audio_list, _ = load_msrvtt(cfg_dataset)
+        _, captions, video_info_sen_order, _ = load_msrvtt(cfg_dataset)
         # skip image embeddings (CLIP is already done from the dataset)
         # get audio embeddings
-        print(audio_list)
-        audio_emb = clap_audio(audio_list, batch_size=BATCH_SIZE, max_length_s=60)
+        audio_np = [video_info["audio_np"] for video_info in video_info_sen_order]
+        print("audio_np:", len(audio_np))
+        audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=60)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
             "wb"
         ) as f:

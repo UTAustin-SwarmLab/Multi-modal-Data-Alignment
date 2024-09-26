@@ -6,7 +6,7 @@ train_test_ratio: 0.7
 noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
-dataset: "KITTI"
+dataset: "MSRVTT"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]

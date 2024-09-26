@@ -54,7 +54,7 @@ def cosplace_img(img_files: list, batch_size: int = 32) -> np.ndarray:
 
 
 def clap_audio(
-    audio_files: list[str],
+    audio_np: list[np.ndarray],
     batch_size: int = 32,
     sample_rate: int = 48_000,
     max_length_s: int = 10,
@@ -62,7 +62,7 @@ def clap_audio(
     """Extract audio features using CLAP model.
 
     Args:
-        audio_files: list of audio files
+        audio_np: numpy array of audio
         batch_size: batch size
         sample_rate: sample rate of the audio
         max_length_s: maximum length of the audio
@@ -75,10 +75,9 @@ def clap_audio(
     )
     model = model.cuda()
     audio_features = []
-
     with torch.no_grad(), torch.cuda.amp.autocast():
-        for i in tqdm(range(0, len(audio_files), batch_size)):
-            audio_batch = audio_files[i : i + batch_size]
+        for i in tqdm(range(0, len(audio_np), batch_size)):
+            audio_batch = audio_np[i : i + batch_size]
             inputs = feature_extractor(
                 audio_batch,
                 return_tensors="pt",
