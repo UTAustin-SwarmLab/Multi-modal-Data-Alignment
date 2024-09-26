@@ -44,25 +44,6 @@ def load_three_encoder_data(
                 + f"KITTI_text_emb_{cfg_dataset.text_encoder}.pkl"
             )
         )
-    elif dataset == "MSRVTT":
-        data1 = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"MSRVTT_video_emb_{cfg_dataset.img_encoder}.pkl"
-            )
-        )
-        data2 = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"MSRVTT_audio_emb_{cfg_dataset.audio_encoder}.pkl"
-            )
-        )
-        data3 = joblib.load(
-            Path(
-                cfg_dataset.paths.save_path
-                + f"MSRVTT_video_emb_{cfg_dataset.text_encoder}.pkl"
-            )
-        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
@@ -286,7 +267,10 @@ def origin_centered(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def test(cfg: DictConfig) -> None:  # noqa: D103
-    load_three_encoder_data(cfg)
+    cfg_dataset, data1, data2, data3 = load_three_encoder_data(cfg)
+    print(data1.shape)
+    print(data2.shape)
+    print(data3.shape)
 
 
 if __name__ == "__main__":

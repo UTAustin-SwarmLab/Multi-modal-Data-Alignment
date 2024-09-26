@@ -1,6 +1,7 @@
 """Dataset class for any2any retrieval task."""
 
 import copy
+import multiprocessing
 import pickle
 from pathlib import Path
 from typing import Literal
@@ -13,8 +14,239 @@ from tqdm import tqdm
 from mmda.utils.calibrate import calibrate, get_non_conformity_scores
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
+from mmda.utils.dataset_utils import load_msrvtt
 from mmda.utils.liploc_model import KITTI_file_Retrieval, get_top_k
 from mmda.utils.sim_utils import batch_weighted_corr_sim, cosine_sim
+
+
+class BaseAny2AnyDataset:
+    """Base class for any2any retrieval dataset."""
+
+    def __init__(self, cfg: DictConfig) -> None:
+        """Initialize the dataset."""
+
+    def preprocess_retrieval_data(self) -> None:
+        """Preprocess the data for retrieval."""
+
+    def train_crossmodal_similarity(self) -> None:
+        """Train the cross-modal similarity, aka the CSA method."""
+
+    def get_cali_data(self) -> None:
+        """Get the calibration data."""
+
+    def get_test_data(self) -> None:
+        """Get the test data."""
+
+    def cal_test_conformal_prob(self) -> None:
+        """Calculate the conformal probability for the test data."""
+
+    def retrieve_data(self, mode: Literal["miss", "full", "single"]) -> None:
+        """Retrieve the data."""
+
+
+class MSRVTTDataset(BaseAny2AnyDataset):
+    """MSRVTT dataset class for any2any retrieval task."""
+
+    def __init__(self, cfg: DictConfig) -> None:
+        """Initialize the dataset. Size of the data is 52700 in total.
+
+        In this task, we only consider text-to-image/audio retrieval.
+
+        Args:
+            cfg: configuration file
+        """
+        self.cfg = cfg
+        self.text2img = "clip"
+        self.text2audio = "clap"
+
+        self.cali_size = 700
+        self.train_size = 0  # no training data is needed for MSRVTT
+        self.test_size = 52000
+
+    def load_data(self) -> None:
+        """Load the data for retrieval."""
+        # load data
+        self.sen_ids, self.captions, self.video_info_sen_order, self.video_dict = (
+            load_msrvtt(self.cfg["MSRVTT"])
+        )
+        self.txt2img_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clip.pkl")
+        )
+        self.img2txt_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_video_emb_clip.pkl")
+        )
+        self.txt2audio_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clap.pkl")
+        )
+        self.audio2txt_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_audio_emb_clap.pkl")
+        )
+
+    def preprocess_retrieval_data(self) -> None:
+        """Preprocess the data for retrieval."""
+        # load data
+        self.load_data()
+        self.num_data = self.img2txt_emb.shape[0]
+        assert (
+            self.test_size + self.cali_size + self.train_size == self.num_data
+        ), f"{self.test_size} + {self.cali_size} + {self.train_size} != {self.num_data}"
+
+        # train/test/calibration split
+        idx = np.arange(self.num_data)  # An array with 100 elements
+        # Shuffle the array to ensure randomness
+        np.random.shuffle(idx)
+        self.test_idx = idx[self.train_size : -self.cali_size]
+        self.cali_idx_qdx = idx[-self.cali_size :]
+        self.txt2img_emb = {
+            "test": self.txt2img_emb[self.test_idx],
+            "cali": self.txt2img_emb[self.cali_idx_qdx],
+        }
+        self.img2txt_emb = {
+            "test": self.img2txt_emb[self.test_idx],
+            "cali": self.img2txt_emb[self.cali_idx_qdx],
+        }
+        self.txt2audio_emb = {
+            "test": self.txt2audio_emb[self.test_idx],
+            "cali": self.txt2audio_emb[self.cali_idx_qdx],
+        }
+        self.audio2txt_emb = {
+            "test": self.audio2txt_emb[self.test_idx],
+            "cali": self.audio2txt_emb[self.cali_idx_qdx],
+        }
+        # masking missing data in the test set. Mask the whole modality of an instance at a time.
+        mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
+        self.mask = {}  # modality -> masked idx
+        self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
+        self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
+
+    def train_crossmodal_similarity(self) -> None:
+        """Train the cross-modal similarity, aka the CSA method."""
+        return  # we do not need to train the cross-modal similarity for MSRVTT
+
+    def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
+        """Check if the retrieval is correct.
+
+        Args:
+            q_idx: the query index
+            r_idx: the retrieved index
+
+        Returns:
+            True if the retrieval is correct, False otherwise
+        """
+        return (
+            self.video_info_sen_order[q_idx]["video_id"]
+            == self.video_info_sen_order[r_idx]["video_id"]
+        )
+
+    def calculate_pairs_data_similarity(
+        self,
+        txt2img_data: np.ndarray,
+        img2txt_data: np.ndarray,
+        txt2audio_data: np.ndarray,
+        audio2txt_data: np.ndarray,
+        idx_offset: int,
+        num_workers: int = 16,
+    ) -> np.ndarray:
+        """Calculate the similarity matrix for the pairs of modalities.
+
+        Args:
+            txt2img_data: the text data to image data similarity
+            img2txt_data: the image data to text data similarity
+            txt2audio_data: the text data to audio data similarity
+            audio2txt_data: the audio data to text data similarity
+            idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
+            num_workers: the number of workers to calculate the similarity matrix
+
+        Returns:
+            sim_mat: the similarity matrices of a pair of data.
+                key is the pair of indices in the original dataset,
+                value is the similarity matrix (num_data, 1, 2) and ground truth label.
+        """
+        ds_size = txt2img_data.shape[0]
+
+        # calculate the similarity matrix, we do not mask the data here
+        def process_chunk(
+            chunk: np.ndarray,
+        ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
+            process_sim_mat_cali = {}
+            ds_indices_q = []
+            ds_indices_r = []
+            ds_indices_pair = []
+            gt_labels = []
+            for i in tqdm(chunk, desc=f"Processing chunk {chunk[0]}-{chunk[-1]}"):
+                for j in range(ds_size):
+                    gt_label = self.check_correct_retrieval(i, j)
+                    gt_labels.append(gt_label)
+                    ds_indices_q.append(i)
+                    ds_indices_r.append(j)
+                    ds_indices_pair.append((i, j))
+
+            print("Calculating similarity matrix...")
+            sim_mat = np.zeros((len(ds_indices_pair), 1, 2))
+            sim_mat[:, 0, 0] = cosine_sim(
+                txt2img_data[ds_indices_q], img2txt_data[ds_indices_r]
+            )
+            sim_mat[:, 0, 1] = cosine_sim(
+                txt2audio_data[ds_indices_q], audio2txt_data[ds_indices_r]
+            )
+            for result_idx in range(sim_mat.shape[0]):
+                process_sim_mat_cali[
+                    (ds_indices_q[result_idx], ds_indices_r[result_idx])
+                ] = (sim_mat[result_idx, :, :], gt_labels[result_idx])
+            return process_sim_mat_cali
+
+        chunks = np.array_split(range(idx_offset, ds_size), num_workers)
+        with multiprocessing.Pool(num_workers) as pool:
+            results = pool.map(process_chunk, chunks)
+        sim_mat_cali = {}
+        for process_sim_mat_cali in results:
+            for k, v in process_sim_mat_cali.items():
+                sim_mat_cali[k] = v
+        return sim_mat_cali
+
+    def get_cali_data(self) -> None:
+        """Get the calibration data.
+
+        Calculate and save the similarity matrix in the format of (sim_score, gt_label).
+        Then, we run the calibration to get the conformal scores and obtain the prediction bands.
+        """
+        sim_mat_path = Path(
+            self.cfg_dataset.paths.save_path,
+            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}.pkl",
+        )
+        if not sim_mat_path.exists():
+            print("Generating calibration data...")
+            txt2img_data = self.txt2img_emb["cali"]
+            img2txt_data = self.img2txt_emb["cali"]
+            txt2audio_data = self.txt2audio_emb["cali"]
+            audio2txt_data = self.audio2txt_emb["cali"]
+            idx_offset = self.train_size + self.test_size
+            self.sim_mat_cali = self.calculate_pairs_data_similarity(
+                txt2img_data, img2txt_data, txt2audio_data, audio2txt_data, idx_offset
+            )
+            # save the calibration data in the format of (sim_score, gt_label)
+            with sim_mat_path.open("wb") as f:
+                pickle.dump(self.sim_mat_cali, f)
+        else:
+            print("Loading calibration data...")
+            self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
+
+        self.pred_band = {}
+        print("Calculating nonconformity scores...")
+        # calculate the nonconformity scores and conformal scores for all pairs of modalities
+        for i in range(0):
+            for j in range(2):
+                nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)
+
+                # define calibration method with nc_scores
+                def calibrate_ij(score: float) -> callable:
+                    return calibrate(score, nc_scores=nc_scores_ij)  # noqa: B023
+
+                self.pred_band[(i, j)] = calibrate_ij
+
+    def get_test_data(self) -> None:
+        """Get the test data."""
+        return  # we do not need to get the test data for MSRVTT
 
 
 class KITTIDataset:
@@ -515,10 +747,25 @@ class KITTIDataset:
                     (idx_1, idx_2, probs, con_mat[(idx_1, idx_2)][1])
                 )
             else:  # full modality retrieval
+                select_top_k = 9
+                probs_filtered = probs[probs != -1]  # Ignore -1 entries
+                if len(probs_filtered) > 0:
+                    probs_sorted = np.sort(probs_filtered)
+                    top_two_mean = (
+                        np.mean(probs_sorted[-select_top_k:])
+                        if len(probs_sorted) >= select_top_k
+                        else probs_sorted[-1]
+                    )
+                else:
+                    top_two_mean = 0  # Default value if all entries are -1
                 retrieved_pairs.append(
-                    (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
+                    (
+                        idx_1,
+                        idx_2,
+                        top_two_mean,
+                        con_mat[(idx_1, idx_2)][1],
+                    )
                 )
-                # sort the retrieved pairs by the conformal probability in descending order
         return retrieved_pairs
 
     def retrieve_data(
