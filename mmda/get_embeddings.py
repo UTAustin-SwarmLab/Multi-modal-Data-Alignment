@@ -3,7 +3,9 @@
 import pickle
 from pathlib import Path
 
+import numpy as np
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 import hydra
 from mmda.utils.dataset_utils import (
@@ -80,8 +82,29 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
-        _, captions, video_info_sen_order, _ = load_msrvtt(cfg_dataset)
+        _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
         # skip image embeddings (CLIP is already done from the dataset)
+        # load the existing embeddings
+        video_emb = {}
+        for video_ids in tqdm(video_dict, desc="Loading video embeddings"):
+            video_np_path = Path(
+                cfg_dataset.paths.dataset_path,
+                f"clip-features-vit-h14/{video_ids}.npy",
+            )
+            # only sample the first and last frame
+            video_np = np.load(video_np_path)[[0, -1], :].reshape(1, -1)
+            video_emb[video_ids] = video_np
+        video_emb_list = []
+        for video_info in video_info_sen_order:
+            video_ids = video_info["video_id"]
+            video_emb_list.append(video_emb[video_ids])
+        video_emb_list = np.concatenate(video_emb_list, axis=0)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(video_emb_list, f)
+        print("CLIP embeddings saved")
+
         # get audio embeddings
         audio_np = [video_info["audio_np"] for video_info in video_info_sen_order]
         print("audio_np:", len(audio_np))
@@ -106,6 +129,13 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         ) as f:
             pickle.dump(text_emb, f)
         print("GTR embeddings saved")
+
+        text_emb = clap_text(captions, batch_size=BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_clap.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("CLAP embeddings saved")
 
     elif dataset == "leafy_spurge":
         images, labels, idx2label = load_leafy_spurge(cfg_dataset)

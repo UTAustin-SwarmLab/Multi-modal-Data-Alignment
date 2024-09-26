@@ -6,6 +6,8 @@ import joblib
 import numpy as np
 from omegaconf import DictConfig
 
+import hydra
+
 
 def load_three_encoder_data(
     cfg: DictConfig,
@@ -40,6 +42,25 @@ def load_three_encoder_data(
             Path(
                 cfg_dataset.paths.save_path
                 + f"KITTI_text_emb_{cfg_dataset.text_encoder}.pkl"
+            )
+        )
+    elif dataset == "MSRVTT":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"MSRVTT_video_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"MSRVTT_audio_emb_{cfg_dataset.audio_encoder}.pkl"
+            )
+        )
+        data3 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"MSRVTT_video_emb_{cfg_dataset.text_encoder}.pkl"
             )
         )
     # TODO: add more datasets
@@ -261,3 +282,12 @@ def origin_centered(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         origin centered data matrix, mean of each feature
     """
     return x - np.mean(x, axis=0), np.mean(x, axis=0)
+
+
+@hydra.main(version_base=None, config_path="../../config", config_name="main")
+def test(cfg: DictConfig) -> None:  # noqa: D103
+    load_three_encoder_data(cfg)
+
+
+if __name__ == "__main__":
+    test()
