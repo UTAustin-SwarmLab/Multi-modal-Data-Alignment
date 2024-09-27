@@ -6,7 +6,7 @@ train_test_ratio: 0.7
 noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
-dataset: "MSRVTT"
+dataset: "KITTI"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
@@ -30,6 +30,7 @@ MSRVTT:
   img_encoder: "clip"
   audio_encoder: "clap"
   text_encoder: "clip"
+  mask_ratio: 2 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/MSR-VTT/"
     save_path: ${MSRVTT.paths.dataset_path}embeddings/
@@ -37,7 +38,7 @@ MSRVTT:
 
 KITTI:
   sim_dim: 256 # dimension of the CCA transformation
-  retrieval_dim: 5 # dimension of the similarity score
+  retrieval_dim: 25 # dimension of the similarity score
   equal_weights: False
   img_encoder: "liploc"
   lidar_encoder: "liploc"
