@@ -1,5 +1,7 @@
 """This module contains functions to extract features from images, audio, and text using various models."""
 
+from pathlib import Path
+
 import numpy as np
 import open_clip
 import torch
@@ -143,6 +145,8 @@ def clip_imgs(
                     image = preprocess(image).unsqueeze(0)
                 elif not noise and isinstance(img_file, str):
                     image = preprocess(Image.open(img_file)).unsqueeze(0)
+                elif not noise and isinstance(img_file, Path):
+                    image = preprocess(Image.open(str(img_file))).unsqueeze(0)
                 elif not noise and isinstance(img_file, Image.Image):
                     image = preprocess(img_file).unsqueeze(0)
                 batch.append(image)
@@ -155,21 +159,22 @@ def clip_imgs(
 
 
 # clip text in batch with gpu
-def clip_text(text: list[str], batch_size: int = 32) -> np.ndarray:
+def clip_text(
+    text: list[str],
+    batch_size: int = 32,
+    model_name: str = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+) -> np.ndarray:
     """Extract text features using CLIP model.
 
     Args:
         text: list of text
         batch_size: batch size
+        model_name: name of the CLIP model
     Returns:
         text features
     """
-    model, _, preprocess = open_clip.create_model_and_transforms(
-        "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
-    )
-    tokenizer = open_clip.get_tokenizer(
-        "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
-    )
+    model, _, _ = open_clip.create_model_and_transforms(f"hf-hub:{model_name}")
+    tokenizer = open_clip.get_tokenizer(f"hf-hub:{model_name}")
     model = model.cuda()
 
     text_features = []

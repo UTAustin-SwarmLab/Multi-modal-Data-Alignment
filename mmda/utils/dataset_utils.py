@@ -57,12 +57,11 @@ def load_msrvtt(
     # load MSR-VTT json file
     with Path(cfg_dataset.paths.dataset_path, "test_videodatainfo.json").open() as f:
         json_data = json.load(f)  # each video has 20 sentences
-        videos = json_data["videos"]  # "id": int, "video_id": str, "category": int,
-        # "url": str, "start time": float, "end time": float, "split": str
+        # "id": int, "video_id": str, "category": int, "url": str, "start time": float, "end time": float, "split": str
         # time of the YT video (here the video is already cut into clips).
-        sentences = json_data[
-            "sentences"
-        ]  # "sen_id": int, "video_id": str, "caption": str
+        videos = json_data["videos"]
+        # "sen_id": int, "video_id": str, "caption": str
+        sentences = json_data["sentences"]
 
     # if no video_dict.pkl, extract audio from videos
     if not Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").exists():

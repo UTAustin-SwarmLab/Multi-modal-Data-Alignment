@@ -1,6 +1,5 @@
 """Calibration for the similarity matrix."""
 
-import warnings
 from bisect import bisect_left
 
 
@@ -18,11 +17,6 @@ def get_non_conformity_scores(
         nc_scores: the nonconformity scores (modal_a-modal_b and modal_b-modal_a are the same)
         c_scores: the conformity scores (modal_a-modal_b and modal_b-modal_a are the same)
     """
-    # raise warning if i > j
-    if idx_modal1 > idx_modal2:
-        msg = f"idx_modal1 ({idx_modal1}) > idx_modal2 ({idx_modal2})"
-        warnings.warn(msg, stacklevel=2)
-
     nc_scores, c_scores = [], []
     for mat, label in sim_mat.values():
         if label == 1:  # positive pair
@@ -56,7 +50,6 @@ def calibrate(score: float, nc_scores: list[float]) -> float:
     """
     # see score is bigger than how many scores in nc_scores
     # since nc_scores is sorted in ascending order,
-    # we can use binary search to find the index of score in nc_scores
-    idx = bisect_left(nc_scores, score)
     # the calibrated score is the index divided by the total number of scores
-    return idx / len(nc_scores)
+    # we can use binary search to find the index of score in nc_scores
+    return bisect_left(nc_scores, score) / len(nc_scores)
