@@ -1,5 +1,7 @@
 """Get feature embeddings for the datasets."""
 
+# ruff: noqa: ERA001
+import os
 import pickle
 from pathlib import Path
 
@@ -34,7 +36,7 @@ BATCH_SIZE = 128
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
+def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
     """Get feature embeddings for the datasets.
 
     Args:
@@ -82,23 +84,73 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, PLR0912, C901
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
+
+        def get_video_emb(
+            cfg_dataset: DictConfig, video_dict: dict, use_kaggle: bool = False
+        ) -> dict[str, np.ndarray]:
+            """Get video embeddings for the videos in the video_dict.
+
+            Args:
+                cfg_dataset: configuration file
+                video_dict: a dict of video information
+                use_kaggle: whether to use the kaggle dataset
+
+            Returns:
+                video embeddings. dict: video_id -> video_embedding (if use_kaggle)
+                img_paths. list: list of image paths (if not use_kaggle)
+            """
+            # skip image embeddings (CLIP is already done from the dataset)
+            # load the existing embeddings
+            if use_kaggle:
+                video_emb = {}
+                for video_ids in tqdm(video_dict, desc="Loading video embeddings"):
+                    video_np_path = Path(
+                        cfg_dataset.paths.dataset_path,
+                        f"clip-features-vit-h14/{video_ids}.npy",
+                    )
+                    # only sample the first and last frame
+                    video_np = np.load(video_np_path)[[0, -1], :].reshape(1, -1)
+                    video_emb[video_ids] = video_np
+                return video_emb
+            id_order = []
+            first_img_paths = []
+            last_img_paths = []
+            for video_ids in tqdm(sorted(video_dict), desc="loading keyframe paths"):
+                # video_ids from 7010 to 7990
+                img_dir = Path(cfg_dataset.paths.dataset_path, "keyframes", video_ids)
+                first_img_path = img_dir / "0000.jpg"
+                last_img_path = img_dir / f"{len(os.listdir(img_dir)) - 1:04d}.jpg"
+                id_order.append(video_ids)
+                first_img_paths.append(str(first_img_path))
+                last_img_paths.append(str(last_img_path))
+            return id_order, first_img_paths, last_img_paths
+
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
-        # skip image embeddings (CLIP is already done from the dataset)
-        # load the existing embeddings
-        video_emb = {}
-        for video_ids in tqdm(video_dict, desc="Loading video embeddings"):
-            video_np_path = Path(
-                cfg_dataset.paths.dataset_path,
-                f"clip-features-vit-h14/{video_ids}.npy",
-            )
-            # only sample the first and last frame
-            video_np = np.load(video_np_path)[[0, -1], :].reshape(1, -1)
-            video_emb[video_ids] = video_np
+
+        # video_emb = get_video_emb(cfg_dataset, video_dict)
+        # video_emb_list = []
+        # for video_info in video_info_sen_order:
+        #     video_ids = video_info["video_id"]
+        #     video_emb_list.append(video_emb[video_ids])
+        # video_emb_list = np.concatenate(video_emb_list, axis=0)
+        # with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
+        #     "wb"
+        # ) as f:
+        #     pickle.dump(video_emb_list, f)
+
+        id_order, first_img_paths, last_img_paths = get_video_emb(
+            cfg_dataset, video_dict, use_kaggle=False
+        )
+        first_img_emb = clip_imgs(first_img_paths, BATCH_SIZE)
+        last_img_emb = clip_imgs(last_img_paths, BATCH_SIZE)
+        img_emb = np.concatenate([first_img_emb, last_img_emb], axis=1)
         video_emb_list = []
         for video_info in video_info_sen_order:
             video_ids = video_info["video_id"]
-            video_emb_list.append(video_emb[video_ids])
+            idx = id_order.index(video_ids)
+            video_emb_list.append(img_emb[idx, :].reshape(1, -1))
         video_emb_list = np.concatenate(video_emb_list, axis=0)
+        print(video_emb_list.shape)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
             "wb"
         ) as f:
