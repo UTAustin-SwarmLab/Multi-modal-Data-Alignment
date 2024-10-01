@@ -6,7 +6,7 @@ train_test_ratio: 0.7
 noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 
-dataset: "KITTI"
+dataset: "MSRVTT"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
@@ -30,6 +30,7 @@ MSRVTT:
   img_encoder: "clip"
   audio_encoder: "clap"
   text_encoder: "clip"
+  retrieval_dim: "" # we use all the dimensions for retrieval
   mask_ratio: 2 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/MSR-VTT/"
