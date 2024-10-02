@@ -2,39 +2,52 @@
 
 from bisect import bisect_left
 
+import numpy as np
+
 
 def get_non_conformity_scores(
-    sim_mat: dict, idx_modal1: int, idx_modal2: int
+    sim_mat: dict, idx_modal1: int, idx_modal2: int, top_k: int = 5
 ) -> tuple[list[float], list[float]]:
-    """Get the (non)conformity scores.
+    """Get the nonconformity scores for the given modalities.
 
     Args:
         sim_mat: the similarity matrix. dict: (i, j) -> (similarity matrix, ground truth)
         idx_modal1: index of the first modality
         idx_modal2: index of the second modality
+        top_k: the number of top scores to consider for recall
 
     Returns:
-        nc_scores: the nonconformity scores (modal_a-modal_b and modal_b-modal_a are the same)
-        c_scores: the conformity scores (modal_a-modal_b and modal_b-modal_a are the same)
+        nc_scores: the nonconformity scores
+        c_scores: the conformity scores
     """
-    nc_scores, c_scores = [], []
-    for mat, label in sim_mat.values():
-        if label == 1:  # positive pair
-            c_scores.append(mat[idx_modal1][idx_modal2])
-            if idx_modal1 != idx_modal2:  # symmetry of entries
-                c_scores.append(mat[idx_modal2][idx_modal1])
-        elif label == 0:  # negative pair
-            nc_scores.append(mat[idx_modal1][idx_modal2])
-            if idx_modal1 != idx_modal2:  # symmetry of entries
-                nc_scores.append(mat[idx_modal2][idx_modal1])
-        else:  # invalid label
-            msg = f"Invalid label: {label}"
-            raise ValueError(msg)
-    # sort the scores in ascending order
-    nc_scores.sort()
-    c_scores.sort()
-    assert nc_scores[0] < nc_scores[-1]
-    assert c_scores[0] < c_scores[-1]
+    q2scores = {}  # dict: query idx -> (top k-th sim score, label)
+    for q, r in sim_mat:
+        # skip the same pair of query and reference data
+        if q == r:
+            continue
+        if q not in q2scores:
+            q2scores[q] = []
+        q2scores[q].append((sim_mat[q, r][0][idx_modal1][idx_modal2], sim_mat[q, r][1]))
+        if r not in q2scores:
+            q2scores[r] = []
+        q2scores[r].append((sim_mat[q, r][0][idx_modal1][idx_modal2], sim_mat[q, r][1]))
+    for q in q2scores:
+        q2scores[q] = np.array(q2scores[q])
+    for q in q2scores:
+        q2scores[q] = q2scores[q][np.argsort(-q2scores[q][:, 0])]
+        q2scores[q] = (
+            q2scores[q][top_k - 1][0],  # the score of the top k-th pair
+            int(
+                sum(q2scores[q][:top_k, 1]) >= 1.0
+            ),  # if there is at least one positive pair in the top k
+        )
+    nc_scores = []
+    c_scores = []
+    for q in q2scores:
+        if q2scores[q][1] == 1.0:
+            c_scores.append(q2scores[q][0])
+        else:
+            nc_scores.append(q2scores[q][0])
     return nc_scores, c_scores
 
 
