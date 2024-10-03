@@ -1,7 +1,6 @@
 """Dataset class for any2any retrieval task."""
 
 import copy
-import multiprocessing
 import pickle
 from pathlib import Path
 from typing import Literal
@@ -83,7 +82,7 @@ class BaseAny2AnyDataset:
             f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
         )
         if not con_mat_test_path.exists():
-            shape = self.sim_mat_test.shape
+            shape = self.shape
             self.con_mat_test = {}
             for (idx_q, idx_r), (sim_mat, gt_label) in tqdm(
                 self.sim_mat_test.items(),
@@ -111,7 +110,7 @@ class BaseAny2AnyDataset:
         )
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
-            shape = self.sim_mat_test.shape
+            shape = self.shape
             for (idx_q, idx_r), (_, _) in tqdm(
                 self.con_mat_test.items(),
                 desc="Calculating conformal probabilities for missing data",
@@ -260,12 +259,12 @@ class BaseAny2AnyDataset:
                     retrieved_pairs_ij = sorted(
                         retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
                     )
-                    top_1_hit = get_top_k(retrieved_pairs_ij, k=1)
-                    recall_1 = 1 if any(top_1_hit) else 0
-                    precision_1 = sum(top_1_hit) / len(top_1_hit)
-                    recalls[modal_pair].append(recall_1)
-                    precisions[modal_pair].append(precision_1)
-                    maps[modal_pair].append(precision_1)
+                    top_k_hit = get_top_k(retrieved_pairs_ij, k=5)
+                    recall_k = 1 if any(top_k_hit) else 0
+                    precision_k = sum(top_k_hit) / len(top_k_hit)
+                    recalls[modal_pair].append(recall_k)
+                    precisions[modal_pair].append(precision_k)
+                    maps[modal_pair].append(precision_k)
 
         for modal_pair in recalls:
             recalls[modal_pair] = np.mean(recalls[modal_pair])
@@ -290,9 +289,11 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.text2img = "clip"
         self.text2audio = "clap"
 
+        self.shape = (1, 2)  # shape of the similarity matrix
         self.cali_size = 2700
         self.train_size = 0  # no training data is needed for MSRVTT
         self.test_size = 50_000
+        self.step_size = 20
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
@@ -303,8 +304,6 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.txt2img_emb = joblib.load(
             Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clip.pkl")
         )
-        # duplicate the text embedding to match the video embedding shape
-        self.txt2img_emb = np.concatenate([self.txt2img_emb] * 2, axis=1)
         self.img2txt_emb = joblib.load(
             Path(self.cfg_dataset.paths.save_path + "MSRVTT_video_emb_clip.pkl")
         )
@@ -314,6 +313,35 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.audio2txt_emb = joblib.load(
             Path(self.cfg_dataset.paths.save_path + "MSRVTT_audio_emb_clap.pkl")
         )
+        # normalize all the embeddings to have unit norm using L2 normalization
+        self.txt2img_emb = self.txt2img_emb / np.linalg.norm(
+            self.txt2img_emb, axis=1, keepdims=True
+        )
+        self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)] = self.img2txt_emb[
+            :, : int(self.img2txt_emb.shape[1] / 2)
+        ] / np.linalg.norm(
+            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)],
+            axis=1,
+            keepdims=True,
+        )
+        self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :] = self.img2txt_emb[
+            :, int(self.img2txt_emb.shape[1] / 2) :
+        ] / np.linalg.norm(
+            self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :],
+            axis=1,
+            keepdims=True,
+        )
+        self.txt2audio_emb = self.txt2audio_emb / np.linalg.norm(
+            self.txt2audio_emb, axis=1, keepdims=True
+        )
+        self.audio2txt_emb = self.audio2txt_emb / np.linalg.norm(
+            self.audio2txt_emb, axis=1, keepdims=True
+        )
+        # get the avg of video embeddings, as it does not affect the cosine similarity
+        self.img2txt_emb = (
+            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)]
+            + self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :]
+        ) / 2
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -352,10 +380,6 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
         self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
 
-    def train_crossmodal_similarity(self) -> None:
-        """Train the cross-modal similarity, aka the CSA method."""
-        return  # we do not need to train the cross-modal similarity for MSRVTT
-
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
 
@@ -371,55 +395,6 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             == self.video_info_sen_order[r_idx]["video_id"]
         )
 
-    # calculate the similarity matrix, we do not mask the data here
-    def process_chunk(
-        self,
-        chunk: np.ndarray,
-        txt2img_data: np.ndarray,
-        img2txt_data: np.ndarray,
-        txt2audio_data: np.ndarray,
-        audio2txt_data: np.ndarray,
-        idx_offset: int,
-    ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
-        """Process a chunk of data.
-
-        Args:
-            chunk: the range of indices
-            txt2img_data: the text data to image data similarity
-            img2txt_data: the image data to text data similarity
-            txt2audio_data: the text data to audio data similarity
-            audio2txt_data: the audio data to text data similarity
-            idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
-
-        Returns:
-            process_sim_mat_cali: the similarity matrix in the format of (sim_score, gt_label)
-                key is the pair of indices in the original dataset,
-                value is the similarity matrix (num_data, 1, 2) and ground truth label.
-        """
-        ds_size = txt2img_data.shape[0]
-        process_sim_mat_cali = {}
-        ids_q = []
-        ids_r = []
-        ids_pair = []
-        gt_labels = []
-        for i in tqdm(chunk, desc=f"Processing chunk {chunk[0]}-{chunk[-1]}"):
-            for j in range(ds_size):
-                gt_label = self.check_correct_retrieval(i + idx_offset, j + idx_offset)
-                gt_labels.append(gt_label)
-                ids_q.append(i)
-                ids_r.append(j)
-                ids_pair.append((i, j))
-
-        sim_mat = np.zeros((len(ids_pair), 1, 2))
-        sim_mat[:, 0, 0] = cosine_sim(txt2img_data[ids_q], img2txt_data[ids_r])
-        sim_mat[:, 0, 1] = cosine_sim(txt2audio_data[ids_q], audio2txt_data[ids_r])
-        for result_idx in range(sim_mat.shape[0]):
-            process_sim_mat_cali[ids_pair[result_idx]] = (
-                sim_mat[result_idx, :, :],
-                gt_labels[result_idx],
-            )
-        return process_sim_mat_cali
-
     def calculate_pairs_data_similarity(
         self,
         data_lists: list[np.ndarray],
@@ -431,37 +406,30 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         Args:
             data_lists: list of data
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
-            num_workers: the number of workers to calculate the similarity matrix
+            num_workers: the number of workers to use
 
         Returns:
             sim_mat: the similarity matrices of a pair of data.
                 key is the pair of indices in the original dataset,
                 value is the similarity matrix (num_data, 1, 2) and ground truth label.
         """
-        print("Calculating similarity matrix...")
+        print(
+            f"Calculating similarity matrix... num_workers={num_workers} is not used here."
+        )
         ds_size = data_lists[0].shape[0]
         (txt2img_data, img2txt_data, txt2audio_data, audio2txt_data) = data_lists
-        chunks = np.array_split(range(ds_size), num_workers)
-        with multiprocessing.Pool(processes=num_workers) as pool:
-            results = pool.starmap(
-                self.process_chunk,
-                [
-                    (
-                        chunk,
-                        txt2img_data,
-                        img2txt_data,
-                        txt2audio_data,
-                        audio2txt_data,
-                        idx_offset,
-                    )
-                    for chunk in chunks
-                ],
-            )
-        sim_mat_cali = {}
-        for process_sim_mat_cali in results:
-            for k, v in process_sim_mat_cali.items():
-                sim_mat_cali[k] = v
-        return sim_mat_cali
+        ds_size = txt2img_data.shape[0]
+        sim_mat = {}
+        for i in tqdm(range(ds_size)):
+            for j in range(0, ds_size, self.step_size):
+                gt_label = self.check_correct_retrieval(i + idx_offset, j + idx_offset)
+                cosine_sim_txt2img = np.sum(txt2img_data[i] * img2txt_data[j])
+                cosine_sim_txt2audio = np.sum(txt2audio_data[i] * audio2txt_data[j])
+                sim_mat[(i + idx_offset, j + idx_offset)] = (
+                    np.array([cosine_sim_txt2img, cosine_sim_txt2audio]).reshape(1, -1),
+                    gt_label,
+                )
+        return sim_mat
 
     def get_cali_data(self) -> None:
         """Get the calibration data.
@@ -481,12 +449,8 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             audio2txt_data = self.audio2txt_emb["cali"]
             idx_offset = self.train_size + self.test_size
             self.sim_mat_cali = self.calculate_pairs_data_similarity(
-                txt2img_data,
-                img2txt_data,
-                txt2audio_data,
-                audio2txt_data,
+                (txt2img_data, img2txt_data, txt2audio_data, audio2txt_data),
                 idx_offset,
-                num_workers=8,
             )
             # save the calibration data in the format of (sim_score, gt_label)
             with sim_mat_path.open("wb") as f:
@@ -546,10 +510,12 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         retrieved_pairs = []
         ds_idx_q = idx_q + idx_offset
-        for idx_r in range(range_r):
+        for idx_r in range(0, range_r, self.step_size):
+            if idx_r == idx_q:  # cannot retrieve itself
+                continue
             ds_idx_r = idx_r + idx_offset
             retrieved_pairs.append(
-                self.parse_retrieved_pairs(ds_idx_q, ds_idx_r, con_mat, single_modal, 9)
+                self.parse_retrieved_pairs(ds_idx_q, ds_idx_r, con_mat, single_modal, 2)
             )
         return retrieved_pairs
 
@@ -572,9 +538,10 @@ class KITTIDataset(BaseAny2AnyDataset):
         self.img2lidar = cfg["KITTI"].lidar_encoder
         self.img2txt = "csa"
         self.txt2lidar = "csa"
-
-        self.cali_size = 97
+        # total 12097
+        self.cali_size = 597
         self.train_size = 5000
+        self.shape = (3, 3)  # shape of the similarity matrix
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -893,7 +860,7 @@ class KITTIDataset(BaseAny2AnyDataset):
             txt_data = self.txtdata["cali"]
             idx_offset = self.train_size + self.test_size
             self.sim_mat_cali = self.calculate_pairs_data_similarity(
-                img_data, lidar_data, txt_data, idx_offset
+                (img_data, lidar_data, txt_data), idx_offset
             )
             # save the calibration data in the format of (sim_score, gt_label)
             with sim_mat_path.open("wb") as f:
@@ -949,6 +916,8 @@ class KITTIDataset(BaseAny2AnyDataset):
         retrieved_pairs = []
         ds_idx_q = self.shuffle2idx[idx_q + idx_offset]
         for idx_r in range(range_r):
+            if idx_r == idx_q:  # cannot retrieve itself
+                continue
             ds_idx_r = self.shuffle2idx[idx_r + idx_offset]
             # check if pair (ds_idx_q, ds_idx_r) is in the keys of con_mat
             if (ds_idx_q, ds_idx_r) in con_mat:
@@ -962,6 +931,6 @@ class KITTIDataset(BaseAny2AnyDataset):
                 f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
             )
             retrieved_pairs.append(
-                self.parse_retrieved_pairs(idx_1, idx_2, con_mat, single_modal, 9)
+                self.parse_retrieved_pairs(idx_1, idx_2, con_mat, single_modal, 1)
             )
         return retrieved_pairs

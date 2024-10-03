@@ -73,7 +73,7 @@ def main(cfg: DictConfig) -> None:
     plt.yticks(fontsize=16)
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
-        / f"single_modal_recall1_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
+        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
     )
 
 
