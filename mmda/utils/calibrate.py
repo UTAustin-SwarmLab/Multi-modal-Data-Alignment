@@ -48,6 +48,9 @@ def get_non_conformity_scores(
             c_scores.append(q2scores[q][0])
         else:
             nc_scores.append(q2scores[q][0])
+    # sort the scores
+    nc_scores.sort()
+    c_scores.sort()
     return nc_scores, c_scores
 
 
@@ -65,4 +68,5 @@ def calibrate(score: float, nc_scores: list[float]) -> float:
     # since nc_scores is sorted in ascending order,
     # the calibrated score is the index divided by the total number of scores
     # we can use binary search to find the index of score in nc_scores
+    assert nc_scores[0] <= nc_scores[-1], "nc_scores should be in ascending order"
     return bisect_left(nc_scores, score) / len(nc_scores)
