@@ -539,9 +539,10 @@ class KITTIDataset(BaseAny2AnyDataset):
         self.img2txt = "csa"
         self.txt2lidar = "csa"
         # total 12097
-        self.cali_size = 597
+        self.cali_size = 1097
         self.train_size = 5000
         self.shape = (3, 3)  # shape of the similarity matrix
+        self.shuffle_step = cfg["KITTI"].shuffle_step
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -557,9 +558,20 @@ class KITTIDataset(BaseAny2AnyDataset):
         assert self.num_data == txtdata.shape[0], f"{self.num_data}!={txtdata.shape[0]}"
 
         # train/test/calibration split
-        idx = np.arange(self.num_data)  # An array with 100 elements
-        # Shuffle the array to ensure randomness
-        np.random.shuffle(idx)
+        if self.shuffle_step == 0:
+            idx = np.arange(self.num_data)  # An array with 100 elements
+            # Shuffle the array to ensure randomness
+            np.random.shuffle(idx)
+        else:
+            idx_step = np.arange(0, self.num_data, self.shuffle_step)
+            # Shuffle the array to ensure randomness
+            np.random.shuffle(idx_step)
+            idx = []
+            for id_step in idx_step:
+                for j in range(self.shuffle_step):
+                    if j + id_step < self.num_data:
+                        idx.append(j + id_step)
+            idx = np.array(idx)
         self.idx2shuffle = {i: idx[i] for i in range(self.num_data)}
         self.shuffle2idx = {idx[i]: i for i in range(self.num_data)}
         self.train_idx = idx[: self.train_size]
@@ -931,6 +943,6 @@ class KITTIDataset(BaseAny2AnyDataset):
                 f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
             )
             retrieved_pairs.append(
-                self.parse_retrieved_pairs(idx_1, idx_2, con_mat, single_modal, 1)
+                self.parse_retrieved_pairs(idx_1, idx_2, con_mat, single_modal, 9)
             )
         return retrieved_pairs
