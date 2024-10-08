@@ -6,12 +6,12 @@ import numpy as np
 from tqdm import tqdm
 
 
-def con_mat_calibrate(sim_mat_dict: dict, pred_band: dict) -> dict:
+def con_mat_calibrate(sim_mat_dict: dict, nc_scores: dict) -> dict:
     """Calculate the conformal matrix from similarity matirx.
 
     Args:
         sim_mat_dict: the similarity matrix. dict: (i, j) -> (similarity matrix, ground truth)
-        pred_band: the prediction band. dict: (i, j) -> callable
+        nc_scores: the nonconformity scores. dict: (i, j) -> list[float]
 
     Returns:
         The conformal matrix. dict: (i, j) -> (conformal matrix, ground truth)
@@ -25,14 +25,14 @@ def con_mat_calibrate(sim_mat_dict: dict, pred_band: dict) -> dict:
         probs = np.zeros((3, 3))
         for i in range(3):
             for j in range(3):
-                probs[i, j] = pred_band[(min(i, j), max(i, j))](sim_mat[i, j])
+                probs[i, j] = calibrate(sim_mat[i, j], nc_scores[(i, j)])
         con_mat[(idx_q, idx_r)] = (probs, gt_label)
     return con_mat
 
 
 def get_non_conformity_scores_common(
     q2scores: dict, top_k: int = 5
-) -> tuple[list[float], list[float]]:
+) -> tuple[list[float], list[float], dict]:
     """Get the nonconformity scores for the quenry index dict."""
     for q in q2scores:
         q2scores[q] = np.array(q2scores[q])
@@ -59,7 +59,7 @@ def get_non_conformity_scores_common(
 
 def get_non_conformity_scores_1st_stage(
     sim_mat: dict, idx_modal1: int, idx_modal2: int, top_k: int = 5
-) -> tuple[list[float], list[float]]:
+) -> tuple[list[float], list[float], dict]:
     """Get the nonconformity scores for the given modalities.
 
     Args:
@@ -89,7 +89,7 @@ def get_non_conformity_scores_1st_stage(
 
 def get_non_conformity_scores_2nd_stage(
     con_mat: dict, mapping_fn: callable, top_k: int = 5
-) -> tuple[list[float], list[float]]:
+) -> tuple[list[float], list[float], dict]:
     """Get the nonconformity scores for the given conformal matrices.
 
     Args:

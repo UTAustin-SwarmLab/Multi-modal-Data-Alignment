@@ -10,7 +10,7 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from mmda.utils.calibrate import calibrate, get_non_conformity_scores
+from mmda.utils.calibrate import calibrate, get_non_conformity_scores_1st_stage
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
 from mmda.utils.dataset_utils import load_msrvtt
@@ -32,6 +32,17 @@ class BaseAny2AnyDataset:
 
     def get_cali_data(self) -> None:
         """Get the calibration data."""
+
+    def set_pred_band(self, ij_range: tuple[int, int] = (3, 3)) -> None:
+        """Set up the prediction bands for the calibration."""
+        self.nc_scores = {}
+        print("Calculating nonconformity scores...")
+        # calculate the nonconformity scores and conformal scores for all pairs of modalities
+        for i in range(ij_range[0]):
+            for j in range(ij_range[1]):
+                self.nc_scores[(i, j)] = get_non_conformity_scores_1st_stage(
+                    self.sim_mat_cali, i, j
+                )[0]
 
     def get_test_data(self, data_lists: list[np.ndarray]) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -92,9 +103,7 @@ class BaseAny2AnyDataset:
                 probs = np.zeros(shape)
                 for i in range(shape[0]):
                     for j in range(shape[1]):
-                        probs[i, j] = self.pred_band[(min(i, j), max(i, j))](
-                            sim_mat[i, j]
-                        )
+                        probs[i, j] = calibrate(sim_mat[i, j], self.nc_scores[(i, j)])
                 self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
             with con_mat_test_path.open("wb") as f:
                 pickle.dump(self.con_mat_test, f)
@@ -459,18 +468,8 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             print("Loading calibration data...")
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
-        self.pred_band = {}
-        print("Calculating nonconformity scores...")
-        # calculate the nonconformity scores and conformal scores for all pairs of modalities
-        for i in range(0):
-            for j in range(2):
-                nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)
-
-                # define calibration method with nc_scores
-                def calibrate_ij(score: float) -> callable:
-                    return calibrate(score, nc_scores=nc_scores_ij)  # noqa: B023
-
-                self.pred_band[(i, j)] = calibrate_ij
+        # set up prediction bands
+        self.set_pred_band((1, 2))
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -881,18 +880,8 @@ class KITTIDataset(BaseAny2AnyDataset):
             print("Loading calibration data...")
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
-        self.pred_band = {}
-        print("Calculating nonconformity scores...")
-        # calculate the nonconformity scores and conformal scores for all pairs of modalities
-        for i in range(3):
-            for j in range(i, 3):
-                nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)
-
-                # define calibration method with nc_scores
-                def calibrate_ij(score: float) -> callable:
-                    return calibrate(score, nc_scores=nc_scores_ij)  # noqa: B023
-
-                self.pred_band[(i, j)] = calibrate_ij
+        # set up prediction bands
+        self.set_pred_band((3, 3))
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
