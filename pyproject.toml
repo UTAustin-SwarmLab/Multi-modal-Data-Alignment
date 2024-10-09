@@ -1,11 +1,9 @@
 [project]
 name = "mmda"
 version = "0.1.1"
-version = "0.1.1"
 authors = [
   { name="Po-han Li", email="pohanli@utexas.edu" },
 ]
-description = "Multimodal Feature Extraction"
 description = "Multimodal Feature Extraction"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -31,7 +29,6 @@ version = "0.1.1"
 authors = ["Po-han Li <pohanli@utexas.edu>"]
 packages = [{include = "mmda"}]
 description = "Multimodal Data Alignment"
-description = "Multimodal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -42,12 +39,6 @@ argparse = "*"
 flake8 = "*"
 black = "*"
 scikit-learn = "*"
-scikit-image = "*"
-pillow = "*"
-h5py = "*"
-pyyaml = "*"
-hydra-core = "1.3.2"
-hydra-joblib-launcher = "1.2.0"
 scikit-image = "*"
 pillow = "*"
 h5py = "*"
