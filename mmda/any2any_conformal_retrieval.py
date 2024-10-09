@@ -64,13 +64,14 @@ def main(cfg: DictConfig) -> None:
         xticklabels=["Image", "Lidar", "Text"],
         yticklabels=["Image", "Lidar", "Text"],
         annot=True,
-        annot_kws={"size": 16, "weight": "bold"},
+        annot_kws={"size": 18, "weight": "bold"},
     )
     ax.xaxis.tick_top()
-    plt.xlabel("Reference modality", fontsize=18)
-    plt.ylabel("Query modality", fontsize=18)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
+    plt.xlabel("Reference modality", fontsize=20)
+    plt.ylabel("Query modality", fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
         / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"

@@ -2,6 +2,7 @@
 
 import copy
 import pickle
+from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 
@@ -10,7 +11,12 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from mmda.utils.calibrate import calibrate, get_non_conformity_scores_1st_stage
+from mmda.utils.calibrate import (
+    calibrate,
+    con_mat_calibrate,
+    get_calibration_scores_1st_stage,
+    get_calibration_scores_2nd_stage,
+)
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
 from mmda.utils.dataset_utils import load_msrvtt
@@ -33,16 +39,35 @@ class BaseAny2AnyDataset:
     def get_cali_data(self) -> None:
         """Get the calibration data."""
 
-    def set_pred_band(self, ij_range: tuple[int, int] = (3, 3)) -> None:
-        """Set up the prediction bands for the calibration."""
-        self.nc_scores = {}
+    def set_pred_band(self) -> None:
+        """Set up the 1st stage prediction bands for the calibration."""
+        self.scores_1st = {}
         print("Calculating nonconformity scores...")
         # calculate the nonconformity scores and conformal scores for all pairs of modalities
-        for i in range(ij_range[0]):
-            for j in range(ij_range[1]):
-                self.nc_scores[(i, j)] = get_non_conformity_scores_1st_stage(
+        for i in range(self.shape[0]):
+            for j in range(self.shape[1]):
+                self.scores_1st[(i, j)] = get_calibration_scores_1st_stage(
                     self.sim_mat_cali, i, j
                 )[0]
+        cali_con_mat = con_mat_calibrate(self.sim_mat_cali, self.scores_1st)
+        self.scores_2nd = get_calibration_scores_2nd_stage(
+            cali_con_mat, self.mapping_fn
+        )[0]
+
+        con_mat_cali_miss = deepcopy(cali_con_mat)
+        # mask data in the missing calibration conformal matrix
+        for (idx_q, idx_r), (_, _) in tqdm(
+            cali_con_mat.items(),
+            desc="Masking conformal probabilities for missing data",
+            leave=True,
+        ):
+            for i in range(self.shape[0]):
+                for j in range(self.shape[1]):
+                    if idx_q in self.mask[i] and idx_r in self.mask[j]:
+                        con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
+        self.scores_2nd_miss = get_calibration_scores_2nd_stage(
+            con_mat_cali_miss, self.mapping_fn
+        )[0]
 
     def get_test_data(self, data_lists: list[np.ndarray]) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -103,7 +128,7 @@ class BaseAny2AnyDataset:
                 probs = np.zeros(shape)
                 for i in range(shape[0]):
                     for j in range(shape[1]):
-                        probs[i, j] = calibrate(sim_mat[i, j], self.nc_scores[(i, j)])
+                        probs[i, j] = calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
                 self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
             with con_mat_test_path.open("wb") as f:
                 pickle.dump(self.con_mat_test, f)
@@ -119,14 +144,13 @@ class BaseAny2AnyDataset:
         )
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
-            shape = self.shape
             for (idx_q, idx_r), (_, _) in tqdm(
                 self.con_mat_test.items(),
                 desc="Calculating conformal probabilities for missing data",
                 leave=True,
             ):
-                for i in range(shape[0]):
-                    for j in range(shape[1]):
+                for i in range(self.shape[0]):
+                    for j in range(self.shape[1]):
                         if idx_q in self.mask[i] and idx_r in self.mask[j]:
                             self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
             with con_mat_test_miss_path.open("wb") as f:
@@ -143,7 +167,7 @@ class BaseAny2AnyDataset:
         ds_idx_r: int,
         con_mat: dict,
         single_modal: bool = False,
-        select_top_k: int = 9,
+        cali_scores: list[float] | None = None,
     ) -> tuple[int, int, float, int]:
         """Parse the retrieved pairs.
 
@@ -152,7 +176,7 @@ class BaseAny2AnyDataset:
             ds_idx_r: the index of the retrieved data
             con_mat: the conformal probability matrix
             single_modal: whether to retrieve the single modality data
-            select_top_k: the number of top-k conformal probabilities to use for the mean
+            cali_scores: the calibration scores
 
         Returns:
             ds_idx_q: the index of the query data
@@ -161,23 +185,20 @@ class BaseAny2AnyDataset:
             gt_label: the ground truth label
         """
         probs = con_mat[(ds_idx_q, ds_idx_r)][0]
-        if single_modal:  # single modality retrieval
+        # single modality retrieval
+        if single_modal:
             return (ds_idx_q, ds_idx_r, probs, con_mat[(ds_idx_q, ds_idx_r)][1])
         # full modality retrieval
         probs_filtered = probs[probs != -1]  # Ignore -1 entries
         if len(probs_filtered) > 0:
-            probs_sorted = np.sort(probs_filtered)
-            top_k_mean = (
-                np.mean(probs_sorted[-select_top_k:])
-                if len(probs_sorted) >= select_top_k
-                else probs_sorted[-1]
-            )
+            prob_filtered = self.mapping_fn(probs_filtered)
+            cali_prob = calibrate(prob_filtered, cali_scores)
         else:
-            top_k_mean = 0  # Default value if all entries are -1
+            cali_prob = 0  # Default value if all entries are -1
         return (
             ds_idx_q,
             ds_idx_r,
-            top_k_mean,  # conformal_prob
+            cali_prob,  # conformal_prob
             con_mat[(ds_idx_q, ds_idx_r)][1],  # gt_label
         )
 
@@ -203,7 +224,7 @@ class BaseAny2AnyDataset:
         ], f"mode must be 'miss' or 'full' or 'single', got {mode}"
 
         con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
-
+        scores_2nd = self.scores_2nd_miss if mode == "miss" else self.scores_2nd
         if mode != "single":
             recalls = {1: [], 5: [], 20: []}
             precisions = {1: [], 5: [], 20: []}
@@ -215,7 +236,12 @@ class BaseAny2AnyDataset:
                 leave=True,
             ):
                 retrieved_pairs = self.retrieve_one_data(
-                    con_mat, idx_q, self.train_size, self.test_size
+                    con_mat,
+                    idx_q,
+                    self.train_size,
+                    self.test_size,
+                    single_modal=False,
+                    scores_2nd=scores_2nd,
                 )
                 retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
                 top_1_hit = get_top_k(retrieved_pairs, k=1)
@@ -303,6 +329,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.train_size = 0  # no training data is needed for MSRVTT
         self.test_size = 50_000
         self.step_size = 20
+        self.mapping_fn = np.mean
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
@@ -469,7 +496,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
         # set up prediction bands
-        self.set_pred_band((1, 2))
+        self.set_pred_band()
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -493,6 +520,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         idx_offset: int,
         range_r: int,
         single_modal: bool = False,
+        scores_2nd: list[float] | None = None,
     ) -> np.ndarray:
         """Retrieve one data from the similarity matrix.
 
@@ -502,6 +530,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
             range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
             single_modal: whether to retrieve the single modality data.
+            scores_2nd: the calibration scores
 
         Returns:
             retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
@@ -514,7 +543,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 continue
             ds_idx_r = idx_r + idx_offset
             retrieved_pairs.append(
-                self.parse_retrieved_pairs(ds_idx_q, ds_idx_r, con_mat, single_modal, 2)
+                self.parse_retrieved_pairs(
+                    ds_idx_q, ds_idx_r, con_mat, single_modal, scores_2nd
+                )
             )
         return retrieved_pairs
 
@@ -542,6 +573,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         self.train_size = 5000
         self.shape = (3, 3)  # shape of the similarity matrix
         self.shuffle_step = cfg["KITTI"].shuffle_step
+        self.mapping_fn = np.mean
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -558,7 +590,7 @@ class KITTIDataset(BaseAny2AnyDataset):
 
         # train/test/calibration split
         if self.shuffle_step == 0:
-            idx = np.arange(self.num_data)  # An array with 100 elements
+            idx = np.arange(self.num_data)
             # Shuffle the array to ensure randomness
             np.random.shuffle(idx)
         else:
@@ -881,7 +913,7 @@ class KITTIDataset(BaseAny2AnyDataset):
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
         # set up prediction bands
-        self.set_pred_band((3, 3))
+        self.set_pred_band()
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -900,6 +932,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         idx_offset: int,
         range_r: int,
         single_modal: bool = False,
+        scores_2nd: list[float] | None = None,
     ) -> np.ndarray:
         """Retrieve one data from the similarity matrix.
 
@@ -909,6 +942,7 @@ class KITTIDataset(BaseAny2AnyDataset):
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
             range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
             single_modal: whether to retrieve the single modality data.
+            scores_2nd: the second scores for the retrieval.
 
         Returns:
             retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
@@ -925,13 +959,13 @@ class KITTIDataset(BaseAny2AnyDataset):
                 idx_1, idx_2 = ds_idx_q, ds_idx_r
             else:
                 idx_1, idx_2 = ds_idx_r, ds_idx_q
-            assert (
-                idx_1,
-                idx_2,
-            ) in con_mat, (
-                f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
-            )
             retrieved_pairs.append(
-                self.parse_retrieved_pairs(idx_1, idx_2, con_mat, single_modal, 9)
+                self.parse_retrieved_pairs(
+                    idx_1,
+                    idx_2,
+                    con_mat,
+                    single_modal,
+                    scores_2nd,
+                )
             )
         return retrieved_pairs

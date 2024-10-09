@@ -31,7 +31,7 @@ def con_mat_calibrate(sim_mat_dict: dict, scores: dict) -> dict:
         scores: the nonconformity scores. dict: (i, j) -> list[float]
 
     Returns:
-        The conformal matrix. dict: (i, j) -> (conformal matrix, ground truth)
+        con_mat: The conformal matrix. dict: (i, j) -> (conformal matrix, ground truth)
     """
     con_mat = {}
     for (idx_q, idx_r), (sim_mat, gt_label) in tqdm(
@@ -72,7 +72,7 @@ def get_calibration_scores_common(
 
 
 def get_calibration_scores_1st_stage(
-    sim_mat_dict: dict, idx_modal1: int, idx_modal2: int
+    sim_mat_dict: dict, idx_modal1: int, idx_modal2: int, skip_same: bool = False
 ) -> tuple[list[float], list[int]]:
     """Get the nonconformity scores for the given modalities.
 
@@ -80,6 +80,7 @@ def get_calibration_scores_1st_stage(
         sim_mat_dict: the similarity matrix. dict: (i, j) -> (similarity matrix, ground truth)
         idx_modal1: index of the first modality
         idx_modal2: index of the second modality
+        skip_same: whether to skip the same pair of query and reference data (default: False)
 
     Returns:
         cali_scores: the SORTED distribution of calibration scores
@@ -89,7 +90,7 @@ def get_calibration_scores_1st_stage(
     gt_labels = []
     for (idx_q, idx_r), (sim_mat, gt_label) in sim_mat_dict.items():
         # skip the same pair of query and reference data
-        if idx_q == idx_r:
+        if idx_q == idx_r and skip_same:
             continue
         sim_scores.append(sim_mat[idx_modal1, idx_modal2])
         gt_labels.append(gt_label)
@@ -97,25 +98,32 @@ def get_calibration_scores_1st_stage(
 
 
 def get_calibration_scores_2nd_stage(
-    con_mat: dict, mapping_fn: callable
+    con_mat: dict,
+    mapping_fn: callable,
+    skip_same: bool = False,
 ) -> tuple[list[float], list[int]]:
     """Get the nonconformity scores for the given conformal matrices.
 
     Args:
         con_mat: the conformal matrix. dict: (i, j) -> (conformal matrix, ground truth)
         mapping_fn: the mapping function to map the conformal matrix to a scalar, e.g., max, mean
+        skip_same: whether to skip the same pair of query and reference data (default: False)
 
     Returns:
-        cali_scores: the SORTED distribution of calibration scores
-        gt_labels: the ground truth labels
+        cali_scores: the SORTED distribution of calibration scores.
+        gt_labels: the ground truth labels.
     """
     sim_scores = []
     gt_labels = []
     for idx_q, idx_r in con_mat:
         # skip the same pair of query and reference data
-        if idx_q == idx_r:
+        if idx_q == idx_r and skip_same:
             continue
-        sim_scores.append(mapping_fn(con_mat[(idx_q, idx_r)][0]))
+        con_mat_ = con_mat[(idx_q, idx_r)][0]
+        # skip the empty conformal matrix
+        if len(con_mat_[con_mat_ != -1].reshape(-1)) == 0:
+            continue
+        sim_scores.append(mapping_fn(con_mat_[con_mat_ != -1]))
         gt_labels.append(con_mat[(idx_q, idx_r)][1])
     return get_calibration_scores_common(sim_scores, gt_labels)
 
