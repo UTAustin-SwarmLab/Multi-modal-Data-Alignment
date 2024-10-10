@@ -2,17 +2,115 @@
 
 import ast
 import json
+import pickle
 from pathlib import Path
 
 import datasets
 import joblib
 import numpy as np
 import pandas as pd
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 import hydra
 from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.liploc_model import CFG, load_eval_filenames
+
+
+def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
+    """Extract audio from a video file.
+
+    Args:
+        mp4_file: path to the video file
+
+    Returns:
+        True if the audio is extracted successfully, False otherwise
+    """
+    # Extract the audio from the entire video
+    video = VideoFileClip(mp4_file)
+    audio = video.audio
+    if audio is None:
+        return False, None
+    # Extract the audio as a list of samples
+    audio_samples = list(audio.iter_frames())
+    # Convert the list of samples to a NumPy array
+    sound_array = np.array(audio_samples)
+    return True, sound_array
+
+
+def load_msrvtt(
+    cfg_dataset: DictConfig,
+) -> tuple[list[str], list[str], np.ndarray, list[str]]:
+    """Load the MSR-VTT dataset (https://github.com/microsoft/MSR-VTT-Tools).
+
+    Dataset link: https://www.kaggle.com/datasets/vishnutheepb/msrvtt
+    Args:
+        cfg_dataset: configuration file
+
+    Returns:
+        sen_ids: list of sentence_ids
+        captions: list of captions
+        video_info_sen_order: list of video information (in the order of sen_ids)
+        video_dict: a dict of video information (video_id to video_info)
+    """
+    # load MSR-VTT json file
+    with Path(cfg_dataset.paths.dataset_path, "test_videodatainfo.json").open() as f:
+        json_data = json.load(f)  # each video has 20 sentences
+        # "id": int, "video_id": str, "category": int, "url": str, "start time": float, "end time": float, "split": str
+        # time of the YT video (here the video is already cut into clips).
+        videos = json_data["videos"]
+        # "sen_id": int, "video_id": str, "caption": str
+        sentences = json_data["sentences"]
+
+    # if no video_dict.pkl, extract audio from videos
+    if not Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").exists():
+        list_video_ids = [video_json["video_id"] for video_json in videos]
+        video_dict = {}
+        for video_json in videos:
+            video_id = video_json["video_id"]
+            start_time = video_json["start time"]
+            end_time = video_json["end time"]
+            split = video_json["split"]
+            category = video_json["category"]
+            url = video_json["url"]
+            video_dict[video_id] = {
+                "video_id": video_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "split": split,
+                "category": category,
+                "url": url,
+            }
+        for video_id in tqdm(list_video_ids):
+            mp4_file = str(
+                Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.mp4")
+            )
+            audio_exist, audio = extract_audio_from_video(mp4_file)
+            if not audio_exist:
+                # remove the video info from the video_dict
+                del video_dict[video_id]
+            else:
+                audio = (audio[:, 0] + audio[:, 1]) / 2
+                video_dict[video_id]["audio_np"] = audio
+        # save the video_dict
+        with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("wb") as f:
+            pickle.dump(video_dict, f)
+    else:
+        with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("rb") as f:
+            video_dict = joblib.load(f)
+
+    captions, sen_ids = [], []
+    video_info_sen_order = []
+    for sentence_json in sentences:
+        video_id = sentence_json["video_id"]
+        if video_id not in video_dict:
+            continue
+        video_info_sen_order.append(video_dict[video_id])
+        sen_ids.append(sentence_json["sen_id"])
+        captions.append(sentence_json["caption"])
+
+    return sen_ids, captions, video_info_sen_order, video_dict
 
 
 def load_kitti(
@@ -621,7 +719,7 @@ def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
-    load_leafy_spurge(cfg.leafy_spurge)
+    load_msrvtt(cfg.MSRVTT)
 
 
 if __name__ == "__main__":

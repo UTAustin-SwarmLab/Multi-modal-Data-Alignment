@@ -2,6 +2,7 @@
 
 import copy
 import pickle
+from copy import deepcopy
 from pathlib import Path
 from typing import Literal
 
@@ -10,14 +11,546 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from mmda.utils.calibrate import calibrate, get_non_conformity_scores
+from mmda.utils.calibrate import (
+    calibrate,
+    con_mat_calibrate,
+    get_calibration_scores_1st_stage,
+    get_calibration_scores_2nd_stage,
+)
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
-from mmda.utils.liploc_model import KITTI_file_Retrieval, get_top_k
+from mmda.utils.dataset_utils import load_msrvtt
+from mmda.utils.liploc_model import Args, KITTI_file_Retrieval, get_top_k
 from mmda.utils.sim_utils import batch_weighted_corr_sim, cosine_sim
 
 
-class KITTIDataset:
+class BaseAny2AnyDataset:
+    """Base class for any2any retrieval dataset."""
+
+    def __init__(self, cfg: DictConfig) -> None:
+        """Initialize the dataset."""
+
+    def preprocess_retrieval_data(self) -> None:
+        """Preprocess the data for retrieval."""
+
+    def train_crossmodal_similarity(self) -> None:
+        """Train the cross-modal similarity, aka the CSA method."""
+
+    def get_cali_data(self) -> None:
+        """Get the calibration data."""
+
+    def set_pred_band(self) -> None:
+        """Set up the 1st stage prediction bands for the calibration."""
+        self.scores_1st = {}
+        print("Calculating nonconformity scores...")
+        # calculate the nonconformity scores and conformal scores for all pairs of modalities
+        for i in range(self.shape[0]):
+            for j in range(self.shape[1]):
+                self.scores_1st[(i, j)] = get_calibration_scores_1st_stage(
+                    self.sim_mat_cali, i, j
+                )[0]
+        cali_con_mat = con_mat_calibrate(self.sim_mat_cali, self.scores_1st)
+        self.scores_2nd = get_calibration_scores_2nd_stage(
+            cali_con_mat, self.mapping_fn
+        )[0]
+
+        con_mat_cali_miss = deepcopy(cali_con_mat)
+        # mask data in the missing calibration conformal matrix
+        for (idx_q, idx_r), (_, _) in tqdm(
+            cali_con_mat.items(),
+            desc="Masking conformal probabilities for missing data",
+            leave=True,
+        ):
+            for i in range(self.shape[0]):
+                for j in range(self.shape[1]):
+                    if idx_q in self.mask[i] and idx_r in self.mask[j]:
+                        con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
+        self.scores_2nd_miss = get_calibration_scores_2nd_stage(
+            con_mat_cali_miss, self.mapping_fn
+        )[0]
+
+    def get_test_data(self, data_lists: list[np.ndarray]) -> None:
+        """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
+
+        This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
+        and use batch processing to speed up the process.
+
+        Args:
+            data_lists: list of data
+        """
+        if Path(
+            self.cfg_dataset.paths.save_path,
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+        ).exists():
+            print(
+                "Since the conformal probabilities are already calculated, we skip the process of loading test data."
+            )
+            return
+
+        sim_mat_test_path = Path(
+            self.cfg_dataset.paths.save_path,
+            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+        )
+        if not sim_mat_test_path.exists():
+            print("Generating test data...")
+            idx_offset = self.train_size
+            self.sim_mat_test = self.calculate_pairs_data_similarity(
+                data_lists,
+                idx_offset,
+                num_workers=8,
+            )
+            with sim_mat_test_path.open("wb") as f:
+                pickle.dump(self.sim_mat_test, f)
+        else:
+            print("Loading test data...")
+            # load with pickle since it is faster than joblib (but less safe)
+            with sim_mat_test_path.open("rb") as f:
+                self.sim_mat_test = pickle.load(f)  # noqa: S301
+
+    def cal_test_conformal_prob(self) -> None:
+        """Calculate the conformal probability for the test data.
+
+        Args:
+            shape: the shape of the similarity matrix
+        """
+        con_mat_test_path = Path(
+            self.cfg_dataset.paths.save_path,
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+        )
+        if not con_mat_test_path.exists():
+            shape = self.shape
+            self.con_mat_test = {}
+            for (idx_q, idx_r), (sim_mat, gt_label) in tqdm(
+                self.sim_mat_test.items(),
+                desc="Calculating conformal probabilities",
+                leave=True,
+            ):
+                probs = np.zeros(shape)
+                for i in range(shape[0]):
+                    for j in range(shape[1]):
+                        probs[i, j] = calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
+                self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
+            with con_mat_test_path.open("wb") as f:
+                pickle.dump(self.con_mat_test, f)
+        else:
+            print("Loading conformal probabilities...")
+            # load with pickle since it is faster than joblib (but less safe)
+            with con_mat_test_path.open("rb") as f:
+                self.con_mat_test = pickle.load(f)  # noqa: S301
+
+        con_mat_test_miss_path = Path(
+            self.cfg_dataset.paths.save_path,
+            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+        )
+        if not con_mat_test_miss_path.exists():
+            self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
+            for (idx_q, idx_r), (_, _) in tqdm(
+                self.con_mat_test.items(),
+                desc="Calculating conformal probabilities for missing data",
+                leave=True,
+            ):
+                for i in range(self.shape[0]):
+                    for j in range(self.shape[1]):
+                        if idx_q in self.mask[i] and idx_r in self.mask[j]:
+                            self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
+            with con_mat_test_miss_path.open("wb") as f:
+                pickle.dump(self.con_mat_test_miss, f)
+        else:
+            print("Loading conformal probabilities for missing data...")
+            # load with pickle since it is faster than joblib (but less safe)
+            with con_mat_test_miss_path.open("rb") as f:
+                self.con_mat_test_miss = pickle.load(f)  # noqa: S301
+
+    def parse_retrieved_pairs(
+        self,
+        ds_idx_q: int,
+        ds_idx_r: int,
+        con_mat: dict,
+        single_modal: bool = False,
+        cali_scores: list[float] | None = None,
+    ) -> tuple[int, int, float, int]:
+        """Parse the retrieved pairs.
+
+        Args:
+            ds_idx_q: the index of the query data
+            ds_idx_r: the index of the retrieved data
+            con_mat: the conformal probability matrix
+            single_modal: whether to retrieve the single modality data
+            cali_scores: the calibration scores
+
+        Returns:
+            ds_idx_q: the index of the query data
+            ds_idx_r: the index of the retrieved data
+            conformal_prob: the conformal probability (sometimes the mean of the top-k conformal probabilities)
+            gt_label: the ground truth label
+        """
+        probs = con_mat[(ds_idx_q, ds_idx_r)][0]
+        # single modality retrieval
+        if single_modal:
+            return (ds_idx_q, ds_idx_r, probs, con_mat[(ds_idx_q, ds_idx_r)][1])
+        # full modality retrieval
+        probs_filtered = probs[probs != -1]  # Ignore -1 entries
+        if len(probs_filtered) > 0:
+            prob_filtered = self.mapping_fn(probs_filtered)
+            cali_prob = calibrate(prob_filtered, cali_scores)
+        else:
+            cali_prob = 0  # Default value if all entries are -1
+        return (
+            ds_idx_q,
+            ds_idx_r,
+            cali_prob,  # conformal_prob
+            con_mat[(ds_idx_q, ds_idx_r)][1],  # gt_label
+        )
+
+    def retrieve_data(
+        self,
+        mode: Literal["miss", "full", "single"],
+    ) -> tuple[dict, dict, dict]:
+        """Retrieve the data for retrieval task on the test set.
+
+        Args:
+            mode: the mode of the retrieval. "miss" for the retrieval on the missing data,
+                "full" for the retrieval on the full data, "single" for the retrieval on single pair of modalities.
+
+        Returns:
+            recalls: dict of the recall at 1, 5, 20. {int: list}
+            precisions: dict of the precision at 1, 5, 20. {int: list}
+            maps: dict of the mean average precision at 5, 20. {int: list}
+        """
+        assert mode in [
+            "miss",
+            "full",
+            "single",
+        ], f"mode must be 'miss' or 'full' or 'single', got {mode}"
+
+        con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
+        scores_2nd = self.scores_2nd_miss if mode == "miss" else self.scores_2nd
+        if mode != "single":
+            recalls = {1: [], 5: [], 20: []}
+            precisions = {1: [], 5: [], 20: []}
+            maps = {5: [], 20: []}
+
+            for idx_q in tqdm(
+                range(self.test_size),
+                desc=f"Retrieving {mode} data",
+                leave=True,
+            ):
+                retrieved_pairs = self.retrieve_one_data(
+                    con_mat,
+                    idx_q,
+                    self.train_size,
+                    self.test_size,
+                    single_modal=False,
+                    scores_2nd=scores_2nd,
+                )
+                retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
+                top_1_hit = get_top_k(retrieved_pairs, k=1)
+                top_5_hit = get_top_k(retrieved_pairs, k=5)
+                top_20_hit = get_top_k(retrieved_pairs, k=20)
+
+                # calculate recall@1, recall@5, recall@20
+                recall_1 = 1 if any(top_1_hit) else 0
+                recall_5 = 1 if any(top_5_hit) else 0
+                recall_20 = 1 if any(top_20_hit) else 0
+
+                # calculate precision@1, precision@5, precision@20
+                precision_1 = sum(top_1_hit) / len(top_1_hit)
+                precision_5 = sum(top_5_hit) / len(top_5_hit)
+                precision_20 = sum(top_20_hit) / len(top_20_hit)
+
+                # calculate AP@5, AP@20
+                precisions_at_5 = np.cumsum(top_5_hit) / (np.arange(5) + 1)  # array
+                ap_5 = np.sum(precisions_at_5 * top_5_hit) / 5
+                precisions_at_20 = np.cumsum(top_20_hit) / (np.arange(20) + 1)  # array
+                ap_20 = np.sum(precisions_at_20 * top_20_hit) / 20
+
+                # record the results
+                recalls[1].append(recall_1)
+                recalls[5].append(recall_5)
+                recalls[20].append(recall_20)
+                precisions[1].append(precision_1)
+                precisions[5].append(precision_5)
+                precisions[20].append(precision_20)
+                maps[5].append(ap_5)
+                maps[20].append(ap_20)
+            return maps, precisions, recalls
+
+        # if mode is "single"
+        recalls = {(i, j): [] for i in range(3) for j in range(3)}
+        precisions = {(i, j): [] for i in range(3) for j in range(3)}
+        maps = {(i, j): [] for i in range(3) for j in range(3)}
+        for idx_q in tqdm(
+            range(self.test_size),
+            desc=f"Retrieving {mode} data",
+            leave=True,
+        ):
+            retrieved_pairs = self.retrieve_one_data(
+                con_mat, idx_q, self.train_size, self.test_size, single_modal=True
+            )
+            for i in range(3):
+                for j in range(3):
+                    # sort the retrieved pairs not inplace
+                    modal_pair = (i, j)
+                    retrieved_pairs_ij = sorted(
+                        retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
+                    )
+                    top_k_hit = get_top_k(retrieved_pairs_ij, k=5)
+                    recall_k = 1 if any(top_k_hit) else 0
+                    precision_k = sum(top_k_hit) / len(top_k_hit)
+                    recalls[modal_pair].append(recall_k)
+                    precisions[modal_pair].append(precision_k)
+                    maps[modal_pair].append(precision_k)
+
+        for modal_pair in recalls:
+            recalls[modal_pair] = np.mean(recalls[modal_pair])
+            precisions[modal_pair] = np.mean(precisions[modal_pair])
+            maps[modal_pair] = np.mean(maps[modal_pair])
+        return maps, precisions, recalls
+
+
+class MSRVTTDataset(BaseAny2AnyDataset):
+    """MSRVTT dataset class for any2any retrieval task."""
+
+    def __init__(self, cfg: DictConfig) -> None:
+        """Initialize the dataset. Size of the data is 52700 in total.
+
+        In this task, we only consider text-to-image/audio retrieval.
+
+        Args:
+            cfg: configuration file
+        """
+        self.cfg = cfg
+        self.cfg_dataset = cfg["MSRVTT"]
+        self.text2img = "clip"
+        self.text2audio = "clap"
+
+        self.shape = (1, 2)  # shape of the similarity matrix
+        self.cali_size = 2700
+        self.train_size = 0  # no training data is needed for MSRVTT
+        self.test_size = 50_000
+        self.step_size = 20
+        self.mapping_fn = np.mean
+
+    def load_data(self) -> None:
+        """Load the data for retrieval."""
+        # load data
+        self.sen_ids, self.captions, self.video_info_sen_order, self.video_dict = (
+            load_msrvtt(self.cfg_dataset)
+        )
+        self.txt2img_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clip.pkl")
+        )
+        self.img2txt_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_video_emb_clip.pkl")
+        )
+        self.txt2audio_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clap.pkl")
+        )
+        self.audio2txt_emb = joblib.load(
+            Path(self.cfg_dataset.paths.save_path + "MSRVTT_audio_emb_clap.pkl")
+        )
+        # normalize all the embeddings to have unit norm using L2 normalization
+        self.txt2img_emb = self.txt2img_emb / np.linalg.norm(
+            self.txt2img_emb, axis=1, keepdims=True
+        )
+        self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)] = self.img2txt_emb[
+            :, : int(self.img2txt_emb.shape[1] / 2)
+        ] / np.linalg.norm(
+            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)],
+            axis=1,
+            keepdims=True,
+        )
+        self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :] = self.img2txt_emb[
+            :, int(self.img2txt_emb.shape[1] / 2) :
+        ] / np.linalg.norm(
+            self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :],
+            axis=1,
+            keepdims=True,
+        )
+        self.txt2audio_emb = self.txt2audio_emb / np.linalg.norm(
+            self.txt2audio_emb, axis=1, keepdims=True
+        )
+        self.audio2txt_emb = self.audio2txt_emb / np.linalg.norm(
+            self.audio2txt_emb, axis=1, keepdims=True
+        )
+        # get the avg of video embeddings, as it does not affect the cosine similarity
+        self.img2txt_emb = (
+            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)]
+            + self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :]
+        ) / 2
+
+    def preprocess_retrieval_data(self) -> None:
+        """Preprocess the data for retrieval."""
+        # load data
+        self.load_data()
+        self.num_data = self.img2txt_emb.shape[0]
+        assert (
+            self.test_size + self.cali_size + self.train_size == self.num_data
+        ), f"{self.test_size} + {self.cali_size} + {self.train_size} != {self.num_data}"
+
+        # train/test/calibration split
+        idx = np.arange(self.num_data)  # An array with 100 elements
+        # Shuffle the array to ensure randomness
+        np.random.shuffle(idx)
+        self.test_idx = idx[self.train_size : -self.cali_size]
+        self.cali_idx_qdx = idx[-self.cali_size :]
+        self.txt2img_emb = {
+            "test": self.txt2img_emb[self.test_idx],
+            "cali": self.txt2img_emb[self.cali_idx_qdx],
+        }
+        self.img2txt_emb = {
+            "test": self.img2txt_emb[self.test_idx],
+            "cali": self.img2txt_emb[self.cali_idx_qdx],
+        }
+        self.txt2audio_emb = {
+            "test": self.txt2audio_emb[self.test_idx],
+            "cali": self.txt2audio_emb[self.cali_idx_qdx],
+        }
+        self.audio2txt_emb = {
+            "test": self.audio2txt_emb[self.test_idx],
+            "cali": self.audio2txt_emb[self.cali_idx_qdx],
+        }
+        # masking missing data in the test set. Mask the whole modality of an instance at a time.
+        mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
+        self.mask = {}  # modality -> masked idx
+        self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
+        self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
+
+    def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
+        """Check if the retrieval is correct.
+
+        Args:
+            q_idx: the query index
+            r_idx: the retrieved index
+
+        Returns:
+            True if the retrieval is correct, False otherwise
+        """
+        return (
+            self.video_info_sen_order[q_idx]["video_id"]
+            == self.video_info_sen_order[r_idx]["video_id"]
+        )
+
+    def calculate_pairs_data_similarity(
+        self,
+        data_lists: list[np.ndarray],
+        idx_offset: int,
+        num_workers: int = 8,
+    ) -> np.ndarray:
+        """Calculate the similarity matrix for the pairs of modalities.
+
+        Args:
+            data_lists: list of data
+            idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
+            num_workers: the number of workers to use
+
+        Returns:
+            sim_mat: the similarity matrices of a pair of data.
+                key is the pair of indices in the original dataset,
+                value is the similarity matrix (num_data, 1, 2) and ground truth label.
+        """
+        print(
+            f"Calculating similarity matrix... num_workers={num_workers} is not used here."
+        )
+        ds_size = data_lists[0].shape[0]
+        (txt2img_data, img2txt_data, txt2audio_data, audio2txt_data) = data_lists
+        ds_size = txt2img_data.shape[0]
+        sim_mat = {}
+        for i in tqdm(range(ds_size)):
+            for j in range(0, ds_size, self.step_size):
+                gt_label = self.check_correct_retrieval(i + idx_offset, j + idx_offset)
+                cosine_sim_txt2img = np.sum(txt2img_data[i] * img2txt_data[j])
+                cosine_sim_txt2audio = np.sum(txt2audio_data[i] * audio2txt_data[j])
+                sim_mat[(i + idx_offset, j + idx_offset)] = (
+                    np.array([cosine_sim_txt2img, cosine_sim_txt2audio]).reshape(1, -1),
+                    gt_label,
+                )
+        return sim_mat
+
+    def get_cali_data(self) -> None:
+        """Get the calibration data.
+
+        Calculate and save the similarity matrix in the format of (sim_score, gt_label).
+        Then, we run the calibration to get the conformal scores and obtain the prediction bands.
+        """
+        sim_mat_path = Path(
+            self.cfg_dataset.paths.save_path,
+            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}.pkl",
+        )
+        if not sim_mat_path.exists():
+            print("Generating calibration data...")
+            txt2img_data = self.txt2img_emb["cali"]
+            img2txt_data = self.img2txt_emb["cali"]
+            txt2audio_data = self.txt2audio_emb["cali"]
+            audio2txt_data = self.audio2txt_emb["cali"]
+            idx_offset = self.train_size + self.test_size
+            self.sim_mat_cali = self.calculate_pairs_data_similarity(
+                (txt2img_data, img2txt_data, txt2audio_data, audio2txt_data),
+                idx_offset,
+            )
+            # save the calibration data in the format of (sim_score, gt_label)
+            with sim_mat_path.open("wb") as f:
+                pickle.dump(self.sim_mat_cali, f)
+        else:
+            print("Loading calibration data...")
+            self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
+
+        # set up prediction bands
+        self.set_pred_band()
+
+    def get_test_data(self) -> None:
+        """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
+
+        This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
+        and use batch processing to speed up the process.
+        """
+        super().get_test_data(
+            (
+                self.img2txt_emb["test"],
+                self.txt2img_emb["test"],
+                self.txt2audio_emb["test"],
+                self.audio2txt_emb["test"],
+            )
+        )
+
+    def retrieve_one_data(
+        self,
+        con_mat: dict[tuple[int, int], tuple[np.ndarray, int]],
+        idx_q: int,
+        idx_offset: int,
+        range_r: int,
+        single_modal: bool = False,
+        scores_2nd: list[float] | None = None,
+    ) -> np.ndarray:
+        """Retrieve one data from the similarity matrix.
+
+        Args:
+            con_mat: the conformal probability matrix.
+            idx_q: the index of the query data
+            idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
+            range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
+            single_modal: whether to retrieve the single modality data.
+            scores_2nd: the calibration scores
+
+        Returns:
+            retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
+                and in descending order of the conformal probability.
+        """
+        retrieved_pairs = []
+        ds_idx_q = idx_q + idx_offset
+        for idx_r in range(0, range_r, self.step_size):
+            if idx_r == idx_q:  # cannot retrieve itself
+                continue
+            ds_idx_r = idx_r + idx_offset
+            retrieved_pairs.append(
+                self.parse_retrieved_pairs(
+                    ds_idx_q, ds_idx_r, con_mat, single_modal, scores_2nd
+                )
+            )
+        return retrieved_pairs
+
+
+class KITTIDataset(BaseAny2AnyDataset):
     """KITTI dataset class for any2any retrieval task."""
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -35,9 +568,13 @@ class KITTIDataset:
         self.img2lidar = cfg["KITTI"].lidar_encoder
         self.img2txt = "csa"
         self.txt2lidar = "csa"
-
-        self.cali_size = 97
+        # total 12097
+        self.cali_size = 1097
         self.train_size = 5000
+        self.shape = (3, 3)  # shape of the similarity matrix
+        self.shuffle_step = cfg["KITTI"].shuffle_step
+        self.mapping_fn = np.mean
+        self.save_tag = f"_thres_{Args.threshold_dist}_shuffle_{self.shuffle_step}"
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -53,9 +590,20 @@ class KITTIDataset:
         assert self.num_data == txtdata.shape[0], f"{self.num_data}!={txtdata.shape[0]}"
 
         # train/test/calibration split
-        idx = np.arange(self.num_data)  # An array with 100 elements
-        # Shuffle the array to ensure randomness
-        np.random.shuffle(idx)
+        if self.shuffle_step == 0:
+            idx = np.arange(self.num_data)
+            # Shuffle the array to ensure randomness
+            np.random.shuffle(idx)
+        else:
+            idx_step = np.arange(0, self.num_data, self.shuffle_step)
+            # Shuffle the array to ensure randomness
+            np.random.shuffle(idx_step)
+            idx = []
+            for id_step in idx_step:
+                for j in range(self.shuffle_step):
+                    if j + id_step < self.num_data:
+                        idx.append(j + id_step)
+            idx = np.array(idx)
         self.idx2shuffle = {i: idx[i] for i in range(self.num_data)}
         self.shuffle2idx = {idx[i]: i for i in range(self.num_data)}
         self.train_idx = idx[: self.train_size]
@@ -247,18 +795,14 @@ class KITTIDataset:
 
     def calculate_pairs_data_similarity(
         self,
-        img_data: np.array,
-        lidar_data: np.array,
-        txt_data: np.array,
+        data_lists: list[np.ndarray],
         idx_offset: int,
         num_workers: int = 8,
     ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
         """Calculate the similarity matrices of all pairs of data, given in the args.
 
         Args:
-            img_data: the image data
-            lidar_data: the lidar data
-            txt_data: the text data
+            data_lists: list of data
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
             num_workers: the number of workers to run in parallel
 
@@ -267,6 +811,7 @@ class KITTIDataset:
                 key is the pair of indices in the original dataset,
                 value is the similarity matrix and ground truth label.
         """
+        (img_data, lidar_data, txt_data) = data_lists
         (
             cca_img2lidar,
             cca_lidar2img,
@@ -350,7 +895,7 @@ class KITTIDataset:
         """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         )
         if not sim_mat_path.exists():
             print("Generating calibration data...")
@@ -359,7 +904,7 @@ class KITTIDataset:
             txt_data = self.txtdata["cali"]
             idx_offset = self.train_size + self.test_size
             self.sim_mat_cali = self.calculate_pairs_data_similarity(
-                img_data, lidar_data, txt_data, idx_offset
+                (img_data, lidar_data, txt_data), idx_offset
             )
             # save the calibration data in the format of (sim_score, gt_label)
             with sim_mat_path.open("wb") as f:
@@ -368,17 +913,8 @@ class KITTIDataset:
             print("Loading calibration data...")
             self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
 
-        self.pred_band = {}
-        # calculate the nonconformity scores and conformal scores for all pairs of modalities
-        for i in range(3):
-            for j in range(i, 3):
-                nc_scores_ij, _ = get_non_conformity_scores(self.sim_mat_cali, i, j)
-
-                # define calibration method with nc_scores
-                def calibrate_ij(score: float) -> callable:
-                    return calibrate(score, nc_scores=nc_scores_ij)  # noqa: B023
-
-                self.pred_band[(i, j)] = calibrate_ij
+        # set up prediction bands
+        self.set_pred_band()
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
@@ -386,90 +922,9 @@ class KITTIDataset:
         This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
         and use batch processing to speed up the process.
         """
-        if Path(
-            self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
-        ).exists():
-            print(
-                "Since the conformal probabilities are already calculated, we skip the process of loading test data."
-            )
-            return
-
-        sim_mat_test_path = Path(
-            self.cfg_dataset.paths.save_path,
-            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+        super().get_test_data(
+            (self.imgdata["test"], self.lidardata["test"], self.txtdata["test"])
         )
-        if not sim_mat_test_path.exists():
-            print("Generating test data...")
-            img_data = self.imgdata["test"]
-            lidar_data = self.lidardata["test"]
-            txt_data = self.txtdata["test"]
-            idx_offset = self.train_size
-            self.sim_mat_test = self.calculate_pairs_data_similarity(
-                img_data, lidar_data, txt_data, idx_offset, num_workers=8
-            )
-            with sim_mat_test_path.open("wb") as f:
-                pickle.dump(self.sim_mat_test, f)
-        else:
-            print("Loading test data...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with sim_mat_test_path.open("rb") as f:
-                self.sim_mat_test = pickle.load(f)  # noqa: S301
-
-    def cal_test_conformal_prob(self) -> None:
-        """Calculate the conformal probabilities for the test data's similarity matrix.
-
-        This step is extremely time-consuming, so we cache the conformal probability matrix in the pickle format
-        and use batch processing to speed up the process.
-        """
-        con_mat_test_path = Path(
-            self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
-        )
-        if not con_mat_test_path.exists():
-            self.con_mat_test = {}
-            for (idx_q, idx_r), (sim_mat, gt_label) in tqdm(
-                self.sim_mat_test.items(),
-                desc="Calculating conformal probabilities",
-                leave=True,
-            ):
-                probs = np.zeros((3, 3))
-                for i in range(3):
-                    for j in range(3):
-                        probs[i, j] = self.pred_band[(min(i, j), max(i, j))](
-                            sim_mat[i, j]
-                        )
-                self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
-            with con_mat_test_path.open("wb") as f:
-                pickle.dump(self.con_mat_test, f)
-        else:
-            print("Loading conformal probabilities...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_path.open("rb") as f:
-                self.con_mat_test = pickle.load(f)  # noqa: S301
-
-        con_mat_test_miss_path = Path(
-            self.cfg_dataset.paths.save_path,
-            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
-        )
-        if not con_mat_test_miss_path.exists():
-            self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
-            for (idx_q, idx_r), (_, _) in tqdm(
-                self.con_mat_test.items(),
-                desc="Calculating conformal probabilities for missing data",
-                leave=True,
-            ):
-                for i in range(3):
-                    for j in range(3):
-                        if idx_q in self.mask[i] and idx_r in self.mask[j]:
-                            self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
-            with con_mat_test_miss_path.open("wb") as f:
-                pickle.dump(self.con_mat_test_miss, f)
-        else:
-            print("Loading conformal probabilities for missing data...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_miss_path.open("rb") as f:
-                self.con_mat_test_miss = pickle.load(f)  # noqa: S301
 
     def retrieve_one_data(
         self,
@@ -477,6 +932,8 @@ class KITTIDataset:
         idx_q: int,
         idx_offset: int,
         range_r: int,
+        single_modal: bool = False,
+        scores_2nd: list[float] | None = None,
     ) -> np.ndarray:
         """Retrieve one data from the similarity matrix.
 
@@ -485,6 +942,8 @@ class KITTIDataset:
             idx_q: the index of the query data
             idx_offset: the index offset (calibration = train_size + test_size, test = train_size)
             range_r: the range of the indices to retrieve. (test: (0, test_size), cali: (0, cali_size))
+            single_modal: whether to retrieve the single modality data.
+            scores_2nd: the second scores for the retrieval.
 
         Returns:
             retrieved_pairs: the retrieved pairs in the format of (modal_idx_1, modal_idx_2, conformal_prob, gt_label)
@@ -493,77 +952,21 @@ class KITTIDataset:
         retrieved_pairs = []
         ds_idx_q = self.shuffle2idx[idx_q + idx_offset]
         for idx_r in range(range_r):
+            if idx_r == idx_q:  # cannot retrieve itself
+                continue
             ds_idx_r = self.shuffle2idx[idx_r + idx_offset]
             # check if pair (ds_idx_q, ds_idx_r) is in the keys of con_mat
             if (ds_idx_q, ds_idx_r) in con_mat:
                 idx_1, idx_2 = ds_idx_q, ds_idx_r
             else:
                 idx_1, idx_2 = ds_idx_r, ds_idx_q
-            assert (
-                idx_1,
-                idx_2,
-            ) in con_mat, (
-                f"({idx_1}, {idx_2}, {ds_idx_q}, {ds_idx_r}) is not in the con_mat"
-            )
-            probs = con_mat[(idx_1, idx_2)][0]
             retrieved_pairs.append(
-                (idx_1, idx_2, np.max(probs), con_mat[(idx_1, idx_2)][1])
+                self.parse_retrieved_pairs(
+                    idx_1,
+                    idx_2,
+                    con_mat,
+                    single_modal,
+                    scores_2nd,
+                )
             )
-        # sort the retrieved pairs by the conformal probability in descending order
-        retrieved_pairs.sort(key=lambda x: x[2], reverse=True)
         return retrieved_pairs
-
-    def retrieve_data(self, mode: Literal["miss", "full"]) -> tuple[dict, dict, dict]:
-        """Retrieve the data for retrieval task on the test set.
-
-        Args:
-            mode: the mode of the retrieval. "miss" for the retrieval on the missing data,
-                "full" for the retrieval on the full data.
-
-        Returns:
-            recalls: dict of the recall at 1, 5, 20. {int: list}
-            precisions: dict of the precision at 1, 5, 20. {int: list}
-            maps: dict of the mean average precision at 5, 20. {int: list}
-        """
-        assert mode in ["miss", "full"], "mode must be 'miss' or 'full'"
-        con_mat = self.con_mat_test_miss if mode == "miss" else self.con_mat_test
-
-        recalls = {1: [], 5: [], 20: []}
-        precisions = {1: [], 5: [], 20: []}
-        maps = {5: [], 20: []}
-
-        for idx_q in tqdm(range(self.test_size), desc="Retrieving data", leave=True):
-            retrieved_pairs = self.retrieve_one_data(
-                con_mat, idx_q, self.train_size, self.test_size
-            )
-            top_1_hit = get_top_k(retrieved_pairs, k=1)
-            top_5_hit = get_top_k(retrieved_pairs, k=5)
-            top_20_hit = get_top_k(retrieved_pairs, k=20)
-
-            # calculate recall@1, recall@5, recall@20
-            recall_1 = 1 if any(top_1_hit) else 0
-            recall_5 = 1 if any(top_5_hit) else 0
-            recall_20 = 1 if any(top_20_hit) else 0
-
-            # calculate precision@1, precision@5, precision@20
-            precision_1 = sum(top_1_hit) / len(top_1_hit)
-            precision_5 = sum(top_5_hit) / len(top_5_hit)
-            precision_20 = sum(top_20_hit) / len(top_20_hit)
-
-            # calculate AP@5, AP@20
-            precisions_at_5 = np.cumsum(top_5_hit) / (np.arange(5) + 1)  # array
-            ap_5 = np.sum(precisions_at_5 * top_5_hit) / 20
-            precisions_at_20 = np.cumsum(top_20_hit) / (np.arange(20) + 1)  # array
-            ap_20 = np.sum(precisions_at_20 * top_20_hit) / 20
-
-            # record the results
-            recalls[1].append(recall_1)
-            recalls[5].append(recall_5)
-            recalls[20].append(recall_20)
-            precisions[1].append(precision_1)
-            precisions[5].append(precision_5)
-            precisions[20].append(precision_20)
-            maps[5].append(ap_5)
-            maps[20].append(ap_20)
-
-        return recalls, precisions, maps
