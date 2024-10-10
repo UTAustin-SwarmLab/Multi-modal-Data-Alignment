@@ -20,7 +20,7 @@ from mmda.utils.calibrate import (
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.data_utils import load_three_encoder_data
 from mmda.utils.dataset_utils import load_msrvtt
-from mmda.utils.liploc_model import KITTI_file_Retrieval, get_top_k
+from mmda.utils.liploc_model import Args, KITTI_file_Retrieval, get_top_k
 from mmda.utils.sim_utils import batch_weighted_corr_sim, cosine_sim
 
 
@@ -80,7 +80,7 @@ class BaseAny2AnyDataset:
         """
         if Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         ).exists():
             print(
                 "Since the conformal probabilities are already calculated, we skip the process of loading test data."
@@ -89,7 +89,7 @@ class BaseAny2AnyDataset:
 
         sim_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         )
         if not sim_mat_test_path.exists():
             print("Generating test data...")
@@ -115,7 +115,7 @@ class BaseAny2AnyDataset:
         """
         con_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         )
         if not con_mat_test_path.exists():
             shape = self.shape
@@ -140,7 +140,7 @@ class BaseAny2AnyDataset:
 
         con_mat_test_miss_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         )
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
@@ -574,6 +574,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         self.shape = (3, 3)  # shape of the similarity matrix
         self.shuffle_step = cfg["KITTI"].shuffle_step
         self.mapping_fn = np.mean
+        self.save_tag = f"_thres_{Args.threshold_dist}_shuffle_{self.shuffle_step}"
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -894,7 +895,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}.pkl",
+            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
         )
         if not sim_mat_path.exists():
             print("Generating calibration data...")

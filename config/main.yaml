@@ -39,7 +39,7 @@ MSRVTT:
 
 KITTI:
   sim_dim: 256 # dimension of the CCA transformation
-  retrieval_dim: 25 # dimension of the similarity score
+  retrieval_dim: 10 # dimension of the similarity score
   equal_weights: False
   img_encoder: "liploc"
   lidar_encoder: "liploc"

@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 
 import hydra
 from mmda.exps.any2any_retrieval import any2any_retrieval
+from mmda.utils.liploc_model import Args
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -47,7 +48,7 @@ def main(cfg: DictConfig) -> None:
     df = pd.DataFrame(data)
     df_path = (
         Path(cfg_dataset.paths.plots_path)
-        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.csv"
+        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}_thres_{Args.threshold_dist}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
@@ -74,7 +75,7 @@ def main(cfg: DictConfig) -> None:
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
-        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.png"
+        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}_thres_{Args.threshold_dist}.png"
     )
 
 
