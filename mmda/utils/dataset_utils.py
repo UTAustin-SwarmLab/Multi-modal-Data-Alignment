@@ -49,6 +49,8 @@ def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
         return False, None
     # Extract the audio as a list of samples
     audio_samples = list(audio.iter_frames())
+    # Write the audio to a WAV file
+    audio.write_audiofile(mp4_file.replace(".mp4", ".wav"))
     # Convert the list of samples to a NumPy array
     sound_array = np.array(audio_samples)
     return True, sound_array
