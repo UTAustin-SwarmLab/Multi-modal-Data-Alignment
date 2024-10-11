@@ -3,6 +3,7 @@
 import ast
 import json
 import pickle
+from multiprocessing import Pool
 from pathlib import Path
 
 import datasets
@@ -16,6 +17,20 @@ from tqdm import tqdm
 import hydra
 from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.liploc_model import CFG, load_eval_filenames
+
+
+def process_video_ids(inputs: tuple[DictConfig, list[int]]) -> tuple[int, np.ndarray]:
+    """Multithread to process the videos."""
+    cfg_dataset, list_ids = inputs
+    result_tuple = []
+    for video_id in tqdm(list_ids):
+        mp4_file = str(
+            Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.mp4")
+        )
+        audio_exist, audio = extract_audio_from_video(mp4_file)
+        audio = (audio[:, 0] + audio[:, 1]) / 2 if audio_exist else None
+        result_tuple.append((video_id, audio))
+    return result_tuple
 
 
 def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
@@ -50,9 +65,9 @@ def load_msrvtt(
 
     Returns:
         sen_ids: list of sentence_ids
-        captions: list of captions
+        captions: list of captions. len 59800
         video_info_sen_order: list of video information (in the order of sen_ids)
-        video_dict: a dict of video information (video_id to video_info)
+        video_dict: a dict of video information (video_id to video_info). len: 2990
     """
     # load MSR-VTT json file
     with Path(cfg_dataset.paths.dataset_path, "test_videodatainfo.json").open() as f:
@@ -82,16 +97,25 @@ def load_msrvtt(
                 "category": category,
                 "url": url,
             }
-        for video_id in tqdm(list_video_ids):
-            mp4_file = str(
-                Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.mp4")
-            )
-            audio_exist, audio = extract_audio_from_video(mp4_file)
-            if not audio_exist:
-                # remove the video info from the video_dict
-                del video_dict[video_id]
-            else:
-                audio = (audio[:, 0] + audio[:, 1]) / 2
+        num_processes = 32
+        p = Pool(processes=num_processes)
+        print("num_processes:", num_processes)
+        data = p.map(
+            process_video_ids,
+            [
+                (
+                    cfg_dataset,
+                    list_video_ids[
+                        int(i * len(list_video_ids) / num_processes) : int(
+                            (i + 1) * len(list_video_ids) / num_processes
+                        )
+                    ],
+                )
+                for i in range(num_processes)
+            ],
+        )
+        for chunk_result in data:
+            for video_id, audio in chunk_result:
                 video_dict[video_id]["audio_np"] = audio
         # save the video_dict
         with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("wb") as f:
@@ -104,8 +128,6 @@ def load_msrvtt(
     video_info_sen_order = []
     for sentence_json in sentences:
         video_id = sentence_json["video_id"]
-        if video_id not in video_dict:
-            continue
         video_info_sen_order.append(video_dict[video_id])
         sen_ids.append(sentence_json["sen_id"])
         captions.append(sentence_json["caption"])
@@ -509,11 +531,11 @@ def load_sop(
     ) as f:
         # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
         # "The image features a close-up view of a bicycle's suspension system,
-        # specifically focusing on the front fork and the shock absorber.</s>"
+        # specifically focusing on the front fork and the shock absorber. "
         path_text_descriptions = joblib.load(f)
     for path_text in path_text_descriptions:
         path_text[0] = path_text[0].replace("/store/", "/nas/")
-        path_text[1] = path_text[1].replace("</s>", "")
+        path_text[1] = path_text[1].replace(" ", "")
     img_paths = [x[0] for x in path_text_descriptions]
     text_descriptions = [x[1] for x in path_text_descriptions]
     ### img_path example: /store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG

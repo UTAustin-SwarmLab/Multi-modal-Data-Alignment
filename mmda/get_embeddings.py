@@ -149,8 +149,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
             video_ids = video_info["video_id"]
             idx = id_order.index(video_ids)
             video_emb_list.append(img_emb[idx, :].reshape(1, -1))
-        video_emb_list = np.concatenate(video_emb_list, axis=0)
-        print(video_emb_list.shape)
+        video_emb_list = np.concatenate(video_emb_list, axis=0)[::20]
         with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
             "wb"
         ) as f:
@@ -158,8 +157,15 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         print("CLIP embeddings saved")
 
         # get audio embeddings
-        audio_np = [video_info["audio_np"] for video_info in video_info_sen_order]
-        print("audio_np:", len(audio_np))
+        shape = video_info_sen_order[0]["audio_np"].shape
+        audio_np = [
+            (
+                video_info["audio_np"]
+                if video_info["audio_np"] is not None
+                else np.zeros(shape)
+            )
+            for video_info in video_info_sen_order
+        ][::20]
         audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=60)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
             "wb"
@@ -169,6 +175,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
 
         # get text embeddings
         text_emb = clip_text(captions, BATCH_SIZE)
+        print(text_emb.shape)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_clip.pkl").open(
             "wb"
         ) as f:
