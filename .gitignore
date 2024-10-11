@@ -170,3 +170,4 @@ plots/*
 
 # lock files
 *.lock
+.checkpoints/

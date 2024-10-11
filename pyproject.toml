@@ -33,7 +33,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-numpy = "^1.18"
+numpy = "^1.19"
 pandas = "*"
 argparse = "*"
 flake8 = "*"
@@ -55,7 +55,6 @@ ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
 gpustat = "*"
 datasets = "^2.18.0"
-LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"}
 transformers = "^4.13.0"
 soundfile = "*"
 librosa = "*"
@@ -70,6 +69,8 @@ timm = "*"
 albumentations = "*"
 kaggle = "*"
 moviepy = "*"
+imagebind = {git = "https://github.com/facebookresearch/ImageBind"}
+# LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"} # contradicting with imagebind
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
