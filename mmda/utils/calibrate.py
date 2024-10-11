@@ -39,9 +39,9 @@ def con_mat_calibrate(sim_mat_dict: dict, scores: dict) -> dict:
         desc="Calculating conformal probabilities",
         leave=True,
     ):
-        probs = np.zeros((3, 3))
-        for i in range(3):
-            for j in range(3):
+        probs = np.zeros(sim_mat.shape)
+        for i in range(sim_mat.shape[0]):
+            for j in range(sim_mat.shape[1]):
                 probs[i, j] = calibrate(sim_mat[i, j], scores[(i, j)])
         con_mat[(idx_q, idx_r)] = (probs, gt_label)
     return con_mat

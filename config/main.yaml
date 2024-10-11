@@ -31,7 +31,7 @@ MSRVTT:
   audio_encoder: "clap"
   text_encoder: "clip"
   retrieval_dim: "" # we use all the dimensions for retrieval
-  mask_ratio: 2 # ratio of the missing data : size of test data
+  mask_ratio: 0 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/MSR-VTT/"
     save_path: ${MSRVTT.paths.dataset_path}embeddings/

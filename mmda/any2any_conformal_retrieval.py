@@ -21,6 +21,7 @@ def main(cfg: DictConfig) -> None:
         cfg: config file
     """
     cfg_dataset = cfg[cfg.dataset]
+    thres_tag = f"_thres_{Args.threshold_dist}" if cfg.dataset == "KITTI" else ""
     assert (
         cfg.dataset in cfg.any_retrieval_datasets
     ), f"{cfg.dataset} is not for any2any retrieval."
@@ -48,7 +49,7 @@ def main(cfg: DictConfig) -> None:
     df = pd.DataFrame(data)
     df_path = (
         Path(cfg_dataset.paths.plots_path)
-        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}_thres_{Args.threshold_dist}.csv"
+        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
@@ -75,7 +76,7 @@ def main(cfg: DictConfig) -> None:
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
-        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}_thres_{Args.threshold_dist}.png"
+        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.png"
     )
 
 
