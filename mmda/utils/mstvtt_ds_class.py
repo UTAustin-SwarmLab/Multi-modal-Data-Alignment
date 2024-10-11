@@ -2,6 +2,7 @@
 
 import copy
 import pickle
+from multiprocessing import Pool
 from pathlib import Path
 
 import joblib
@@ -14,6 +15,56 @@ from mmda.utils.calibrate import (
     calibrate,
 )
 from mmda.utils.dataset_utils import load_msrvtt
+
+
+def process_similarity_pair(inputs: tuple) -> dict:
+    """Processes similarity pairs for retrieval tasks.
+
+    Args:
+        inputs: all the inputs.
+        check_correct_retrieval (callable): A function to check the ground truth label for a given pair.
+        txt2img_data (np.ndarray): The text-to-image data.
+        img2txt_data (np.ndarray): The image-to-text data.
+        txt2audio_data (np.ndarray): The text-to-audio data.
+        audio2txt_data (np.ndarray): The audio-to-text data.
+        range_idx_q (range): The index of the query.
+        r_size (int): The size of the retrieval range.
+        idx_offset (int): The offset for the indices.
+        step_size (int): The step size for the retrieval indices.
+
+    Returns:
+        dict: A dictionary containing the cosine similarities and ground truth labels for each pair.
+    """
+    (
+        check_correct_retrieval,
+        txt2img_data,
+        img2txt_data,
+        txt2audio_data,
+        audio2txt_data,
+        range_idx_q,
+        r_size,
+        idx_offset,
+        step_size,
+    ) = inputs
+    sim_mat_i = {}
+    for idx_q in tqdm(range_idx_q):
+        for j in range(r_size):
+            gt_label = check_correct_retrieval(
+                idx_q + idx_offset, j * step_size + idx_offset
+            )
+            cosine_sim_txt2img = np.sum(
+                txt2img_data[idx_q - range_idx_q[0]] * img2txt_data[j]
+            )
+            cosine_sim_txt2audio = np.nansum(
+                txt2audio_data[idx_q - range_idx_q[0]] * audio2txt_data[j]
+            )
+            if cosine_sim_txt2audio == 0:
+                cosine_sim_txt2audio = -1
+            sim_mat_i[(idx_q + idx_offset, j + int(idx_offset / step_size))] = (
+                np.array([cosine_sim_txt2img, cosine_sim_txt2audio]).reshape(1, -1),
+                gt_label,
+            )
+    return sim_mat_i
 
 
 class MSRVTTDataset(BaseAny2AnyDataset):
@@ -161,7 +212,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self,
         data_lists: list[np.ndarray],
         idx_offset: int,
-        num_workers: int = 8,
+        num_workers: int = 2,
     ) -> np.ndarray:
         """Calculate the similarity matrix for the pairs of modalities.
 
@@ -176,25 +227,37 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 value is the similarity matrix (num_data, 1, 2) and ground truth label.
         """
         print(
-            f"Calculating similarity matrix... num_workers={num_workers} is not used here."
+            f"Calculating similarity matrix... num_workers={num_workers} is used here."
         )
         (txt2img_data, img2txt_data, txt2audio_data, audio2txt_data) = data_lists
         q_size = txt2img_data.shape[0]
         r_size = img2txt_data.shape[0]
+        range_idx_qs = [
+            range(i * q_size // num_workers, (i + 1) * q_size // num_workers)
+            for i in range(num_workers)
+        ]
+        with Pool(num_workers) as p:
+            sim_mat_chunks = p.map(
+                process_similarity_pair,
+                [
+                    (
+                        self.check_correct_retrieval,
+                        txt2img_data[range_idx_q],
+                        img2txt_data,
+                        txt2audio_data[range_idx_q],
+                        audio2txt_data,
+                        range_idx_q,
+                        r_size,
+                        idx_offset,
+                        self.step_size,
+                    )
+                    for range_idx_q in range_idx_qs
+                ],
+            )
         sim_mat = {}
-        for i in tqdm(range(q_size)):
-            for j in range(r_size):
-                gt_label = self.check_correct_retrieval(
-                    i + idx_offset, j * self.step_size + idx_offset
-                )
-                cosine_sim_txt2img = np.sum(txt2img_data[i] * img2txt_data[j])
-                cosine_sim_txt2audio = np.nansum(txt2audio_data[i] * audio2txt_data[j])
-                if cosine_sim_txt2audio == 0:
-                    cosine_sim_txt2audio = -1
-                sim_mat[(i + idx_offset, j + int(idx_offset / self.step_size))] = (
-                    np.array([cosine_sim_txt2img, cosine_sim_txt2audio]).reshape(1, -1),
-                    gt_label,
-                )
+        for sim_mat_dict in sim_mat_chunks:
+            for k, v in sim_mat_dict.items():
+                sim_mat[k] = v
         return sim_mat
 
     def get_cali_data(self) -> None:

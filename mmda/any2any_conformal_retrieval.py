@@ -54,20 +54,39 @@ def main(cfg: DictConfig) -> None:
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
 
-    # plot heatmap of single modality retrieval
-    single1_recalls = np.array(list(single1_recalls.values())).reshape(3, 3) * 100
-    plt.figure(figsize=(8, 8))
-    ax = sns.heatmap(
-        single1_recalls,
-        fmt=".1f",
-        cmap="YlGnBu",
-        cbar=False,
-        square=True,
-        xticklabels=["Image", "Lidar", "Text"],
-        yticklabels=["Image", "Lidar", "Text"],
-        annot=True,
-        annot_kws={"size": 18, "weight": "bold"},
-    )
+    if cfg.dataset == "KITTI":
+        # plot heatmap of single modality retrieval
+        single_recalls = np.array(list(single1_recalls.values())).reshape(3, 3) * 100
+        plt.figure(figsize=(8, 8))
+        ax = sns.heatmap(
+            single_recalls,
+            fmt=".1f",
+            cmap="YlGnBu",
+            cbar=False,
+            square=True,
+            xticklabels=["Image", "Lidar", "Text"],
+            yticklabels=["Image", "Lidar", "Text"],
+            annot=True,
+            annot_kws={"size": 18, "weight": "bold"},
+        )
+    elif cfg.dataset == "MSRVTT":
+        # plot heatmap of single modality retrieval
+        single_recalls = np.array(list(single1_recalls.values())).reshape(1, 2) * 100
+        plt.figure(figsize=(3, 5))
+        ax = sns.heatmap(
+            single_recalls,
+            fmt=".1f",
+            cmap="YlGnBu",
+            cbar=False,
+            square=True,
+            xticklabels=["Image", "Audio"],
+            yticklabels=["Text"],
+            annot=True,
+            annot_kws={"size": 18, "weight": "bold"},
+        )
+    else:
+        msg = f"unknown dataset {cfg.dataset}"
+        raise ValueError(msg)
     ax.xaxis.tick_top()
     plt.xlabel("Reference modality", fontsize=20)
     plt.ylabel("Query modality", fontsize=20)

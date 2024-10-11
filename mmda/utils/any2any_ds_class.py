@@ -92,7 +92,6 @@ class BaseAny2AnyDataset:
             self.sim_mat_test = self.calculate_pairs_data_similarity(
                 data_lists,
                 idx_offset,
-                num_workers=8,
             )
             with sim_mat_test_path.open("wb") as f:
                 pickle.dump(self.sim_mat_test, f)
@@ -150,7 +149,7 @@ class BaseAny2AnyDataset:
             con_mat[(ds_idx_q, ds_idx_r)][1],  # gt_label
         )
 
-    def retrieve_data(
+    def retrieve_data(  # noqa: PLR0915
         self,
         mode: Literal["miss", "full", "single"],
     ) -> tuple[dict, dict, dict]:
@@ -227,23 +226,33 @@ class BaseAny2AnyDataset:
         recalls = {(i, j): [] for i in range(3) for j in range(3)}
         precisions = {(i, j): [] for i in range(3) for j in range(3)}
         maps = {(i, j): [] for i in range(3) for j in range(3)}
-        for idx_q in tqdm(
-            range(self.test_size),
-            desc=f"Retrieving {mode} data",
-            leave=True,
-        ):
-            retrieved_pairs = self.retrieve_one_data(
+        from concurrent.futures import ProcessPoolExecutor
+
+        def process_retrieval(inputs: tuple[callable, int]) -> list:
+            retrieve_fn, idx_q = inputs
+            retrieved_pairs = retrieve_fn(
                 con_mat, idx_q, self.train_size, self.test_size, single_modal=True
             )
+            results = []
             for i in range(self.shape[0]):
                 for j in range(self.shape[1]):
-                    # sort the retrieved pairs not inplace
                     modal_pair = (i, j)
                     retrieved_pairs_ij = sorted(
                         retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
                     )
                     top_k_hit = get_top_k(retrieved_pairs_ij, k=5)
                     recall_k = 1 if any(top_k_hit) else 0
+                    results.append((modal_pair, recall_k))
+            return results
+
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            futures = [
+                executor.submit(process_retrieval, (self.retrieve_one_data, idx_q))
+                for idx_q in range(self.test_size)
+            ]
+            for future in tqdm(futures, desc=f"Retrieving {mode} data", leave=True):
+                results = future.result()
+                for modal_pair, recall_k in results:
                     recalls[modal_pair].append(recall_k)
 
         for modal_pair in recalls:
@@ -251,4 +260,3 @@ class BaseAny2AnyDataset:
             precisions[modal_pair] = 0  # np.mean(precisions[modal_pair])
             maps[modal_pair] = 0  # np.mean(maps[modal_pair])
         return maps, precisions, recalls
-
