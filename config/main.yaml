@@ -29,7 +29,6 @@ dataset_size: {
 MSRVTT:
   img_encoder: "clip"
   audio_encoder: "clap"
-  text_encoder: "clip"
   retrieval_dim: "" # we use all the dimensions for retrieval
   mask_ratio: 0 # ratio of the missing data : size of test data
   paths:

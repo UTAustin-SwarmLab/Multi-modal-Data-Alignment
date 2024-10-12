@@ -4,7 +4,6 @@ import copy
 import pickle
 from pathlib import Path
 
-import joblib
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
@@ -429,7 +428,7 @@ class KITTIDataset(BaseAny2AnyDataset):
                 pickle.dump(self.sim_mat_cali, f)
         else:
             print("Loading calibration data...")
-            self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
+            self.sim_mat_cali = pickle.load(sim_mat_path.open("rb"))
 
         # set up prediction bands
         self.set_pred_band()

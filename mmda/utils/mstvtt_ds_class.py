@@ -4,8 +4,6 @@ import copy
 import pickle
 from multiprocessing import Pool
 from pathlib import Path
-
-import joblib
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
@@ -50,7 +48,7 @@ def process_similarity_pair(inputs: tuple) -> dict:
     for idx_q in tqdm(range_idx_q):
         for j in range(r_size):
             gt_label = check_correct_retrieval(
-                idx_q + idx_offset, j * step_size + idx_offset
+                idx_q + idx_offset, j
             )
             cosine_sim_txt2img = np.sum(
                 txt2img_data[idx_q - range_idx_q[0]] * img2txt_data[j]
@@ -60,7 +58,7 @@ def process_similarity_pair(inputs: tuple) -> dict:
             )
             if cosine_sim_txt2audio == 0:
                 cosine_sim_txt2audio = -1
-            sim_mat_i[(idx_q + idx_offset, j + int(idx_offset / step_size))] = (
+            sim_mat_i[(idx_q + idx_offset, j)] = (
                 np.array([cosine_sim_txt2img, cosine_sim_txt2audio]).reshape(1, -1),
                 gt_label,
             )
@@ -86,33 +84,43 @@ class MSRVTTDataset(BaseAny2AnyDataset):
 
         self.shape = (1, 2)  # shape of the similarity matrix
         self.cali_size = 3800
-        self.train_size = 0  # no training data is needed for MSRVTT
-        self.test_size = 56_000
+        self.train_size = 53_000 # no training data is needed for MSRVTT
+        self.test_size = 3_000
         self.step_size = 20  # 20 duplicates of different captions of a video
+        self.img2txt_encoder = self.cfg_dataset.img_encoder
+        self.audio2txt_encoder = self.cfg_dataset.audio_encoder
+        self.save_tag = f"{self.img2txt_encoder}_{self.audio2txt_encoder}"
+
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
         self.sen_ids, self.captions, self.video_info_sen_order, self.video_dict = (
             load_msrvtt(self.cfg_dataset)
         )
+        self.ref_id_order = pickle.load(Path(self.cfg_dataset.paths.save_path, "MSRVTT_ref_video_ids.pkl").open("rb"))
+        null_audio_idx = [True if self.video_dict[video_id]["audio_np"] is None else False for video_id in self.ref_id_order]
+
         # get video idx which has no audio. 355 in total.
         null_audio_idx = []
         for idx, video_info in enumerate(self.video_info_sen_order):
             if video_info["audio_np"] is None and idx % self.step_size == 0:
                 null_audio_idx.append(int(idx / self.step_size))
         # load data
-        self.txt2img_emb = joblib.load(
-            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clip.pkl")
+        self.txt2img_emb = pickle.load(
+            Path(self.cfg_dataset.paths.save_path + f"MSRVTT_text_emb_{self.img2txt_encoder}.pkl")
         )  # (59800, 1280)
-        self.img2txt_emb = joblib.load(
-            Path(self.cfg_dataset.paths.save_path + "MSRVTT_video_emb_clip.pkl")
-        )  # (2990, 2560) -> later (2990, 1280)
-        self.txt2audio_emb = joblib.load(
-            Path(self.cfg_dataset.paths.save_path + "MSRVTT_text_emb_clap.pkl")
+        self.img2txt_emb = pickle.load(
+            Path(self.cfg_dataset.paths.save_path + f"MSRVTT_video_emb_{self.img2txt_encoder}.pkl")
+        )  # (???, 2560) -> later (???, 1280)
+        print(self.img2txt_emb.shape)
+        self.txt2audio_emb = pickle.load(
+            Path(self.cfg_dataset.paths.save_path + f"MSRVTT_text_emb_{self.audio2txt_encoder}.pkl")
         )  # (59800, 512)
-        self.audio2txt_emb = joblib.load(
-            Path(self.cfg_dataset.paths.save_path + "MSRVTT_audio_emb_clap.pkl")
-        )  # (2990, 512)
+        self.audio2txt_emb = pickle.load(
+            Path(self.cfg_dataset.paths.save_path + f"MSRVTT_audio_emb_{self.audio2txt_encoder}.pkl")
+        )  # (???, 512)
+        print(self.audio2txt_emb.shape)
+
         # normalize all the embeddings to have unit norm using L2 normalization
         self.txt2img_emb = self.txt2img_emb / np.linalg.norm(
             self.txt2img_emb, axis=1, keepdims=True
@@ -154,32 +162,26 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             self.test_size + self.cali_size + self.train_size == self.num_data
         ), f"{self.test_size} + {self.cali_size} + {self.train_size} != {self.num_data}"
 
-        # train/test/calibration split
+        # train/test/calibration split only on the query size (59_800)
         # Shuffle the array to ensure randomness
-        idx = np.arange(int(self.num_data / self.step_size))  # 2990
-        test_idx = idx[
-            int(self.train_size / self.step_size) : -int(
-                self.cali_size / self.step_size
-            )
-        ]
-        cali_idx = idx[-int(self.cali_size / self.step_size) :]
-        txt_test_idx = [idx + i for i in range(self.step_size) for idx in test_idx]
-        txt_cali_idx = [idx + i for i in range(self.step_size) for idx in cali_idx]
+        idx = np.arange(self.num_data)  # 2990
+        txt_test_idx = idx[self.train_size: self.cali_size]
+        txt_cali_idx = idx[-self.cali_size:]
         self.txt2img_emb = {
             "test": self.txt2img_emb[txt_test_idx],
             "cali": self.txt2img_emb[txt_cali_idx],
         }
         self.img2txt_emb = {
-            "test": self.img2txt_emb[test_idx],
-            "cali": self.img2txt_emb[cali_idx],
+            "test": self.img2txt_emb,
+            "cali": self.img2txt_emb,
         }
         self.txt2audio_emb = {
             "test": self.txt2audio_emb[txt_test_idx],
             "cali": self.txt2audio_emb[txt_cali_idx],
         }
         self.audio2txt_emb = {
-            "test": self.audio2txt_emb[test_idx],
-            "cali": self.audio2txt_emb[cali_idx],
+            "test": self.audio2txt_emb,
+            "cali": self.audio2txt_emb,
         }
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         if self.cfg_dataset.mask_ratio != 0:
@@ -205,7 +207,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         return (
             self.video_info_sen_order[q_idx]["video_id"]
-            == self.video_info_sen_order[r_idx]["video_id"]
+            == self.ref_id_order[r_idx]["video_id"]
         )
 
     def calculate_pairs_data_similarity(
@@ -286,7 +288,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 pickle.dump(self.sim_mat_cali, f)
         else:
             print("Loading calibration data...")
-            self.sim_mat_cali = joblib.load(sim_mat_path.open("rb"))
+            self.sim_mat_cali = pickle.load(sim_mat_path.open("rb"))
 
         # set up prediction bands
         self.set_pred_band()
@@ -384,9 +386,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         retrieved_pairs = []
         ds_idx_q = idx_q + idx_offset
-        range_r = int(range_r / self.step_size)
-        for idx_r in range(range_r):
-            ds_idx_r = idx_r + int(idx_offset / self.step_size)
+        for ds_idx_r in range(self.img2txt_emb.shape[0]):
             retrieved_pairs.append(
                 self.parse_retrieved_pairs(
                     ds_idx_q, ds_idx_r, con_mat, single_modal, scores_2nd

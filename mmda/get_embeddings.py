@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
-
+from mmda.utils.imagebind_utils import ImageBindInference
 import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
@@ -31,7 +31,6 @@ from mmda.utils.embed_data import (
     dinov2,
     gtr_text,
 )
-
 BATCH_SIZE = 128
 
 
@@ -118,54 +117,69 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
             for video_ids in tqdm(sorted(video_dict), desc="loading keyframe paths"):
                 # video_ids from 7010 to 7990
                 img_dir = Path(cfg_dataset.paths.dataset_path, "keyframes", video_ids)
-                first_img_path = img_dir / "0000.jpg"
-                last_img_path = img_dir / f"{len(os.listdir(img_dir)) - 1:04d}.jpg"
-                id_order.append(video_ids)
-                first_img_paths.append(str(first_img_path))
-                last_img_paths.append(str(last_img_path))
+                num_frames = len(os.listdir(img_dir))
+                for frame_id in range(num_frames, 2):
+                    if frame_id + 1 >= num_frames:
+                        break
+                    first_img_path = img_dir / f"{frame_id:04d}.jpg"
+                    last_img_path = img_dir / f"{frame_id + 1:04d}.jpg"
+                    id_order.append(video_ids)
+                    first_img_paths.append(str(first_img_path))
+                    last_img_paths.append(str(last_img_path))
             return id_order, first_img_paths, last_img_paths
 
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
-
-        # video_emb = get_video_emb(cfg_dataset, video_dict)
-        # video_emb_list = []
-        # for video_info in video_info_sen_order:
-        #     video_ids = video_info["video_id"]
-        #     video_emb_list.append(video_emb[video_ids])
-        # video_emb_list = np.concatenate(video_emb_list, axis=0)
-        # with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
-        #     "wb"
-        # ) as f:
-        #     pickle.dump(video_emb_list, f)
 
         id_order, first_img_paths, last_img_paths = get_video_emb(
             cfg_dataset, video_dict, use_kaggle=False
         )
         first_img_emb = clip_imgs(first_img_paths, BATCH_SIZE)
         last_img_emb = clip_imgs(last_img_paths, BATCH_SIZE)
-        img_emb = np.concatenate([first_img_emb, last_img_emb], axis=1)
-        video_emb_list = []
-        for video_info in video_info_sen_order:
-            video_ids = video_info["video_id"]
-            idx = id_order.index(video_ids)
-            video_emb_list.append(img_emb[idx, :].reshape(1, -1))
-        video_emb_list = np.concatenate(video_emb_list, axis=0)[::20]
+        video_id_emb = np.concatenate([first_img_emb, last_img_emb], axis=1)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
             "wb"
         ) as f:
-            pickle.dump(video_emb_list, f)
+            pickle.dump(video_id_emb, f)
         print("CLIP embeddings saved")
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_ref_video_ids.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(id_order, f)
 
         # get audio embeddings
+        audio_paths = []
+        for video_id in id_order:
+            audio_path = str(Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.wav"))
+            audio_paths.append(audio_path)
+        # inference imagebind
+        imagebind_class = ImageBindInference(device=0)
+        audio_np = []
+        img_np = []
+        for i in range(0, len(id_order)), BATCH_SIZE:
+            audios = audio_paths[i : i + BATCH_SIZE]
+            first_images = first_img_paths[i : i + BATCH_SIZE]
+            last_images =last_img_paths[i : i + BATCH_SIZE]
+            audio_embs = imagebind_class.inference_audio(audios).cpu().numpy()
+            first_embs = imagebind_class.inference_image_only(first_images).cpu().numpy()
+            last_embs = imagebind_class.inference_image_only(last_images).cpu().numpy()
+            img_embs = np.concatenate([first_embs, last_embs], axis=1)
+            audio_np.append(audio_embs)
+            img_np.append(img_embs)
+        audio_np = np.array(audio_np)
+        img_np = np.array(img_np)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_imagebind.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(audio_np, f)
+        print("imagebind embeddings saved")
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_imagebind.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_np, f)
+        print("imagebind embeddings saved")
+
         shape = video_info_sen_order[0]["audio_np"].shape
-        audio_np = [
-            (
-                video_info["audio_np"]
-                if video_info["audio_np"] is not None
-                else np.zeros(shape)
-            )
-            for video_info in video_info_sen_order
-        ][::20]
+        audio_np = [video_dict[video_id]["audio_np"] if video_dict[video_id]["audio_np"] is not None else np.zeros(shape) for video_id in id_order]
         audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=60)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
             "wb"
@@ -174,8 +188,14 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         print("CLAP embeddings saved")
 
         # get text embeddings
+        imagebind_class.inference_text(captions)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_imagebind.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(text_emb, f)
+        print("imagebind embeddings saved")
+
         text_emb = clip_text(captions, BATCH_SIZE)
-        print(text_emb.shape)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_clip.pkl").open(
             "wb"
         ) as f:

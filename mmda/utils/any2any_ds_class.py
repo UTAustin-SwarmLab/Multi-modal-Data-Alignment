@@ -223,9 +223,9 @@ class BaseAny2AnyDataset:
             return maps, precisions, recalls
 
         # if mode is "single"
-        recalls = {(i, j): [] for i in range(3) for j in range(3)}
-        precisions = {(i, j): [] for i in range(3) for j in range(3)}
-        maps = {(i, j): [] for i in range(3) for j in range(3)}
+        recalls = {(i, j): [] for i in range(self.shape[0]) for j in range(self.shape[1])}
+        precisions = {(i, j): [] for i in range(self.shape[0]) for j in range(self.shape[1])}
+        maps = {(i, j): [] for i in range(self.shape[0]) for j in range(self.shape[1])}
         from concurrent.futures import ProcessPoolExecutor
 
         def process_retrieval(inputs: tuple[callable, int]) -> list:
