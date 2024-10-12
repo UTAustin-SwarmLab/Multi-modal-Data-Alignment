@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
-from mmda.utils.imagebind_utils import ImageBindInference
+
 import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
@@ -31,11 +31,58 @@ from mmda.utils.embed_data import (
     dinov2,
     gtr_text,
 )
+from mmda.utils.imagebind_utils import ImageBindInference
+
 BATCH_SIZE = 128
 
 
+def get_video_emb(
+    cfg_dataset: DictConfig, video_dict: dict, use_kaggle: bool = False
+) -> dict[str, np.ndarray]:
+    """Get video embeddings for the videos in the video_dict.
+
+    Args:
+        cfg_dataset: configuration file
+        video_dict: a dict of video information
+        use_kaggle: whether to use the kaggle dataset
+
+    Returns:
+        video embeddings. dict: video_id -> video_embedding (if use_kaggle)
+        img_paths. list: list of image paths (if not use_kaggle)
+    """
+    # skip image embeddings (CLIP is already done from the dataset)
+    # load the existing embeddings
+    if use_kaggle:
+        video_emb = {}
+        for video_ids in tqdm(video_dict, desc="Loading video embeddings"):
+            video_np_path = Path(
+                cfg_dataset.paths.dataset_path,
+                f"clip-features-vit-h14/{video_ids}.npy",
+            )
+            # only sample the first and last frame
+            video_np = np.load(video_np_path)[[0, -1], :].reshape(1, -1)
+            video_emb[video_ids] = video_np
+        return video_emb
+    id_order = []
+    first_img_paths = []
+    last_img_paths = []
+    for video_ids in tqdm(sorted(video_dict), desc="loading keyframe paths"):
+        # video_ids from 7010 to 7990
+        img_dir = Path(cfg_dataset.paths.dataset_path, "keyframes", video_ids)
+        num_frames = len(os.listdir(img_dir))
+        for frame_id in range(num_frames, 2):
+            if frame_id + 1 >= num_frames:
+                break
+            first_img_path = img_dir / f"{frame_id:04d}.jpg"
+            last_img_path = img_dir / f"{frame_id + 1:04d}.jpg"
+            id_order.append(video_ids)
+            first_img_paths.append(str(first_img_path))
+            last_img_paths.append(str(last_img_path))
+    return id_order, first_img_paths, last_img_paths
+
+
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
+def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
     """Get feature embeddings for the datasets.
 
     Args:
@@ -83,51 +130,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
-
-        def get_video_emb(
-            cfg_dataset: DictConfig, video_dict: dict, use_kaggle: bool = False
-        ) -> dict[str, np.ndarray]:
-            """Get video embeddings for the videos in the video_dict.
-
-            Args:
-                cfg_dataset: configuration file
-                video_dict: a dict of video information
-                use_kaggle: whether to use the kaggle dataset
-
-            Returns:
-                video embeddings. dict: video_id -> video_embedding (if use_kaggle)
-                img_paths. list: list of image paths (if not use_kaggle)
-            """
-            # skip image embeddings (CLIP is already done from the dataset)
-            # load the existing embeddings
-            if use_kaggle:
-                video_emb = {}
-                for video_ids in tqdm(video_dict, desc="Loading video embeddings"):
-                    video_np_path = Path(
-                        cfg_dataset.paths.dataset_path,
-                        f"clip-features-vit-h14/{video_ids}.npy",
-                    )
-                    # only sample the first and last frame
-                    video_np = np.load(video_np_path)[[0, -1], :].reshape(1, -1)
-                    video_emb[video_ids] = video_np
-                return video_emb
-            id_order = []
-            first_img_paths = []
-            last_img_paths = []
-            for video_ids in tqdm(sorted(video_dict), desc="loading keyframe paths"):
-                # video_ids from 7010 to 7990
-                img_dir = Path(cfg_dataset.paths.dataset_path, "keyframes", video_ids)
-                num_frames = len(os.listdir(img_dir))
-                for frame_id in range(num_frames, 2):
-                    if frame_id + 1 >= num_frames:
-                        break
-                    first_img_path = img_dir / f"{frame_id:04d}.jpg"
-                    last_img_path = img_dir / f"{frame_id + 1:04d}.jpg"
-                    id_order.append(video_ids)
-                    first_img_paths.append(str(first_img_path))
-                    last_img_paths.append(str(last_img_path))
-            return id_order, first_img_paths, last_img_paths
-
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
 
         id_order, first_img_paths, last_img_paths = get_video_emb(
@@ -149,18 +151,22 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         # get audio embeddings
         audio_paths = []
         for video_id in id_order:
-            audio_path = str(Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.wav"))
+            audio_path = str(
+                Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.wav")
+            )
             audio_paths.append(audio_path)
         # inference imagebind
         imagebind_class = ImageBindInference(device=0)
         audio_np = []
         img_np = []
-        for i in range(0, len(id_order)), BATCH_SIZE:
+        for i in range(len(id_order)), BATCH_SIZE:
             audios = audio_paths[i : i + BATCH_SIZE]
             first_images = first_img_paths[i : i + BATCH_SIZE]
-            last_images =last_img_paths[i : i + BATCH_SIZE]
+            last_images = last_img_paths[i : i + BATCH_SIZE]
             audio_embs = imagebind_class.inference_audio(audios).cpu().numpy()
-            first_embs = imagebind_class.inference_image_only(first_images).cpu().numpy()
+            first_embs = (
+                imagebind_class.inference_image_only(first_images).cpu().numpy()
+            )
             last_embs = imagebind_class.inference_image_only(last_images).cpu().numpy()
             img_embs = np.concatenate([first_embs, last_embs], axis=1)
             audio_np.append(audio_embs)
@@ -179,7 +185,14 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         print("imagebind embeddings saved")
 
         shape = video_info_sen_order[0]["audio_np"].shape
-        audio_np = [video_dict[video_id]["audio_np"] if video_dict[video_id]["audio_np"] is not None else np.zeros(shape) for video_id in id_order]
+        audio_np = [
+            (
+                video_dict[video_id]["audio_np"]
+                if video_dict[video_id]["audio_np"] is not None
+                else np.zeros(shape)
+            )
+            for video_id in id_order
+        ]
         audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=60)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
             "wb"
@@ -188,7 +201,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901
         print("CLAP embeddings saved")
 
         # get text embeddings
-        imagebind_class.inference_text(captions)
+        text_emb = imagebind_class.inference_text(captions)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_text_emb_imagebind.pkl").open(
             "wb"
         ) as f:
