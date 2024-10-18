@@ -10,13 +10,13 @@ from imagebind.models.imagebind_model import ModalityType
 
 
 class ImageBindInference:
-    def __init__(self, device: int = 0):
-        self.device = f"cuda:{device}" if torch.cuda.is_available() else "cpu"
+    def __init__(self):
+        self.device = f"cuda" if torch.cuda.is_available() else "cpu"
         self.model = imagebind_model.imagebind_huge(pretrained=True)
         self.model.eval()
         self.model.to(self.device)
 
-    def inference_audio(self, image_paths, audio_paths):
+    def inference_audio(self, audio_paths):
         inputs = {
             ModalityType.AUDIO: load_and_transform_audio_data(audio_paths, self.device),
         }
@@ -44,3 +44,15 @@ class ImageBindInference:
         with torch.no_grad():
             embeddings = self.model(inputs)
             return embeddings[ModalityType.TEXT]
+
+    def inference_image_audio(self, image_paths, audio_paths):
+        inputs = {
+            ModalityType.VISION: load_and_transform_vision_data(
+                image_paths, self.device
+            ),
+            ModalityType.AUDIO: load_and_transform_audio_data(audio_paths, self.device),
+        }
+
+        with torch.no_grad():
+            embeddings = self.model(inputs)
+            return embeddings[ModalityType.VISION], embeddings[ModalityType.AUDIO]

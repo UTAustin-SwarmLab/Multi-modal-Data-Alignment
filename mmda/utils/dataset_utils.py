@@ -99,7 +99,7 @@ def load_msrvtt(
                 "category": category,
                 "url": url,
             }
-        num_processes = 32
+        num_processes = 64
         p = Pool(processes=num_processes)
         print("num_processes:", num_processes)
         data = p.map(

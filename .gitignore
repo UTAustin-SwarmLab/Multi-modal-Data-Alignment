@@ -171,4 +171,4 @@ plots/*
 # lock files
 *.lock
 .checkpoints/
-ImageBind/
+.assets/

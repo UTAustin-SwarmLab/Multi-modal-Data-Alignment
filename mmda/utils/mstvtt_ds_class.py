@@ -105,6 +105,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         ]
 
         # get video idx which has no audio. 355 in total.
+        # TODO: video7010 has torch.zeros wav files.
         null_audio_idx = []
         for idx, video_info in enumerate(self.video_info_sen_order):
             if video_info["audio_np"] is None and idx % self.step_size == 0:
@@ -114,23 +115,23 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2img_emb = pickle.load(file)  # (59800, 1280) # noqa: S301
+            self.txt2img_emb = pickle.load(file)  # (59800,) # noqa: S301
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_video_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.img2txt_emb = pickle.load(file)  # noqa: S301
+            self.img2txt_emb = pickle.load(file)  # (47392,) # noqa: S301
         print(self.img2txt_emb.shape)
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2audio_emb = pickle.load(file)  # (59800, 512) # noqa: S301
+            self.txt2audio_emb = pickle.load(file)  # (59800,) # noqa: S301
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_audio_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.audio2txt_emb = pickle.load(file)  # (???, 512) # noqa: S301
+            self.audio2txt_emb = pickle.load(file)  # (47392,) # noqa: S301
         print(self.audio2txt_emb.shape)
 
         # normalize all the embeddings to have unit norm using L2 normalization
