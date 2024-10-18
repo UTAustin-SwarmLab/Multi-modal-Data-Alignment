@@ -29,7 +29,6 @@ def process_similarity_pair(inputs: tuple) -> dict:
         range_idx_q (range): The index of the query.
         r_size (int): The size of the retrieval range.
         idx_offset (int): The offset for the indices.
-        step_size (int): The step size for the retrieval indices.
 
     Returns:
         dict: A dictionary containing the cosine similarities and ground truth labels for each pair.
@@ -43,7 +42,6 @@ def process_similarity_pair(inputs: tuple) -> dict:
         range_idx_q,
         r_size,
         idx_offset,
-        step_size,
     ) = inputs
     sim_mat_i = {}
     for idx_q in tqdm(range_idx_q):
@@ -82,10 +80,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.text2audio = "clap"
 
         self.shape = (1, 2)  # shape of the similarity matrix
-        self.cali_size = 3800
-        self.train_size = 53_000  # no training data is needed for MSRVTT
+        self.cali_size = 3_800
+        self.train_size = 53_000  # TODO: no training data is needed for MSRVTT
         self.test_size = 3_000
-        self.step_size = 20  # 20 duplicates of different captions of a video
         self.img2txt_encoder = self.cfg_dataset.img_encoder
         self.audio2txt_encoder = self.cfg_dataset.audio_encoder
         self.save_tag = f"{self.img2txt_encoder}_{self.audio2txt_encoder}"
@@ -95,21 +92,16 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.sen_ids, self.captions, self.video_info_sen_order, self.video_dict = (
             load_msrvtt(self.cfg_dataset)
         )
-        with Path(self.cfg_dataset.paths.save_path, "MSRVTT_ref_video_ids.pkl").open(
+        with Path(self.cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
             "rb"
-        ) as file:
-            self.ref_id_order = pickle.load(file)  # noqa: S301
-        null_audio_idx = [
-            self.video_dict[video_id]["audio_np"] is None
-            for video_id in self.ref_id_order
-        ]
+        ) as f:
+            self.ref_id_order = pickle.load(f)  # noqa: S301
+        with Path(self.cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").open(
+            "rb"
+        ) as f:
+            # get video idx which has no audio. 355 in total.
+            null_audio_idx = pickle.load(f)  # noqa: S301 list of bool in ref_id_order
 
-        # get video idx which has no audio. 355 in total.
-        # TODO: video7010 has torch.zeros wav files.
-        null_audio_idx = []
-        for idx, video_info in enumerate(self.video_info_sen_order):
-            if video_info["audio_np"] is None and idx % self.step_size == 0:
-                null_audio_idx.append(int(idx / self.step_size))
         # load data
         with Path(
             self.cfg_dataset.paths.save_path
@@ -176,8 +168,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         ), f"{self.test_size} + {self.cali_size} + {self.train_size} != {self.num_data}"
 
         # train/test/calibration split only on the query size (59_800)
-        # Shuffle the array to ensure randomness
-        idx = np.arange(self.num_data)  # 2990
+        idx = np.arange(self.num_data)  # 59800
         txt_test_idx = idx[self.train_size : self.cali_size]
         txt_cali_idx = idx[-self.cali_size :]
         self.txt2img_emb = {
@@ -218,16 +209,13 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         Returns:
             True if the retrieval is correct, False otherwise
         """
-        return (
-            self.video_info_sen_order[q_idx]["video_id"]
-            == self.ref_id_order[r_idx]["video_id"]
-        )
+        return self.video_info_sen_order[q_idx]["video_id"] == self.ref_id_order[r_idx]
 
     def calculate_pairs_data_similarity(
         self,
         data_lists: list[np.ndarray],
         idx_offset: int,
-        num_workers: int = 2,
+        num_workers: int = 1,
     ) -> np.ndarray:
         """Calculate the similarity matrix for the pairs of modalities.
 
@@ -264,7 +252,6 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                         range_idx_q,
                         r_size,
                         idx_offset,
-                        self.step_size,
                     )
                     for range_idx_q in range_idx_qs
                 ],
