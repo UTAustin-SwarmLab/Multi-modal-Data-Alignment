@@ -170,3 +170,4 @@ asif:  # Hyperparameters of asif baseline
 # dino: 1536
 # clip: 1280 (1024 for msrvtt)
 # liploc: 256
+# imagebind: 1024
