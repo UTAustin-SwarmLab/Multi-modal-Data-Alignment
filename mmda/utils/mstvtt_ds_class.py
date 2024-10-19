@@ -83,6 +83,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.cali_size = 3_800
         self.train_size = 53_000  # TODO: no training data is needed for MSRVTT
         self.test_size = 3_000
+        self.query_step = 5
         self.img2txt_encoder = self.cfg_dataset.img_encoder
         self.audio2txt_encoder = self.cfg_dataset.audio_encoder
         self.save_tag = f"{self.img2txt_encoder}_{self.audio2txt_encoder}"
@@ -95,7 +96,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
             "rb"
         ) as f:
-            self.ref_id_order = pickle.load(f)  # noqa: S301
+            self.ref_id_order = pickle.load(f)[:: self.query_step]  # noqa: S301
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").open(
             "rb"
         ) as f:
@@ -176,16 +177,16 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             "cali": self.txt2img_emb[txt_cali_idx],
         }
         self.img2txt_emb = {
-            "test": self.img2txt_emb,
-            "cali": self.img2txt_emb,
+            "test": self.img2txt_emb[:: self.query_step],
+            "cali": self.img2txt_emb[:: self.query_step],
         }
         self.txt2audio_emb = {
             "test": self.txt2audio_emb[txt_test_idx],
             "cali": self.txt2audio_emb[txt_cali_idx],
         }
         self.audio2txt_emb = {
-            "test": self.audio2txt_emb,
-            "cali": self.audio2txt_emb,
+            "test": self.audio2txt_emb[:: self.query_step],
+            "cali": self.audio2txt_emb[:: self.query_step],
         }
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         if self.cfg_dataset.mask_ratio != 0:
@@ -198,6 +199,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             self.mask = {}
             self.mask[0] = []
             self.mask[1] = []
+
+        # check the length of the reference order
+        assert len(self.ref_id_order) == self.audio2txt_emb["test"].shape[0]
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.

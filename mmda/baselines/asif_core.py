@@ -88,7 +88,7 @@ def normalize_sparse(
     return torch.sparse_coo_tensor(tensor_idx, v.t().flatten(), tensor.shape)
 
 
-def zero_shot_classification(  # noqa: PLR0913
+def zero_shot_classification(
     zimgs: torch.Tensor,
     ztxts: torch.Tensor,
     aimgs: torch.Tensor,
