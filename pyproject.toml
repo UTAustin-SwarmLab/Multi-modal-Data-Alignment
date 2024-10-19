@@ -69,6 +69,7 @@ timm = "*"
 albumentations = "*"
 kaggle = "*"
 moviepy = "*"
+faiss-gpu = "*"
 imagebind = {git = "https://github.com/facebookresearch/ImageBind"}
 # LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"} # contradicting with imagebind
 

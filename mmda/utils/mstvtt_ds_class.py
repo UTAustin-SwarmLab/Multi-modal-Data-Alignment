@@ -5,6 +5,7 @@ import pickle
 from multiprocessing import Pool
 from pathlib import Path
 
+import faiss
 import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
@@ -80,9 +81,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.text2audio = "clap"
 
         self.shape = (1, 2)  # shape of the similarity matrix
-        self.cali_size = 3_800
+        self.cali_size = 800
         self.train_size = 53_000  # TODO: no training data is needed for MSRVTT
-        self.test_size = 3_000
+        self.test_size = 6_000
         self.query_step = 5
         self.img2txt_encoder = self.cfg_dataset.img_encoder
         self.audio2txt_encoder = self.cfg_dataset.audio_encoder
@@ -202,6 +203,12 @@ class MSRVTTDataset(BaseAny2AnyDataset):
 
         # check the length of the reference order
         assert len(self.ref_id_order) == self.audio2txt_emb["test"].shape[0]
+        # build the faiss index for the test set
+        red_video_ids = np.array(self.ref_id_order, dtype="int64")  # Faiss requires int64 for IDs
+        self.audio2txt_faiss = faiss.IndexFlatIP(self.audio2txt_emb["test"].shape[1])
+        self.audio2txt_faiss.add_with_ids(self.audio2txt_emb["test"], red_video_ids)
+        self.img2txt_faiss = faiss.IndexFlatIP(self.img2txt_emb["test"].shape[1])
+        self.img2txt_faiss.add_with_ids(self.img2txt_emb["test"], red_video_ids)
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
