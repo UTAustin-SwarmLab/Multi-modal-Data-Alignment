@@ -1,5 +1,6 @@
 """Dataset class for any2any - msrvtt retrieval task."""
 
+# ruff: noqa: S301
 import copy
 import json
 import pickle
@@ -95,36 +96,36 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
             "rb"
         ) as f:
-            self.ref_id_order = pickle.load(f)[:: self.ref_step]  # noqa: S301
+            self.ref_id_order = pickle.load(f)[:: self.ref_step]
         self.video_info_sen_order = self.video_info_sen_order[:: self.query_step]
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").open(
             "rb"
         ) as f:
             # get video idx which has no audio. 355 in total. list of bool in ref_id_order
-            null_audio_idx = pickle.load(f)[:: self.ref_step]  # noqa: S301
+            null_audio_idx = pickle.load(f)[:: self.ref_step]
 
         # load data
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2img_emb = pickle.load(file)[:: self.query_step]  # noqa: S301
+            self.txt2img_emb = pickle.load(file)[:: self.query_step]
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_video_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.img2txt_emb = pickle.load(file)[:: self.ref_step]  # noqa: S301
+            self.img2txt_emb = pickle.load(file)[:: self.ref_step]
         print(self.img2txt_emb.shape)
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2audio_emb = pickle.load(file)[:: self.query_step]  # noqa: S301
+            self.txt2audio_emb = pickle.load(file)[:: self.query_step]
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_audio_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.audio2txt_emb = pickle.load(file)[:: self.ref_step]  # noqa: S301
+            self.audio2txt_emb = pickle.load(file)[:: self.ref_step]
         print(self.audio2txt_emb.shape)
 
         # normalize all the embeddings to have unit norm using L2 normalization
