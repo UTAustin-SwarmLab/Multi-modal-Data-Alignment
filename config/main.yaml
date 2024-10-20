@@ -4,8 +4,8 @@ defaults:
 seed: 42
 train_test_ratio: 0.7
 noisy_train_set: True
-# repo_root: "/home/pl22767/Project/MMDA/"
-repo_root: "/home/po-han/Desktop/Projects/MMDA/"
+repo_root: "/home/pl22767/Project/MMDA/"
+# repo_root: "/home/po-han/Desktop/Projects/MMDA/"
 
 dataset: "MSRVTT"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
@@ -33,8 +33,8 @@ MSRVTT:
   retrieval_dim: "" # we use all the dimensions for retrieval
   mask_ratio: 0 # ratio of the missing data : size of test data
   paths:
-    # dataset_path: "/nas/pohan/datasets/MSR-VTT/"
-    dataset_path: "/home/po-han/Downloads/MSR-VTT/"
+    dataset_path: "/nas/pohan/datasets/MSR-VTT/"
+    # dataset_path: "/home/po-han/Downloads/MSR-VTT/"
     save_path: ${MSRVTT.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/MSR-VTT/
 

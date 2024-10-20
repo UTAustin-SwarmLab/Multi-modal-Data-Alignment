@@ -1,6 +1,7 @@
 """Dataset class for any2any retrieval task."""
 
 import pickle
+from concurrent.futures import ProcessPoolExecutor
 from copy import deepcopy
 from pathlib import Path
 from typing import Literal
@@ -15,6 +16,38 @@ from mmda.utils.calibrate import (
     get_calibration_scores_2nd_stage,
 )
 from mmda.utils.liploc_model import get_top_k
+
+
+def process_retrieval(inputs: tuple[callable, int]) -> list:
+    """Process the retrieval for single modality retrieval.
+
+    Args:
+        inputs: the inputs for the retrieval
+            retrieve_fn: the retrieval function
+            con_mat: the conformal probability matrix
+            idx_q: the index of the query data
+            train_size: the size of the training data
+            test_size: the size of the test data
+            shape: the shape of the similarity matrix
+
+    Returns:
+        results: the results of the retrieval
+    """
+    retrieve_fn, con_mat, idx_q, train_size, test_size, shape = inputs
+    retrieved_pairs = retrieve_fn(
+        con_mat, idx_q, train_size, test_size, single_modal=True
+    )
+    results = []
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            modal_pair = (i, j)
+            retrieved_pairs_ij = sorted(
+                retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
+            )
+            top_k_hit = get_top_k(retrieved_pairs_ij, k=5)
+            recall_k = 1 if any(top_k_hit) else 0
+            results.append((modal_pair, recall_k))
+    return results
 
 
 class BaseAny2AnyDataset:
@@ -149,7 +182,7 @@ class BaseAny2AnyDataset:
             con_mat[(ds_idx_q, ds_idx_r)][1],  # gt_label
         )
 
-    def retrieve_data(  # noqa: PLR0915
+    def retrieve_data(
         self,
         mode: Literal["miss", "full", "single"],
     ) -> tuple[dict, dict, dict]:
@@ -230,28 +263,19 @@ class BaseAny2AnyDataset:
             (i, j): [] for i in range(self.shape[0]) for j in range(self.shape[1])
         }
         maps = {(i, j): [] for i in range(self.shape[0]) for j in range(self.shape[1])}
-        from concurrent.futures import ProcessPoolExecutor
-
-        def process_retrieval(inputs: tuple[callable, int]) -> list:
-            retrieve_fn, idx_q = inputs
-            retrieved_pairs = retrieve_fn(
-                con_mat, idx_q, self.train_size, self.test_size, single_modal=True
-            )
-            results = []
-            for i in range(self.shape[0]):
-                for j in range(self.shape[1]):
-                    modal_pair = (i, j)
-                    retrieved_pairs_ij = sorted(
-                        retrieved_pairs, key=lambda x: x[2][modal_pair], reverse=True
-                    )
-                    top_k_hit = get_top_k(retrieved_pairs_ij, k=5)
-                    recall_k = 1 if any(top_k_hit) else 0
-                    results.append((modal_pair, recall_k))
-            return results
-
-        with ProcessPoolExecutor(max_workers=1) as executor:
+        with ProcessPoolExecutor(max_workers=16) as executor:
             futures = [
-                executor.submit(process_retrieval, (self.retrieve_one_data, idx_q))
+                executor.submit(
+                    process_retrieval,
+                    (
+                        self.retrieve_one_data,
+                        con_mat,
+                        idx_q,
+                        self.train_size,
+                        self.test_size,
+                        self.shape,
+                    ),
+                )
                 for idx_q in range(self.test_size)
             ]
             for future in tqdm(futures, desc=f"Retrieving {mode} data", leave=True):

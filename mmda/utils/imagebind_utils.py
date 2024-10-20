@@ -44,15 +44,3 @@ class ImageBindInference:
         with torch.no_grad():
             embeddings = self.model(inputs)
             return embeddings[ModalityType.TEXT]
-
-    def inference_image_audio(self, image_paths, audio_paths):
-        inputs = {
-            ModalityType.VISION: load_and_transform_vision_data(
-                image_paths, self.device
-            ),
-            ModalityType.AUDIO: load_and_transform_audio_data(audio_paths, self.device),
-        }
-
-        with torch.no_grad():
-            embeddings = self.model(inputs)
-            return embeddings[ModalityType.VISION], embeddings[ModalityType.AUDIO]

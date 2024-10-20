@@ -76,14 +76,12 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         super().__init__()
         self.cfg = cfg
         self.cfg_dataset = cfg["MSRVTT"]
-        self.text2img = "clip"
-        self.text2audio = "clap"
-
         self.shape = (1, 2)  # shape of the similarity matrix
-        self.cali_size = 3_800
-        self.train_size = 53_000  # TODO: no training data is needed for MSRVTT
-        self.test_size = 3_000
-        self.query_step = 5
+        self.cali_size = 460
+        self.train_size = 2000  # TODO: no training data is needed for MSRVTT
+        self.test_size = 9500
+        self.query_step = 5  # 59800 / 5 = 11960
+        self.ref_step = 5  # 47392 / 5 = 9478
         self.img2txt_encoder = self.cfg_dataset.img_encoder
         self.audio2txt_encoder = self.cfg_dataset.audio_encoder
         self.save_tag = f"{self.img2txt_encoder}_{self.audio2txt_encoder}"
@@ -96,35 +94,36 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
             "rb"
         ) as f:
-            self.ref_id_order = pickle.load(f)[:: self.query_step]  # noqa: S301
+            self.ref_id_order = pickle.load(f)[:: self.ref_step]  # noqa: S301
+        self.video_info_sen_order = self.video_info_sen_order[:: self.query_step]
         with Path(self.cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").open(
             "rb"
         ) as f:
-            # get video idx which has no audio. 355 in total.
-            null_audio_idx = pickle.load(f)  # noqa: S301 list of bool in ref_id_order
+            # get video idx which has no audio. 355 in total. list of bool in ref_id_order
+            null_audio_idx = pickle.load(f)[:: self.ref_step]  # noqa: S301
 
         # load data
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2img_emb = pickle.load(file)  # (59800,) # noqa: S301
+            self.txt2img_emb = pickle.load(file)[:: self.query_step]  # noqa: S301
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_video_emb_{self.img2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.img2txt_emb = pickle.load(file)  # (47392,) # noqa: S301
+            self.img2txt_emb = pickle.load(file)[:: self.ref_step]  # noqa: S301
         print(self.img2txt_emb.shape)
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_text_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.txt2audio_emb = pickle.load(file)  # (59800,) # noqa: S301
+            self.txt2audio_emb = pickle.load(file)[:: self.query_step]  # noqa: S301
         with Path(
             self.cfg_dataset.paths.save_path
             + f"MSRVTT_audio_emb_{self.audio2txt_encoder}.pkl"
         ).open("rb") as file:
-            self.audio2txt_emb = pickle.load(file)  # (47392,) # noqa: S301
+            self.audio2txt_emb = pickle.load(file)[:: self.ref_step]  # noqa: S301
         print(self.audio2txt_emb.shape)
 
         # normalize all the embeddings to have unit norm using L2 normalization
@@ -169,24 +168,24 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         ), f"{self.test_size} + {self.cali_size} + {self.train_size} != {self.num_data}"
 
         # train/test/calibration split only on the query size (59_800)
-        idx = np.arange(self.num_data)  # 59800
-        txt_test_idx = idx[self.train_size : self.cali_size]
+        idx = np.arange(self.num_data)
+        txt_test_idx = idx[self.train_size : -self.cali_size]
         txt_cali_idx = idx[-self.cali_size :]
         self.txt2img_emb = {
             "test": self.txt2img_emb[txt_test_idx],
             "cali": self.txt2img_emb[txt_cali_idx],
         }
         self.img2txt_emb = {
-            "test": self.img2txt_emb[:: self.query_step],
-            "cali": self.img2txt_emb[:: self.query_step],
+            "test": self.img2txt_emb,
+            "cali": self.img2txt_emb,
         }
         self.txt2audio_emb = {
             "test": self.txt2audio_emb[txt_test_idx],
             "cali": self.txt2audio_emb[txt_cali_idx],
         }
         self.audio2txt_emb = {
-            "test": self.audio2txt_emb[:: self.query_step],
-            "cali": self.audio2txt_emb[:: self.query_step],
+            "test": self.audio2txt_emb,
+            "cali": self.audio2txt_emb,
         }
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         if self.cfg_dataset.mask_ratio != 0:
@@ -201,7 +200,12 @@ class MSRVTTDataset(BaseAny2AnyDataset):
             self.mask[1] = []
 
         # check the length of the reference order
-        assert len(self.ref_id_order) == self.audio2txt_emb["test"].shape[0]
+        assert (
+            len(self.ref_id_order) == self.audio2txt_emb["test"].shape[0]
+        ), f"{len(self.ref_id_order)} != {self.audio2txt_emb['test'].shape[0]}"
+        assert (
+            len(self.video_info_sen_order) == self.num_data
+        ), f"{len(self.video_info_sen_order)} != {self.num_data}"
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
