@@ -1,6 +1,7 @@
 """Dataset class for any2any - msrvtt retrieval task."""
 
 import copy
+import json
 import pickle
 from multiprocessing import Pool
 from pathlib import Path
@@ -224,7 +225,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         data_lists: list[np.ndarray],
         idx_offset: int,
         num_workers: int = 1,
-    ) -> np.ndarray:
+    ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
         """Calculate the similarity matrix for the pairs of modalities.
 
         Args:
@@ -278,7 +279,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}.pkl",
+            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}.json",
         )
         if not sim_mat_path.exists():
             print("Generating calibration data...")
@@ -292,11 +293,15 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 idx_offset,
             )
             # save the calibration data in the format of (sim_score, gt_label)
-            with sim_mat_path.open("wb") as f:
-                pickle.dump(self.sim_mat_cali, f)
+            with sim_mat_path.open("w") as f:
+                json.dump({str(k): v.tolist() for k, v in self.sim_mat_cali.items()}, f)
         else:
             print("Loading calibration data...")
-            self.sim_mat_cali = pickle.load(sim_mat_path.open("rb"))  # noqa: S301
+            with sim_mat_path.open("r") as f:
+                self.sim_mat_cali = {
+                    tuple(map(int, k.split(","))): np.array(v)
+                    for k, v in json.load(f).items()
+                }
 
         # set up prediction bands
         self.set_pred_band()
@@ -309,7 +314,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         con_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not con_mat_test_path.exists():
             self.con_mat_test = {}
@@ -318,22 +323,27 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 desc="Calculating conformal probabilities",
                 leave=True,
             ):
-                probs = np.zeros(self.shape)
+                probs = np.zeros(self.shape).tolist()
                 for i in range(self.shape[0]):
                     for j in range(self.shape[1]):
-                        probs[i, j] = calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
-                self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
-            with con_mat_test_path.open("wb") as f:
-                pickle.dump(self.con_mat_test, f)
+                        probs[i][j] = float(
+                            calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
+                        )
+                self.con_mat_test[f"{idx_q},{idx_r}"] = [probs, int(gt_label)]
+            with con_mat_test_path.open("w") as f:
+                json.dump(self.con_mat_test, f)
         else:
             print("Loading conformal probabilities...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_path.open("rb") as f:
-                self.con_mat_test = pickle.load(f)  # noqa: S301
-
+            with con_mat_test_path.open("r") as f:
+                self.con_mat_test = json.load(f)
+            # Convert keys back to tuples and values back to numpy arrays
+            self.con_mat_test = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.con_mat_test.items()
+            }
         con_mat_test_miss_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
@@ -346,18 +356,28 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                     for j in range(self.shape[1]):
                         if idx_r in self.mask[j]:
                             self.con_mat_test_miss[(idx_q, idx_r)][0][0, j] = -1
-                with con_mat_test_miss_path.open("wb") as f:
-                    pickle.dump(self.con_mat_test_miss, f)
+                with con_mat_test_miss_path.open("w") as f:
+                    json.dump(
+                        {
+                            f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                            for k, v in self.con_mat_test_miss.items()
+                        },
+                        f,
+                    )
         else:
             print("Loading conformal probabilities for missing data...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_miss_path.open("rb") as f:
-                self.con_mat_test_miss = pickle.load(f)  # noqa: S301
+            with con_mat_test_miss_path.open("r") as f:
+                self.con_mat_test_miss = json.load(f)
+            # Convert keys back to tuples and values back to numpy arrays
+            self.con_mat_test_miss = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.con_mat_test_miss.items()
+            }
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
 
-        This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
+        This step is extremely time-consuming, so we cache the similarity matrix in the json format
         and use batch processing to speed up the process.
         """
         super().get_test_data(
