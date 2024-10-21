@@ -173,7 +173,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         ) as f:
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
-        return
 
         # get CLAP audio embeddings. first, get np array of audio waveforms
         with Pool(64) as pool:
