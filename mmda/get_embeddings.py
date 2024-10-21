@@ -2,12 +2,12 @@
 
 # ruff: noqa: ERA001, PLR2004, S301
 import pickle
+from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
 import torch
 import torchaudio
-from moviepy.audio.io.AudioFileClip import AudioFileClip
 from omegaconf import DictConfig
 from tqdm import tqdm
 
@@ -34,7 +34,11 @@ from mmda.utils.embed_data import (
     gtr_text,
 )
 from mmda.utils.imagebind_utils import ImageBindInference
-from mmda.utils.video_audio_utils import get_video_emb, prepare_audio_for_imagebind
+from mmda.utils.video_audio_utils import (
+    get_video_emb,
+    prepare_audio_for_imagebind,
+    process_audio,
+)
 
 BATCH_SIZE = 256
 
@@ -89,7 +93,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
 
     elif dataset == "MSRVTT":
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
-
         id_order, img_paths, audio_start_secs, audio_num_secs = get_video_emb(
             cfg_dataset, video_dict
         )
@@ -109,9 +112,9 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
                 )
                 if not audio_path.exists():
                     null_audio.append(True)
-                    waveform = torch.zeros((2, 82025))
                     output_paths.append(".assets/bird_audio.wav")
                     continue
+
                 # load audio
                 sample_rate = torchaudio.info(audio_path).sample_rate
                 start_frame = int(audio_start_secs[i] * sample_rate)
@@ -163,15 +166,27 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             ) as f:
                 output_paths = pickle.load(f)
 
-        # get audio embeddings. first, get np array of audio waveforms
-        audio_np = []
-        for i in tqdm(range(len(output_paths)), desc="process output_paths"):
-            output_path = ".assets/bird_audio.wav" if null_audio[i] else output_paths[i]
-            audio = AudioFileClip(output_path)
-            waveform = np.array(list(audio.iter_frames()))
-            audio.close()
-            audio_np.append(waveform)
+        # get clip video embeddings
+        img_emb = clip_imgs(img_paths, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
+        return
 
+        # get CLAP audio embeddings. first, get np array of audio waveforms
+        with Pool(64) as pool:
+            audio_np = list(
+                tqdm(
+                    pool.imap(
+                        process_audio,
+                        zip(output_paths, null_audio, strict=False),
+                    ),
+                    desc="process output_paths",
+                    total=len(output_paths),
+                )
+            )
         audio_np = np.array(audio_np)
         audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=120)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
@@ -179,9 +194,8 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         ) as f:
             pickle.dump(audio_emb, f)
         print("CLAP embeddings saved")
-        return
 
-        # inference imagebind
+        # inference imagebind (audio and image)
         imagebind_class = ImageBindInference()
         audio_np = []
         img_np = []

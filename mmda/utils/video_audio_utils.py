@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torchaudio
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from omegaconf import DictConfig
 from tqdm import tqdm
@@ -91,6 +92,20 @@ def process_video_ids(inputs: tuple[DictConfig, list[int]]) -> tuple[int, np.nda
         audio = (audio[:, 0] + audio[:, 1]) / 2 if audio_exist else None
         result_tuple.append((video_id, audio))
     return result_tuple
+
+
+def process_audio(args: tuple[str, bool]) -> np.ndarray:
+    """Process the audio."""
+    output_path, is_null = args
+    if is_null:
+        waveform = np.zeros((88200,))
+    else:
+        audio = AudioFileClip(output_path)
+        waveform = np.array(list(audio.iter_frames()))
+        waveform = (waveform[:, 0] + waveform[:, 1]) / 2
+        audio.close()
+    assert waveform.shape == (88200,), f"shape: {waveform.shape}, {output_path}"
+    return waveform
 
 
 def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
