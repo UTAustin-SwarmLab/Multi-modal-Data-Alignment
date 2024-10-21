@@ -83,7 +83,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.train_size = 11_300  # no training data is needed for MSRVTT
         self.test_size = 200
         self.query_step = 5  # 59800 / 5 = 11960
-        self.ref_step = 5  # 47392 / 5 = 9478
+        self.ref_step = 1  # 24403 / 1 = 24403
         self.img2txt_encoder = self.cfg_dataset.img_encoder
         self.audio2txt_encoder = self.cfg_dataset.audio_encoder
         self.save_tag = f"{self.img2txt_encoder}_{self.audio2txt_encoder}"
@@ -132,25 +132,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.txt2img_emb = self.txt2img_emb / np.linalg.norm(
             self.txt2img_emb, axis=1, keepdims=True
         )
-        self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)] = self.img2txt_emb[
-            :, : int(self.img2txt_emb.shape[1] / 2)
-        ] / np.linalg.norm(
-            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)],
-            axis=1,
-            keepdims=True,
+        self.img2txt_emb = self.img2txt_emb / np.linalg.norm(
+            self.img2txt_emb, axis=1, keepdims=True
         )
-        self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :] = self.img2txt_emb[
-            :, int(self.img2txt_emb.shape[1] / 2) :
-        ] / np.linalg.norm(
-            self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :],
-            axis=1,
-            keepdims=True,
-        )
-        # get the avg of video (2 frame) embeddings, as it does not affect the cosine similarity
-        self.img2txt_emb = (
-            self.img2txt_emb[:, : int(self.img2txt_emb.shape[1] / 2)]
-            + self.img2txt_emb[:, int(self.img2txt_emb.shape[1] / 2) :]
-        ) / 2
         self.txt2audio_emb = self.txt2audio_emb / np.linalg.norm(
             self.txt2audio_emb, axis=1, keepdims=True
         )

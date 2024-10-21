@@ -1,13 +1,13 @@
 """Get feature embeddings for the datasets."""
 
-# ruff: noqa: ERA001, PLR2004
-import os
+# ruff: noqa: ERA001, PLR2004, S301
 import pickle
 from pathlib import Path
 
 import numpy as np
 import torch
 import torchaudio
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 from omegaconf import DictConfig
 from tqdm import tqdm
 
@@ -34,41 +34,9 @@ from mmda.utils.embed_data import (
     gtr_text,
 )
 from mmda.utils.imagebind_utils import ImageBindInference
+from mmda.utils.video_audio_utils import get_video_emb, prepare_audio_for_imagebind
 
 BATCH_SIZE = 256
-
-
-def get_video_emb(
-    cfg_dataset: DictConfig, video_dict: dict
-) -> tuple[list[str], list[str], list[str]]:
-    """Get video embeddings for the videos in the video_dict.
-
-    Args:
-        cfg_dataset: configuration file
-        video_dict: a dict of video information
-        use_kaggle: whether to use the kaggle dataset
-
-    Returns:
-        id_order: list of video ids
-        first_img_paths: list of first image paths
-        last_img_paths: list of last image paths
-    """
-    id_order = []
-    first_img_paths = []
-    last_img_paths = []
-    for video_id in tqdm(sorted(video_dict), desc="loading keyframe paths"):
-        # video_ids from 7010 to 7990
-        img_dir = Path(cfg_dataset.paths.dataset_path, "keyframes", video_id)
-        num_frames = len(os.listdir(img_dir))
-        for frame_id in range(0, num_frames, 2):
-            if frame_id + 1 >= num_frames:
-                break
-            first_img_path = img_dir / f"{frame_id:04d}.jpg"
-            last_img_path = img_dir / f"{frame_id + 1:04d}.jpg"
-            id_order.append(video_id)
-            first_img_paths.append(str(first_img_path))
-            last_img_paths.append(str(last_img_path))
-    return id_order, first_img_paths, last_img_paths
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -122,7 +90,7 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
     elif dataset == "MSRVTT":
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
 
-        id_order, first_img_paths, last_img_paths = get_video_emb(
+        id_order, img_paths, audio_start_secs, audio_num_secs = get_video_emb(
             cfg_dataset, video_dict
         )
 
@@ -130,23 +98,45 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         if not (
             Path(cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").exists
             and Path(cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").exists()
-            and Path(cfg_dataset.paths.save_path, "MSRVTT_audio_paths.pkl").exists()
+            and Path(cfg_dataset.paths.save_path, "MSRVTT_output_paths.pkl").exists()
         ):
-            audio_paths, null_audio = [], []
-            for video_id in tqdm(id_order, desc="process id_order"):
+            null_audio = []
+            output_paths = []
+            for i in tqdm(range(len(id_order)), desc="process id_order"):
+                video_id = id_order[i]
                 audio_path = Path(
                     cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.wav"
                 )
-                if (
-                    not audio_path.exists()
-                    or torch.sum(torchaudio.load(str(audio_path))[0]) == 0
-                ):
+                if not audio_path.exists():
                     null_audio.append(True)
-                    # just a placeholder for wav path
-                    audio_paths.append(".assets/bird_audio.wav")
+                    waveform = torch.zeros((2, 82025))
+                    output_paths.append(".assets/bird_audio.wav")
+                    continue
+                # load audio
+                sample_rate = torchaudio.info(audio_path).sample_rate
+                start_frame = int(audio_start_secs[i] * sample_rate)
+                num_frames = int(audio_num_secs[i] * sample_rate)
+                # print(video_id, start_frame, num_frames, sample_rate)
+                waveform, sample_rate = torchaudio.load(
+                    str(audio_path),
+                    frame_offset=start_frame,
+                    num_frames=num_frames,
+                )
+                if torch.sum(waveform) == 0:
+                    null_audio.append(True)
+                    output_paths.append(".assets/bird_audio.wav")
                 else:
+                    output_path = str(audio_path).replace(
+                        ".wav", f"_seg_{start_frame}.wav"
+                    )
                     null_audio.append(False)
-                    audio_paths.append(str(audio_path))
+                    output_paths.append(output_path)
+                    prepare_audio_for_imagebind(
+                        output_path,
+                        waveform,
+                        sample_rate,
+                    )
+
             with Path(cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
                 "wb"
             ) as f:
@@ -155,23 +145,41 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
                 "wb"
             ) as f:
                 pickle.dump(null_audio, f)
-            with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_paths.pkl").open(
+            with Path(cfg_dataset.paths.save_path, "MSRVTT_output_paths.pkl").open(
                 "wb"
             ) as f:
-                pickle.dump(audio_paths, f)
+                pickle.dump(output_paths, f)
         else:
             with Path(cfg_dataset.paths.save_path, "MSRVTT_id_order.pkl").open(
                 "rb"
             ) as f:
-                id_order = pickle.load(f)  # noqa: S301
+                id_order = pickle.load(f)
             with Path(cfg_dataset.paths.save_path, "MSRVTT_null_audio.pkl").open(
                 "rb"
             ) as f:
-                null_audio = pickle.load(f)  # noqa: S301
-            with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_paths.pkl").open(
+                null_audio = pickle.load(f)
+            with Path(cfg_dataset.paths.save_path, "MSRVTT_output_paths.pkl").open(
                 "rb"
             ) as f:
-                audio_paths = pickle.load(f)  # noqa: S301
+                output_paths = pickle.load(f)
+
+        # get audio embeddings. first, get np array of audio waveforms
+        audio_np = []
+        for i in tqdm(range(len(output_paths)), desc="process output_paths"):
+            output_path = ".assets/bird_audio.wav" if null_audio[i] else output_paths[i]
+            audio = AudioFileClip(output_path)
+            waveform = np.array(list(audio.iter_frames()))
+            audio.close()
+            audio_np.append(waveform)
+
+        audio_np = np.array(audio_np)
+        audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=120)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(audio_emb, f)
+        print("CLAP embeddings saved")
+        return
 
         # inference imagebind
         imagebind_class = ImageBindInference()
@@ -179,16 +187,13 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         img_np = []
         print(len(id_order))
         for i in tqdm(range(0, len(id_order), BATCH_SIZE), desc="imagebind inference"):
-            audios = audio_paths[i : i + BATCH_SIZE]
-            first_images = first_img_paths[i : i + BATCH_SIZE]
-            last_images = last_img_paths[i : i + BATCH_SIZE]
-            audio_embs = imagebind_class.inference_audio(audios).cpu().numpy()
-            first_embs = imagebind_class.inference_image(first_images).cpu().numpy()
-            last_embs = imagebind_class.inference_image(last_images).cpu().numpy()
-            img_embs = np.concatenate([first_embs, last_embs], axis=1)
+            output_path = output_paths[i : i + BATCH_SIZE]
+            images = img_paths[i : i + BATCH_SIZE]
+            audio_embs = imagebind_class.inference_audio(output_path).cpu().numpy()
+            img_embs = imagebind_class.inference_image(images).cpu().numpy()
             audio_np.append(audio_embs)
             img_np.append(img_embs)
-            assert img_embs.shape[1] == 2048, f"img.shape: {img_embs.shape}, {i}"
+            assert img_embs.shape[1] == 1024, f"img.shape: {img_embs.shape}, {i}"
             assert audio_embs.shape[1] == 1024, f"audio.shape: {audio_embs.shape}, {i}"
         audio_np = np.concatenate(audio_np, axis=0)
         img_np = np.concatenate(img_np, axis=0)
@@ -202,23 +207,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         ) as f:
             pickle.dump(img_np, f)
         print("imagebind embeddings saved")
-        # return
-
-        shape = video_info_sen_order[0]["audio_np"].shape
-        audio_np = [
-            (
-                video_dict[video_id]["audio_np"]
-                if video_dict[video_id]["audio_np"] is not None
-                else np.zeros(shape)
-            )
-            for video_id in id_order
-        ]
-        audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=60)
-        with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(audio_emb, f)
-        print("CLAP embeddings saved")
 
         # get text embeddings
         imagebind_class = ImageBindInference()

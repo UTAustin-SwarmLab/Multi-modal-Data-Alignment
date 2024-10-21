@@ -10,50 +10,12 @@ import datasets
 import joblib
 import numpy as np
 import pandas as pd
-from moviepy.video.io.VideoFileClip import VideoFileClip
 from omegaconf import DictConfig
-from tqdm import tqdm
 
 import hydra
 from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.liploc_model import CFG, load_eval_filenames
-
-
-def process_video_ids(inputs: tuple[DictConfig, list[int]]) -> tuple[int, np.ndarray]:
-    """Multithread to process the videos."""
-    cfg_dataset, list_ids = inputs
-    result_tuple = []
-    for video_id in tqdm(list_ids):
-        mp4_file = str(
-            Path(cfg_dataset.paths.dataset_path, f"TestVideo/{video_id}.mp4")
-        )
-        audio_exist, audio = extract_audio_from_video(mp4_file)
-        audio = (audio[:, 0] + audio[:, 1]) / 2 if audio_exist else None
-        result_tuple.append((video_id, audio))
-    return result_tuple
-
-
-def extract_audio_from_video(mp4_file: str) -> tuple[bool, np.ndarray | None]:
-    """Extract audio from a video file.
-
-    Args:
-        mp4_file: path to the video file
-
-    Returns:
-        True if the audio is extracted successfully, False otherwise
-    """
-    # Extract the audio from the entire video
-    video = VideoFileClip(mp4_file)
-    audio = video.audio
-    if audio is None:
-        return False, None
-    # Extract the audio as a list of samples
-    audio_samples = list(audio.iter_frames())
-    # Write the audio to a WAV file
-    audio.write_audiofile(mp4_file.replace(".mp4", ".wav"))
-    # Convert the list of samples to a NumPy array
-    sound_array = np.array(audio_samples)
-    return True, sound_array
+from mmda.utils.video_audio_utils import process_video_ids
 
 
 def load_msrvtt(
@@ -102,7 +64,7 @@ def load_msrvtt(
         num_processes = 64
         p = Pool(processes=num_processes)
         print("num_processes:", num_processes)
-        data = p.map(
+        _ = p.map(
             process_video_ids,
             [
                 (
@@ -116,9 +78,6 @@ def load_msrvtt(
                 for i in range(num_processes)
             ],
         )
-        for chunk_result in data:
-            for video_id, audio in chunk_result:
-                video_dict[video_id]["audio_np"] = audio
         # save the video_dict
         with Path(cfg_dataset.paths.dataset_path, "video_dict.pkl").open("wb") as f:
             pickle.dump(video_dict, f)

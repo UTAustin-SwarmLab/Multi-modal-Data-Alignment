@@ -59,7 +59,7 @@ def clap_audio(
     audio_np: list[np.ndarray],
     batch_size: int = 32,
     sample_rate: int = 48_000,
-    max_length_s: int = 10,
+    max_length_s: int = 120,
 ) -> np.ndarray:
     """Extract audio features using CLAP model.
 
