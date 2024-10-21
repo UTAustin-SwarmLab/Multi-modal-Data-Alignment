@@ -80,8 +80,8 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.cfg_dataset = cfg["MSRVTT"]
         self.shape = (1, 2)  # shape of the similarity matrix
         self.cali_size = 460
-        self.train_size = 2000  # TODO: no training data is needed for MSRVTT
-        self.test_size = 9500
+        self.train_size = 11_300  # no training data is needed for MSRVTT
+        self.test_size = 200
         self.query_step = 5  # 59800 / 5 = 11960
         self.ref_step = 5  # 47392 / 5 = 9478
         self.img2txt_encoder = self.cfg_dataset.img_encoder
@@ -280,7 +280,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}.json",
+            f"sim_mat_cali_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not sim_mat_path.exists():
             print("Generating calibration data...")
@@ -294,15 +294,20 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 idx_offset,
             )
             # save the calibration data in the format of (sim_score, gt_label)
+            sim_mat_cali_json = {
+                f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                for k, v in self.sim_mat_cali.items()
+            }
             with sim_mat_path.open("w") as f:
-                json.dump({str(k): v.tolist() for k, v in self.sim_mat_cali.items()}, f)
+                json.dump(sim_mat_cali_json, f)
         else:
             print("Loading calibration data...")
             with sim_mat_path.open("r") as f:
-                self.sim_mat_cali = {
-                    tuple(map(int, k.split(","))): np.array(v)
-                    for k, v in json.load(f).items()
-                }
+                self.sim_mat_cali = json.load(f)
+            self.sim_mat_cali = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.sim_mat_cali.items()
+            }
 
         # set up prediction bands
         self.set_pred_band()
@@ -324,23 +329,27 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 desc="Calculating conformal probabilities",
                 leave=True,
             ):
-                probs = np.zeros(self.shape).tolist()
+                probs = np.zeros(self.shape)
                 for i in range(self.shape[0]):
                     for j in range(self.shape[1]):
-                        probs[i][j] = float(
-                            calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
-                        )
-                self.con_mat_test[f"{idx_q},{idx_r}"] = [probs, int(gt_label)]
+                        probs[i][j] = calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
+                self.con_mat_test[(idx_q, idx_r)] = (probs, int(gt_label))
             with con_mat_test_path.open("w") as f:
-                json.dump(self.con_mat_test, f)
+                json.dump(
+                    {
+                        f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                        for k, v in self.con_mat_test.items()
+                    },
+                    f,
+                )
         else:
             print("Loading conformal probabilities...")
             with con_mat_test_path.open("r") as f:
-                self.con_mat_test = json.load(f)
+                con_mat_test = json.load(f)
             # Convert keys back to tuples and values back to numpy arrays
             self.con_mat_test = {
                 tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
-                for k, v in self.con_mat_test.items()
+                for k, v in con_mat_test.items()
             }
         con_mat_test_miss_path = Path(
             self.cfg_dataset.paths.save_path,
@@ -416,7 +425,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         range_r = range_r + 1  # unused
         retrieved_pairs = []
         ds_idx_q = idx_q + idx_offset
-        for ds_idx_r in range(self.img2txt_emb.shape[0]):
+        for ds_idx_r in range(len(self.ref_id_order)):
             retrieved_pairs.append(
                 self.parse_retrieved_pairs(
                     ds_idx_q, ds_idx_r, con_mat, single_modal, scores_2nd

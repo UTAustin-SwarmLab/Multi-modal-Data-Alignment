@@ -49,6 +49,7 @@ def main(cfg: DictConfig) -> None:
     df = pd.DataFrame(data)
     df_path = (
         Path(cfg_dataset.paths.plots_path)
+        / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
         / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
     )
     df_path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +73,7 @@ def main(cfg: DictConfig) -> None:
     elif cfg.dataset == "MSRVTT":
         # plot heatmap of single modality retrieval
         single_recalls = np.array(list(single1_recalls.values())).reshape(1, 2) * 100
-        plt.figure(figsize=(3, 5))
+        plt.figure(figsize=(5, 3))
         ax = sns.heatmap(
             single_recalls,
             fmt=".1f",
@@ -95,6 +96,7 @@ def main(cfg: DictConfig) -> None:
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         Path(cfg_dataset.paths.plots_path)
+        / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
         / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.png"
     )
 

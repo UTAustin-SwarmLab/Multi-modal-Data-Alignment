@@ -37,7 +37,7 @@ class BaseAny2AnyDataset:
     def set_pred_band(self) -> None:
         """Set up the 1st stage prediction bands for the calibration."""
         self.scores_1st = {}
-        print("1st stage prediction bands")
+        print("Calculating calibration scores")
         # calculate the calibration scores and conformal scores for all pairs of modalities
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
