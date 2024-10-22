@@ -166,15 +166,8 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             ) as f:
                 output_paths = pickle.load(f)
 
-        # get clip video embeddings
-        img_emb = clip_imgs(img_paths, BATCH_SIZE)
-        with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(img_emb, f)
-        print("CLIP embeddings saved")
-
         # get CLAP audio embeddings. first, get np array of audio waveforms
+        # note that unlike ImageBind, CLAP requires 10s audio segments instead of 2s
         with Pool(64) as pool:
             audio_np = list(
                 tqdm(
@@ -186,8 +179,11 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
                     total=len(output_paths),
                 )
             )
-        audio_np = np.array(audio_np)
-        audio_emb = clap_audio(audio_np, batch_size=BATCH_SIZE, max_length_s=120)
+        audio_np_5 = []
+        for i in range(0, len(audio_np) - 4, 5):
+            audio_np_5.append(np.concatenate(audio_np[i : i + 5], axis=0))
+        audio_np_5 = np.array(audio_np_5)
+        audio_emb = clap_audio(audio_np_5, batch_size=BATCH_SIZE, max_length_s=10)
         with Path(cfg_dataset.paths.save_path, "MSRVTT_audio_emb_clap.pkl").open(
             "wb"
         ) as f:
@@ -220,6 +216,14 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         ) as f:
             pickle.dump(img_np, f)
         print("imagebind embeddings saved")
+
+        # get clip video embeddings
+        img_emb = clip_imgs(img_paths, BATCH_SIZE)
+        with Path(cfg_dataset.paths.save_path, "MSRVTT_video_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(img_emb, f)
+        print("CLIP embeddings saved")
 
         # get text embeddings
         imagebind_class = ImageBindInference()
