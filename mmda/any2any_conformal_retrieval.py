@@ -73,7 +73,7 @@ def main(cfg: DictConfig) -> None:
     elif cfg.dataset == "MSRVTT":
         # plot heatmap of single modality retrieval
         single_recalls = np.array(list(single1_recalls.values())).reshape(1, 2) * 100
-        plt.figure(figsize=(5, 3))
+        plt.figure(figsize=(6, 4))
         ax = sns.heatmap(
             single_recalls,
             fmt=".1f",

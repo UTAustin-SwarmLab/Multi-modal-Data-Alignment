@@ -31,7 +31,7 @@ MSRVTT:
   img_encoder: "imagebind"
   audio_encoder: "imagebind"
   retrieval_dim: "" # we use all the dimensions for retrieval
-  mask_ratio: 0 # ratio of the missing data : size of test data
+  mask_ratio: 4 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/MSR-VTT/"
     # dataset_path: "/home/po-han/Downloads/MSR-VTT/"

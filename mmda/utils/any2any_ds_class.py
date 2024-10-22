@@ -1,6 +1,6 @@
 """Dataset class for any2any retrieval task."""
 
-import pickle
+import json
 from copy import deepcopy
 from pathlib import Path
 from typing import Literal
@@ -53,7 +53,7 @@ class BaseAny2AnyDataset:
         # mask data in the missing calibration conformal matrix
         for (idx_q, idx_r), (_, _) in tqdm(
             cali_con_mat.items(),
-            desc="Masking conformal probabilities for missing data",
+            desc="Masking conformal probabilities",
             leave=True,
         ):
             for i in range(self.shape[0]):
@@ -67,7 +67,7 @@ class BaseAny2AnyDataset:
     def get_test_data(self, data_lists: list[np.ndarray]) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
 
-        This step is extremely time-consuming, so we cache the similarity matrix in the pickle format
+        This step is extremely time-consuming, so we cache the similarity matrix in the json format
         and use batch processing to speed up the process.
 
         Args:
@@ -75,7 +75,7 @@ class BaseAny2AnyDataset:
         """
         if Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         ).exists():
             print(
                 "Since the conformal probabilities are already calculated, we skip the process of loading test data."
@@ -84,7 +84,7 @@ class BaseAny2AnyDataset:
 
         sim_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"sim_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not sim_mat_test_path.exists():
             print("Generating test data...")
@@ -93,13 +93,20 @@ class BaseAny2AnyDataset:
                 data_lists,
                 idx_offset,
             )
-            with sim_mat_test_path.open("wb") as f:
-                pickle.dump(self.sim_mat_test, f)
+            sim_mat_test_json = {
+                f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                for k, v in self.sim_mat_test.items()
+            }
+            with sim_mat_test_path.open("w") as f:
+                json.dump(sim_mat_test_json, f)
         else:
             print("Loading test data...")
-            # load with pickle since it is faster than joblib (but less safe)
-            with sim_mat_test_path.open("rb") as f:
-                self.sim_mat_test = pickle.load(f)  # noqa: S301
+            with sim_mat_test_path.open("r") as f:
+                self.sim_mat_test = json.load(f)
+            self.sim_mat_test = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.sim_mat_test.items()
+            }
 
     def cal_test_conformal_prob(self) -> None:
         """Calculate the conformal probability for the test data.
