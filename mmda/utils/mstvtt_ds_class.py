@@ -80,11 +80,14 @@ class MSRVTTDataset(BaseAny2AnyDataset):
                 self.audio2txt_emb = pickle.load(file)
             else:
                 self.audio2txt_emb = pickle.load(file)[:: self.ref_step]
+        self.img2txt_emb = self.img2txt_emb[: self.audio2txt_emb.shape[0]]
+        self.ref_id_order = self.ref_id_order[: self.audio2txt_emb.shape[0]]
+        self.null_audio_idx = self.null_audio_idx[: self.audio2txt_emb.shape[0]]
         assert (
-            self.audio2txt_emb.shape == self.img2txt_emb.shape
+            self.audio2txt_emb.shape[0] == self.img2txt_emb.shape[0]
         ), f"{self.audio2txt_emb.shape}, {self.img2txt_emb.shape}"
         assert (
-            self.txt2audio_emb.shape == self.txt2img_emb.shape
+            self.txt2audio_emb.shape[0] == self.txt2img_emb.shape[0]
         ), f"{self.txt2audio_emb.shape}, {self.txt2img_emb.shape}"
 
         # normalize all the embeddings to have unit norm using L2 normalization
@@ -136,13 +139,13 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         }
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         self.mask = {}
-        self.mask[1] = None
+        self.mask[1] = []
         if self.cfg_dataset.mask_ratio != 0:
             mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
             # mask the text modality only since the audio modality already has missing data
             self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
         else:
-            self.mask[0] = None
+            self.mask[0] = []
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
@@ -278,9 +281,9 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
             mask_modal = []
-            if self.mask[0] is not None:
+            if len(self.mask[0]) > 0:
                 mask_modal.append(0)
-            if self.mask[1] is not None:
+            if len(self.mask[1]) > 0:
                 mask_modal.append(1)
             if len(mask_modal) > 0:
                 for (idx_q, idx_r), (_, _) in tqdm(

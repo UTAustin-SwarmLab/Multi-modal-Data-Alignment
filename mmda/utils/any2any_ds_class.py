@@ -58,7 +58,7 @@ class BaseAny2AnyDataset:
         ):
             for i in range(self.shape[0]):
                 for j in range(self.shape[1]):
-                    if idx_q in self.mask[i] and idx_r in self.mask[j]:
+                    if idx_q in self.mask[i] or idx_r in self.mask[j]:
                         con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
         self.scores_2nd_miss = get_calibration_scores_2nd_stage(
             con_mat_cali_miss, self.mapping_fn
