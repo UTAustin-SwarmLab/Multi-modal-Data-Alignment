@@ -1,7 +1,7 @@
 """Dataset class for any2any - KITTI retrieval task."""
 
 import copy
-import pickle
+import json
 from pathlib import Path
 
 import numpy as np
@@ -358,7 +358,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         """
         con_mat_test_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"con_mat_test_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not con_mat_test_path.exists():
             shape = self.shape
@@ -373,17 +373,28 @@ class KITTIDataset(BaseAny2AnyDataset):
                     for j in range(shape[1]):
                         probs[i, j] = calibrate(sim_mat[i, j], self.scores_1st[(i, j)])
                 self.con_mat_test[(idx_q, idx_r)] = (probs, gt_label)
-            with con_mat_test_path.open("wb") as f:
-                pickle.dump(self.con_mat_test, f)
+            with con_mat_test_path.open("w") as f:
+                json.dump(
+                    {
+                        f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                        for k, v in self.con_mat_test.items()
+                    },
+                    f,
+                )
         else:
             print("Loading conformal probabilities...")
             # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_path.open("rb") as f:
-                self.con_mat_test = pickle.load(f)  # noqa: S301
+            with con_mat_test_path.open("r") as f:
+                self.con_mat_test = json.load(f)
+            # Convert keys back to tuples and values back to numpy arrays
+            self.con_mat_test = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.con_mat_test.items()
+            }
 
         con_mat_test_miss_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"con_mat_test_miss_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not con_mat_test_miss_path.exists():
             self.con_mat_test_miss = copy.deepcopy(self.con_mat_test)
@@ -396,13 +407,24 @@ class KITTIDataset(BaseAny2AnyDataset):
                     for j in range(self.shape[1]):
                         if idx_q in self.mask[i] or idx_r in self.mask[j]:
                             self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
-            with con_mat_test_miss_path.open("wb") as f:
-                pickle.dump(self.con_mat_test_miss, f)
+            with con_mat_test_miss_path.open("w") as f:
+                json.dump(
+                    {
+                        f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                        for k, v in self.con_mat_test_miss.items()
+                    },
+                    f,
+                )
         else:
             print("Loading conformal probabilities for missing data...")
             # load with pickle since it is faster than joblib (but less safe)
-            with con_mat_test_miss_path.open("rb") as f:
-                self.con_mat_test_miss = pickle.load(f)  # noqa: S301
+            with con_mat_test_miss_path.open("r") as f:
+                self.con_mat_test_miss = json.load(f)
+            # Convert keys back to tuples and values back to numpy arrays
+            self.con_mat_test_miss = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.con_mat_test_miss.items()
+            }
 
     def get_cali_data(self) -> None:
         """Get the calibration data.
@@ -412,7 +434,7 @@ class KITTIDataset(BaseAny2AnyDataset):
         """
         sim_mat_path = Path(
             self.cfg_dataset.paths.save_path,
-            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.pkl",
+            f"sim_mat_cali_{self.cfg_dataset.retrieval_dim}_{self.cfg_dataset.mask_ratio}{self.save_tag}.json",
         )
         if not sim_mat_path.exists():
             print("Generating calibration data...")
@@ -424,11 +446,23 @@ class KITTIDataset(BaseAny2AnyDataset):
                 (img_data, lidar_data, txt_data), idx_offset
             )
             # save the calibration data in the format of (sim_score, gt_label)
-            with sim_mat_path.open("wb") as f:
-                pickle.dump(self.sim_mat_cali, f)
+            with sim_mat_path.open("w") as f:
+                json.dump(
+                    {
+                        f"{k[0]},{k[1]}": [v[0].tolist(), v[1]]
+                        for k, v in self.sim_mat_cali.items()
+                    },
+                    f,
+                )
         else:
             print("Loading calibration data...")
-            self.sim_mat_cali = pickle.load(sim_mat_path.open("rb"))  # noqa: S301
+            with sim_mat_path.open("r") as f:
+                self.sim_mat_cali = json.load(f)
+            # Convert keys back to tuples and values back to numpy arrays
+            self.sim_mat_cali = {
+                tuple(map(int, k.split(","))): (np.array(v[0]), v[1])
+                for k, v in self.sim_mat_cali.items()
+            }
 
         # set up prediction bands
         self.set_pred_band()

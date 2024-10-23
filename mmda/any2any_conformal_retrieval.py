@@ -47,11 +47,18 @@ def main(cfg: DictConfig) -> None:
         "Recall@20": [recalls[20], full_recalls[20]],
     }
     df = pd.DataFrame(data)
-    df_path = (
-        Path(cfg_dataset.paths.plots_path)
-        / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
-        / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
-    )
+    if cfg.dataset == "KITTI":
+        dir_path = Path(cfg_dataset.paths.plots_path)
+        df_path = (
+            dir_path
+            / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
+        )
+    elif cfg.dataset == "MSRVTT":
+        df_path = (
+            dir_path
+            / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
+            / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.csv"
+        )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
 
@@ -95,8 +102,7 @@ def main(cfg: DictConfig) -> None:
     plt.yticks(fontsize=18)
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
-        Path(cfg_dataset.paths.plots_path)
-        / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
+        dir_path
         / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.png"
     )
 
