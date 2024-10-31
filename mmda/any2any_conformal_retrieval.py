@@ -75,12 +75,12 @@ def main(cfg: DictConfig) -> None:
             xticklabels=["Image", "Lidar", "Text"],
             yticklabels=["Image", "Lidar", "Text"],
             annot=True,
-            annot_kws={"size": 18, "weight": "bold"},
+            annot_kws={"size": 26, "weight": "bold"},
         )
     elif cfg.dataset == "MSRVTT":
         # plot heatmap of single modality retrieval
         single_recalls = np.array(list(single1_recalls.values())).reshape(1, 2) * 100
-        plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(8, 6))
         ax = sns.heatmap(
             single_recalls,
             fmt=".1f",
@@ -90,16 +90,16 @@ def main(cfg: DictConfig) -> None:
             xticklabels=["Image", "Audio"],
             yticklabels=["Text"],
             annot=True,
-            annot_kws={"size": 18, "weight": "bold"},
+            annot_kws={"size": 26, "weight": "bold"},
         )
     else:
         msg = f"unknown dataset {cfg.dataset}"
         raise ValueError(msg)
     ax.xaxis.tick_top()
-    plt.xlabel("Reference modality", fontsize=20)
-    plt.ylabel("Query modality", fontsize=20)
-    plt.xticks(fontsize=18)
-    plt.yticks(fontsize=18)
+    plt.xlabel("Reference modality", fontsize=30)
+    plt.ylabel("Query modality", fontsize=30)
+    plt.xticks(fontsize=26)
+    plt.yticks(fontsize=26)
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         dir_path

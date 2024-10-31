@@ -32,7 +32,6 @@ def get_caption(cfg: DictConfig) -> None:
         val_path_text_descriptions = joblib.load(
             "/nas/omama/datasets/pitts250k/text_descriptions_pitts30k.pkl"
         )
-        # /store/omama/TextMapReduce/pitts250k/000/000000_pitch1_yaw1.jpg
         for path_text in val_path_text_descriptions:
             path_text[0] = (
                 path_text[0]
