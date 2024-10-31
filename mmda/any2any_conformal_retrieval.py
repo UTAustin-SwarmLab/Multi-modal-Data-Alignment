@@ -47,8 +47,8 @@ def main(cfg: DictConfig) -> None:
         "Recall@20": [recalls[20], full_recalls[20]],
     }
     df = pd.DataFrame(data)
+    dir_path = Path(cfg_dataset.paths.plots_path)
     if cfg.dataset == "KITTI":
-        dir_path = Path(cfg_dataset.paths.plots_path)
         df_path = (
             dir_path
             / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
