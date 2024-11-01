@@ -45,7 +45,7 @@ KITTI:
   img_encoder: "liploc"
   lidar_encoder: "liploc"
   text_encoder: "gtr"
-  shuffle_step: 0
+  shuffle_step: 20
   mask_ratio: 2 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/KITTI/"

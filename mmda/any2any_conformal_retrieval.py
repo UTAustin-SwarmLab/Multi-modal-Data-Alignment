@@ -63,7 +63,6 @@ def main(cfg: DictConfig) -> None:
     df.to_csv(df_path, index=False)
 
     if cfg.dataset == "KITTI":
-        # plot heatmap of single modality retrieval
         single_recalls = np.array(list(single1_recalls.values())).reshape(3, 3) * 100
         plt.figure(figsize=(8, 8))
         ax = sns.heatmap(
@@ -78,7 +77,7 @@ def main(cfg: DictConfig) -> None:
             annot_kws={"size": 26, "weight": "bold"},
         )
     elif cfg.dataset == "MSRVTT":
-        # plot heatmap of single modality retrieval
+        dir_path = dir_path / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
         single_recalls = np.array(list(single1_recalls.values())).reshape(1, 2) * 100
         plt.figure(figsize=(8, 6))
         ax = sns.heatmap(
@@ -90,20 +89,20 @@ def main(cfg: DictConfig) -> None:
             xticklabels=["Image", "Audio"],
             yticklabels=["Text"],
             annot=True,
-            annot_kws={"size": 26, "weight": "bold"},
+            annot_kws={"size": 30, "weight": "bold"},
         )
     else:
         msg = f"unknown dataset {cfg.dataset}"
         raise ValueError(msg)
     ax.xaxis.tick_top()
-    plt.xlabel("Reference modality", fontsize=30)
-    plt.ylabel("Query modality", fontsize=30)
-    plt.xticks(fontsize=26)
-    plt.yticks(fontsize=26)
+    plt.xlabel("Reference modality", fontsize=34)
+    plt.ylabel("Query modality", fontsize=34)
+    plt.xticks(fontsize=30)
+    plt.yticks(fontsize=30)
     ax.xaxis.set_label_position("top")  # Move the label to the top
     plt.savefig(
         dir_path
-        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.png"
+        / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.pdf"
     )
 
 
