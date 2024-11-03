@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 import hydra
 from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.any2any_ds_class import BaseAny2AnyDataset
-from mmda.utils.btx_ds_class import BTCDataset
+from mmda.utils.btc_ds_class import BTCDataset
 from mmda.utils.dataset_utils import load_flickr
 from mmda.utils.kitti_ds_class import KITTIDataset
 from mmda.utils.mstvtt_ds_class import MSRVTTDataset
