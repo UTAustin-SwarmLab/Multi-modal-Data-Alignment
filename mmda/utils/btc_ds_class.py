@@ -111,20 +111,18 @@ class BTCDataset(BaseAny2AnyDataset):
             "train": self.train_feat,
             "cali": self.val_feat,
         }
-        print(self.cond["test"].shape)
-        print(self.trend["test"].shape)
-        print(self.ts["test"].shape)
-        print(self.feat["test"].shape)
 
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
         self.mask = {}
         if self.cfg_dataset.mask_ratio != 0:
-            mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
+            mask_num = int(self.test_size / self.cfg_dataset.mask_ratio * 2)
             # mask the text modality only since the audio modality already has missing data
-            self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
-            self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
-            self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
-            self.mask[3] = np.random.choice(self.test_size, mask_num, replace=False)
+            mask12 = np.random.choice(self.test_size, mask_num, replace=False)
+            mask34 = np.random.choice(self.test_size, mask_num, replace=False)
+            self.mask[0] = mask12[: mask_num // 2]
+            self.mask[1] = mask12[mask_num // 2 :]
+            self.mask[2] = mask34[: mask_num // 2]
+            self.mask[3] = mask34[mask_num // 2 :]
         else:
             self.mask[0] = []
             self.mask[1] = []

@@ -28,7 +28,7 @@ dataset_size: {
 }
 
 BTC:
-  retrieval_dim: 120 # we use all the dimensions for retrieval
+  retrieval_dim: 50
   equal_weights: False
   img_encoder: ""
   audio_encoder: ""
