@@ -43,23 +43,19 @@ class BTCDataset(BaseAny2AnyDataset):
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
+        # find Fourier features
+        feat_names = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy"),
+            allow_pickle=True,
+        )
+        self.fourier_feat_idx = [
+            i for i, name in enumerate(feat_names) if "fourier" in name or "fft" in name
+        ]
+        self.non_fourier_feat_idx = [
+            i for i in range(len(feat_names)) if i not in self.fourier_feat_idx
+        ]
+
         # load data
-        self.test_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "blurred_test_timeseries.npy")
-        ).reshape(-1, self.cfg_dataset.horizon)
-        self.test_trend *= np.random.rand(*self.test_trend.shape)
-        self.test_trend = np.float32(
-            np.where(np.diff(self.test_trend, n=1, axis=1) > 0, 1, -1)
-        )
-
-        self.train_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "blurred_train_timeseries.npy")
-        ).reshape(-1, self.cfg_dataset.horizon)
-        self.train_trend *= np.random.rand(*self.train_trend.shape)
-        self.train_trend = np.float32(
-            np.where(np.diff(self.train_trend, n=1, axis=1) > 0, 1, -1)
-        )
-
         self.val_trend = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "blurred_val_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
@@ -80,13 +76,23 @@ class BTCDataset(BaseAny2AnyDataset):
 
         self.test_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
-        )
+        )[:, self.non_fourier_feat_idx]
         self.train_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
-        )
+        )[:, self.non_fourier_feat_idx]
         self.val_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
-        )
+        )[:, self.non_fourier_feat_idx]
+
+        self.test_trend = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
+        )[:, self.fourier_feat_idx]
+        self.train_trend = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
+        )[:, self.fourier_feat_idx]
+        self.val_trend = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
+        )[:, self.fourier_feat_idx]
 
         self.test_cond = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_continuous_conditions.npy")
@@ -106,15 +112,6 @@ class BTCDataset(BaseAny2AnyDataset):
         print(self.test_trend.shape, self.train_trend.shape, self.val_trend.shape)
         print(self.test_ts.shape, self.train_ts.shape, self.val_ts.shape)
         print(self.test_feat.shape, self.train_feat.shape, self.val_feat.shape)
-
-        print(
-            np.load(
-                Path(
-                    self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
-                ),
-                allow_pickle=True,
-            )
-        )
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
