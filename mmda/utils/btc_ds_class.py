@@ -45,48 +45,80 @@ class BTCDataset(BaseAny2AnyDataset):
         """Load the data for retrieval."""
         # load data
         self.test_trend = np.load(
-            Path(self.cfg_dataset.paths.save_path + "blurred_test_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "blurred_test_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
+        self.test_trend *= np.random.rand(*self.test_trend.shape)
+        self.test_trend = np.float32(
+            np.where(np.diff(self.test_trend, n=1, axis=1) > 0, 1, -1)
+        )
+
         self.train_trend = np.load(
-            Path(self.cfg_dataset.paths.save_path + "blurred_train_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "blurred_train_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
+        self.train_trend *= np.random.rand(*self.train_trend.shape)
+        self.train_trend = np.float32(
+            np.where(np.diff(self.train_trend, n=1, axis=1) > 0, 1, -1)
+        )
+
         self.val_trend = np.load(
-            Path(self.cfg_dataset.paths.save_path + "blurred_val_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "blurred_val_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
+        self.val_trend *= np.random.rand(*self.val_trend.shape)
+        self.val_trend = np.float32(
+            np.where(np.diff(self.val_trend, n=1, axis=1) > 0, 1, -1)
+        )
 
         self.test_ts = np.load(
-            Path(self.cfg_dataset.paths.save_path + "test_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "test_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
         self.train_ts = np.load(
-            Path(self.cfg_dataset.paths.save_path + "train_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "train_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
         self.val_ts = np.load(
-            Path(self.cfg_dataset.paths.save_path + "val_timeseries.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "val_timeseries.npy")
         ).reshape(-1, self.cfg_dataset.horizon)
 
         self.test_feat = np.load(
-            Path(self.cfg_dataset.paths.save_path + "test_tsfresh_features.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
         )
         self.train_feat = np.load(
-            Path(self.cfg_dataset.paths.save_path + "train_tsfresh_features.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
         )
         self.val_feat = np.load(
-            Path(self.cfg_dataset.paths.save_path + "val_tsfresh_features.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
         )
 
         self.test_cond = np.load(
-            Path(self.cfg_dataset.paths.save_path + "test_continuous_conditions.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "test_continuous_conditions.npy")
         )[:, ::24, :].reshape(self.test_size, -1)
         self.train_cond = np.load(
-            Path(self.cfg_dataset.paths.save_path + "train_continuous_conditions.npy")
+            Path(
+                self.cfg_dataset.paths.dataset_path + "train_continuous_conditions.npy"
+            )
         )[:, ::24, :].reshape(self.train_size, -1)
         self.val_cond = np.load(
-            Path(self.cfg_dataset.paths.save_path + "val_continuous_conditions.npy")
+            Path(self.cfg_dataset.paths.dataset_path + "val_continuous_conditions.npy")
         )[:, ::24, :].reshape(self.cali_size, -1)
         self.num_data = self.test_size + self.cali_size + self.train_size
 
+        # print the details of the data
+        print(self.test_cond.shape, self.train_cond.shape, self.val_cond.shape)
+        print(self.test_trend.shape, self.train_trend.shape, self.val_trend.shape)
+        print(self.test_ts.shape, self.train_ts.shape, self.val_ts.shape)
+        print(self.test_feat.shape, self.train_feat.shape, self.val_feat.shape)
+
+        print(
+            np.load(
+                Path(
+                    self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
+                ),
+                allow_pickle=True,
+            )
+        )
+
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
+        super().preprocess_retrieval_data()
         # load data
         self.load_data()
 
@@ -147,7 +179,9 @@ class BTCDataset(BaseAny2AnyDataset):
         cca_save_path = Path(
             cfg_dataset.paths.save_path + "any2any_cca_" + "cond_ts.pkl"
         )
-        self.cond_ts_cca = NormalizedCCA(120)
+        self.cond_ts_cca = NormalizedCCA(
+            min(list(self.train_cond.shape) + list(self.train_ts.shape))
+        )
         if not cca_save_path.exists():
             (
                 self.cca_cond_ts,
@@ -166,7 +200,9 @@ class BTCDataset(BaseAny2AnyDataset):
         cca_save_path = Path(
             cfg_dataset.paths.save_path + "any2any_cca_" + "cond_feat.pkl"
         )
-        self.cond_feat_cca = NormalizedCCA(min(self.train_size, 626))
+        self.cond_feat_cca = NormalizedCCA(
+            min(list(self.train_cond.shape) + list(self.train_feat.shape))
+        )
         if not cca_save_path.exists():
             self.cca_cond_feat, self.cca_feat_cond, self.cond_feat_corr = (
                 self.cond_feat_cca.fit_transform_train_data(
@@ -183,7 +219,9 @@ class BTCDataset(BaseAny2AnyDataset):
         cca_save_path = Path(
             cfg_dataset.paths.save_path + "any2any_cca_" + "trend_ts.pkl"
         )
-        self.trend_ts_cca = NormalizedCCA(120)
+        self.trend_ts_cca = NormalizedCCA(
+            min(list(self.train_trend.shape) + list(self.train_ts.shape))
+        )
         if not cca_save_path.exists():
             self.cca_trend_ts, self.cca_ts_trend, self.trend_ts_corr = (
                 self.trend_ts_cca.fit_transform_train_data(
@@ -200,7 +238,9 @@ class BTCDataset(BaseAny2AnyDataset):
         cca_save_path = Path(
             cfg_dataset.paths.save_path + "any2any_cca_" + "trend_feat.pkl"
         )
-        self.trend_feat_cca = NormalizedCCA(120)
+        self.trend_feat_cca = NormalizedCCA(
+            min(self.train_trend.shape + self.train_feat.shape)
+        )
         if not cca_save_path.exists():
             self.cca_trend_feat, self.cca_feat_trend, self.trend_feat_corr = (
                 self.trend_feat_cca.fit_transform_train_data(

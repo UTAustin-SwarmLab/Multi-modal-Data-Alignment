@@ -44,6 +44,7 @@ class KITTIDataset(BaseAny2AnyDataset):
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
+        super().preprocess_retrieval_data()
         # load data
         self.cfg_dataset, imgdata, lidardata, txtdata = load_three_encoder_data(
             self.cfg

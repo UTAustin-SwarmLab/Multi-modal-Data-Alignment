@@ -27,6 +27,8 @@ class BaseAny2AnyDataset:
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
+        # create the save path if not exists
+        Path(self.cfg_dataset.paths.save_path).mkdir(parents=True, exist_ok=True)
 
     def train_crossmodal_similarity(self) -> None:
         """Train the cross-modal similarity, aka the CSA method."""
