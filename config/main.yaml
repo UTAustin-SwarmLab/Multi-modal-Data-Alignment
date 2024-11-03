@@ -13,7 +13,7 @@ class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
 mislabeled_datasets: [imagenet, cosmos, tiil]
 retrieval_datasets: [flickr]
-any_retrieval_datasets: [KITTI, MSRVTT]
+any_retrieval_datasets: [KITTI, MSRVTT, BTC]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
 classification_datasets: [imagenet, leafy_spurge]
@@ -26,6 +26,19 @@ dataset_size: {
   pitts: 17608,
   flickr: 155070
 }
+
+BTC:
+  retrieval_dim: 120 # we use all the dimensions for retrieval
+  equal_weights: False
+  img_encoder: ""
+  audio_encoder: ""
+  horizon: 120
+  mask_ratio: 4 # ratio of the missing data : size of test data
+  paths:
+    dataset_path: "/nas/timeseries/timeseries_synthesis/sameep_store/btc/split_fresh_large_120/"
+    save_path: ${BTC.paths.dataset_path}
+    plots_path: ${repo_root}plots/BTC/
+
 
 MSRVTT:
   img_encoder: "clip"

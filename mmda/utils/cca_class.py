@@ -14,10 +14,11 @@ from mmda.utils.data_utils import origin_centered
 class NormalizedCCA:
     """Canonical Correlation Analysis (CCA) class which automatically zero-mean data."""
 
-    def __init__(self) -> None:
+    def __init__(self, sim_dim: int | None = None) -> None:
         """Initialize the CCA model."""
         self.traindata1_mean = None
         self.traindata2_mean = None
+        self.sim_dim = sim_dim
 
     def fit_transform_train_data(
         self, cfg_dataset: DictConfig, traindata1: np.ndarray, traindata2: np.ndarray
@@ -50,7 +51,10 @@ class NormalizedCCA:
         ), f"traindata2align not zero mean: {max(abs(traindata2.mean(axis=0)))}"
 
         # CCA dimensionality reduction
-        self.cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
+        if self.sim_dim is None:
+            self.cca = CCA(latent_dimensions=cfg_dataset.sim_dim)
+        else:
+            self.cca = CCA(latent_dimensions=self.sim_dim)
         traindata1, traindata2 = self.cca.fit_transform((traindata1, traindata2))
         if cfg_dataset.equal_weights:
             corr_coeff = np.ones((traindata2.shape[1],))  # dim,

@@ -48,16 +48,16 @@ def main(cfg: DictConfig) -> None:
     }
     df = pd.DataFrame(data)
     dir_path = Path(cfg_dataset.paths.plots_path)
-    if cfg.dataset == "KITTI":
-        df_path = (
-            dir_path
-            / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
-        )
-    elif cfg.dataset == "MSRVTT":
+    if cfg.dataset == "MSRVTT":
         df_path = (
             dir_path
             / f"{cfg_dataset.img_encoder}_{cfg_dataset.audio_encoder}"
             / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.csv"
+        )
+    else:
+        df_path = (
+            dir_path
+            / f"any2any_retrieval_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}{thres_tag}.csv"
         )
     df_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(df_path, index=False)
@@ -90,6 +90,20 @@ def main(cfg: DictConfig) -> None:
             yticklabels=["Text"],
             annot=True,
             annot_kws={"size": 30, "weight": "bold"},
+        )
+    elif cfg.dataset == "BTC":
+        single_recalls = np.array(list(single1_recalls.values())).reshape(2, 2) * 100
+        plt.figure(figsize=(8, 8))
+        ax = sns.heatmap(
+            single_recalls,
+            fmt=".1f",
+            cmap="YlGnBu",
+            cbar=False,
+            square=True,
+            xticklabels=["Time", "Stats"],
+            yticklabels=["Text", "Trend"],
+            annot=True,
+            annot_kws={"size": 26, "weight": "bold"},
         )
     else:
         msg = f"unknown dataset {cfg.dataset}"
