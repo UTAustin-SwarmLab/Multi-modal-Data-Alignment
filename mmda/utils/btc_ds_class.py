@@ -3,6 +3,7 @@
 # ruff: noqa: S301
 import copy
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -10,7 +11,12 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 
 from mmda.utils.any2any_ds_class import BaseAny2AnyDataset
-from mmda.utils.calibrate import calibrate
+from mmda.utils.calibrate import (
+    calibrate,
+    con_mat_calibrate,
+    get_calibration_scores_1st_stage,
+    get_calibration_scores_2nd_stage,
+)
 from mmda.utils.cca_class import NormalizedCCA
 from mmda.utils.sim_utils import batch_weighted_corr_sim
 
@@ -117,9 +123,13 @@ class BTCDataset(BaseAny2AnyDataset):
             # mask the text modality only since the audio modality already has missing data
             self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
             self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
+            self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
+            self.mask[3] = np.random.choice(self.test_size, mask_num, replace=False)
         else:
             self.mask[0] = []
             self.mask[1] = []
+            self.mask[2] = []
+            self.mask[3] = []
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
@@ -421,7 +431,7 @@ class BTCDataset(BaseAny2AnyDataset):
             ):
                 for i in range(self.shape[0]):
                     for j in range(self.shape[1]):
-                        if idx_q in self.mask[i] or idx_r in self.mask[j]:
+                        if idx_q in self.mask[i] or idx_r in self.mask[j + 2]:
                             self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
             with con_mat_test_miss_path.open("w") as f:
                 json.dump(
@@ -482,6 +492,36 @@ class BTCDataset(BaseAny2AnyDataset):
 
         # set up prediction bands
         self.set_pred_band()
+
+    def set_pred_band(self) -> None:
+        """Set up the 1st stage prediction bands for the calibration."""
+        self.scores_1st = {}
+        print("1st stage prediction bands")
+        # calculate the calibration scores and conformal scores for all pairs of modalities
+        for i in range(self.shape[0]):
+            for j in range(self.shape[1]):
+                self.scores_1st[(i, j)] = get_calibration_scores_1st_stage(
+                    self.sim_mat_cali, i, j
+                )[0]
+        cali_con_mat = con_mat_calibrate(self.sim_mat_cali, self.scores_1st)
+        self.scores_2nd = get_calibration_scores_2nd_stage(
+            cali_con_mat, self.mapping_fn
+        )[0]
+
+        con_mat_cali_miss = deepcopy(cali_con_mat)
+        # mask data in the missing calibration conformal matrix
+        for (idx_q, idx_r), (_, _) in tqdm(
+            cali_con_mat.items(),
+            desc="Masking conformal probabilities",
+            leave=True,
+        ):
+            for i in range(self.shape[0]):
+                for j in range(self.shape[1]):
+                    if idx_q in self.mask[i] or idx_r in self.mask[j + 2]:
+                        con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
+        self.scores_2nd_miss = get_calibration_scores_2nd_stage(
+            con_mat_cali_miss, self.mapping_fn
+        )[0]
 
     def get_test_data(self) -> None:
         """Get the test data. Create the similarity matrix in the format of (sim_score, gt_label).
