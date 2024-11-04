@@ -103,7 +103,7 @@ def main(cfg: DictConfig) -> None:
             xticklabels=["Time", "Stats"],
             yticklabels=["Text", "Trend"],
             annot=True,
-            annot_kws={"size": 26, "weight": "bold"},
+            annot_kws={"size": 34, "weight": "bold"},
         )
     else:
         msg = f"unknown dataset {cfg.dataset}"

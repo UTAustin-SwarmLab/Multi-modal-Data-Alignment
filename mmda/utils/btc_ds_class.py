@@ -1,6 +1,6 @@
 """Dataset class for any2any - BTC retrieval task."""
 
-# ruff: noqa: S301
+# ruff: noqa: S301, ERA001
 import copy
 import json
 from copy import deepcopy
@@ -40,6 +40,7 @@ class BTCDataset(BaseAny2AnyDataset):
         self.train_size = 524  # no training data is needed for BTC
         self.test_size = 148
         self.save_tag = ""
+        self.mapping_fn = np.mean
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
@@ -102,19 +103,19 @@ class BTCDataset(BaseAny2AnyDataset):
         self.num_data = self.test_size + self.cali_size + self.train_size
 
         # print the details of the data
-        print(self.test_cond.shape, self.train_cond.shape, self.val_cond.shape)
-        print(self.test_trend.shape, self.train_trend.shape, self.val_trend.shape)
-        print(self.test_ts.shape, self.train_ts.shape, self.val_ts.shape)
-        print(self.test_feat.shape, self.train_feat.shape, self.val_feat.shape)
+        # print(self.test_cond.shape, self.train_cond.shape, self.val_cond.shape)
+        # print(self.test_trend.shape, self.train_trend.shape, self.val_trend.shape)
+        # print(self.test_ts.shape, self.train_ts.shape, self.val_ts.shape)
+        # print(self.test_feat.shape, self.train_feat.shape, self.val_feat.shape)
 
-        print(
-            np.load(
-                Path(
-                    self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
-                ),
-                allow_pickle=True,
-            )
-        )
+        # print(
+        #     np.load(
+        #         Path(
+        #             self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
+        #         ),
+        #         allow_pickle=True,
+        #     )
+        # )
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -280,18 +281,22 @@ class BTCDataset(BaseAny2AnyDataset):
                     raise ValueError(msg)
                 if i == 0 and j == 0:
                     corr = self.cond_ts_corr
+                    retrieval_dim = 50
                 elif i == 0 and j == 1:
                     corr = self.cond_feat_corr
+                    retrieval_dim = 50
                 elif i == 1 and j == 0:
                     corr = self.trend_ts_corr
+                    retrieval_dim = 100
                 elif i == 1 and j == 1:
                     corr = self.trend_feat_corr
+                    retrieval_dim = 100
 
                 sim_mat[:, i, j] = batch_weighted_corr_sim(
                     x=x1_,
                     y=x2_,
                     corr=corr,
-                    dim=self.cfg_dataset.retrieval_dim,
+                    dim=retrieval_dim,
                 )
         return sim_mat
 
