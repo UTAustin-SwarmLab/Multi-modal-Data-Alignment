@@ -40,7 +40,7 @@ class BTCDataset(BaseAny2AnyDataset):
         self.train_size = 524  # no training data is needed for BTC
         self.test_size = 148
         self.save_tag = ""
-        self.mapping_fn = np.mean
+        self.mapping_fn = np.max
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
