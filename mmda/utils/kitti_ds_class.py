@@ -44,6 +44,7 @@ class KITTIDataset(BaseAny2AnyDataset):
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
+        super().preprocess_retrieval_data()
         # load data
         self.cfg_dataset, imgdata, lidardata, txtdata = load_three_encoder_data(
             self.cfg
@@ -284,8 +285,8 @@ class KITTIDataset(BaseAny2AnyDataset):
             cca_lidar2txt,
         ) = self.transform_with_cca(img_data, lidar_data, txt_data)
         ds_size = img_data.shape[0]
-        # calculate the similarity matrix, we do not mask the data here
         ds_retrieval_cls = KITTI_file_Retrieval()
+        # calculate the similarity matrix, we do not mask the data here
 
         def process_chunk(
             chunk: np.ndarray,

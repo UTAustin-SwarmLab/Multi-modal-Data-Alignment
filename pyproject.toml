@@ -33,6 +33,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+ruff = "*"
 numpy = "^1.19"
 pandas = "*"
 argparse = "*"

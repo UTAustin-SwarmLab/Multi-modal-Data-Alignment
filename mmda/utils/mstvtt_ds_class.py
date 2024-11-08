@@ -119,6 +119,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
+        super().preprocess_retrieval_data()
         # load data
         self.load_data()
         assert (
