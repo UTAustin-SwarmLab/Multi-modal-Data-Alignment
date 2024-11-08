@@ -45,29 +45,34 @@ class BTCDataset(BaseAny2AnyDataset):
     def load_data(self) -> None:
         """Load the data for retrieval."""
         # load data
-        self.test_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "blurred_test_timeseries.npy")
-        ).reshape(-1, self.cfg_dataset.horizon)
-        self.test_trend *= np.random.rand(*self.test_trend.shape)
-        self.test_trend = np.float32(
-            np.where(np.diff(self.test_trend, n=1, axis=1) > 0, 1, -1)
+        cond_num = 100
+        train_trend_full = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
         )
 
-        self.train_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "blurred_train_timeseries.npy")
-        ).reshape(-1, self.cfg_dataset.horizon)
-        self.train_trend *= np.random.rand(*self.train_trend.shape)
-        self.train_trend = np.float32(
-            np.where(np.diff(self.train_trend, n=1, axis=1) > 0, 1, -1)
-        )
+        # train_trend_full_norm = (
+        #     train_trend_full - np.min(train_trend_full, axis=0)
+        # ) / (np.max(train_trend_full, axis=0) - np.min(train_trend_full, axis=0))
+        # variances = np.var(train_trend_full_norm, axis=0)
+        # top_indices = np.argsort(variances)[:cond_num]
+        # bottom_indices = np.argsort(variances)[-cond_num:]
+
+        np.random.seed(42)
+        indices = np.arange(train_trend_full.shape[1])
+        np.random.shuffle(indices)
+        top_indices = indices[:cond_num]
+        bottom_indices = indices[-cond_num:]
+        self.train_trend = train_trend_full[:, top_indices]
+        print(self.train_trend.shape)
+
+        self.test_trend = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
+        )[:, top_indices]
 
         self.val_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "blurred_val_timeseries.npy")
-        ).reshape(-1, self.cfg_dataset.horizon)
-        self.val_trend *= np.random.rand(*self.val_trend.shape)
-        self.val_trend = np.float32(
-            np.where(np.diff(self.val_trend, n=1, axis=1) > 0, 1, -1)
-        )
+            Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
+        )[:, top_indices]
+        print(self.val_trend.shape)
 
         self.test_ts = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_timeseries.npy")
@@ -81,13 +86,14 @@ class BTCDataset(BaseAny2AnyDataset):
 
         self.test_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
-        )
+        )[:, bottom_indices]
         self.train_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
-        )
+        )[:, bottom_indices]
         self.val_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
-        )
+        )[:, bottom_indices]
+        print(self.val_feat.shape)
 
         self.test_cond = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_continuous_conditions.npy")
@@ -103,19 +109,15 @@ class BTCDataset(BaseAny2AnyDataset):
         self.num_data = self.test_size + self.cali_size + self.train_size
 
         # print the details of the data
-        # print(self.test_cond.shape, self.train_cond.shape, self.val_cond.shape)
-        # print(self.test_trend.shape, self.train_trend.shape, self.val_trend.shape)
-        # print(self.test_ts.shape, self.train_ts.shape, self.val_ts.shape)
-        # print(self.test_feat.shape, self.train_feat.shape, self.val_feat.shape)
-
-        # print(
-        #     np.load(
-        #         Path(
-        #             self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
-        #         ),
-        #         allow_pickle=True,
-        #     )
-        # )
+        names = np.load(
+            Path(
+                self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
+            ),
+            allow_pickle=True,
+        )
+        print(names[top_indices])
+        print("-" * 20)
+        print(names[bottom_indices])
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -151,16 +153,13 @@ class BTCDataset(BaseAny2AnyDataset):
             mask_num = int(self.test_size / self.cfg_dataset.mask_ratio * 2)
             # mask the text modality only since the audio modality already has missing data
             mask12 = np.random.choice(self.test_size, mask_num, replace=False)
-            mask34 = np.random.choice(self.test_size, mask_num, replace=False)
             self.mask[0] = mask12[: mask_num // 2]
             self.mask[1] = mask12[mask_num // 2 :]
-            self.mask[2] = mask34[: mask_num // 2]
-            self.mask[3] = mask34[mask_num // 2 :]
         else:
             self.mask[0] = []
             self.mask[1] = []
-            self.mask[2] = []
-            self.mask[3] = []
+        self.mask[2] = []
+        self.mask[3] = []
 
     def check_correct_retrieval(self, q_idx: int, r_idx: int) -> bool:
         """Check if the retrieval is correct.
@@ -287,10 +286,10 @@ class BTCDataset(BaseAny2AnyDataset):
                     retrieval_dim = 50
                 elif i == 1 and j == 0:
                     corr = self.trend_ts_corr
-                    retrieval_dim = 100
+                    retrieval_dim = 25
                 elif i == 1 and j == 1:
                     corr = self.trend_feat_corr
-                    retrieval_dim = 100
+                    retrieval_dim = 25
 
                 sim_mat[:, i, j] = batch_weighted_corr_sim(
                     x=x1_,
@@ -473,8 +472,8 @@ class BTCDataset(BaseAny2AnyDataset):
                 leave=True,
             ):
                 for i in range(self.shape[0]):
-                    for j in range(self.shape[1]):
-                        if idx_q in self.mask[i] or idx_r in self.mask[j + 2]:
+                    if idx_q in self.mask[i]:
+                        for j in range(self.shape[1]):
                             self.con_mat_test_miss[(idx_q, idx_r)][0][i, j] = -1
             with con_mat_test_miss_path.open("w") as f:
                 json.dump(
@@ -559,9 +558,10 @@ class BTCDataset(BaseAny2AnyDataset):
             leave=True,
         ):
             for i in range(self.shape[0]):
-                for j in range(self.shape[1]):
-                    if idx_q in self.mask[i] or idx_r in self.mask[j + 2]:
-                        con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
+                if idx_q in self.mask[i]:
+                    for j in range(self.shape[1]):
+                        if idx_r in self.mask[j + 2]:
+                            con_mat_cali_miss[(idx_q, idx_r)][0][i, j] = -1
         self.scores_2nd_miss = get_calibration_scores_2nd_stage(
             con_mat_cali_miss, self.mapping_fn
         )[0]
