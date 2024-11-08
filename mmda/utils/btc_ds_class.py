@@ -41,6 +41,7 @@ class BTCDataset(BaseAny2AnyDataset):
         self.test_size = 148
         self.save_tag = ""
         self.mapping_fn = np.max
+        self.gpt3_output_dim = 1536
 
     def load_data(self) -> None:
         """Load the data for retrieval."""
@@ -50,29 +51,30 @@ class BTCDataset(BaseAny2AnyDataset):
             Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
         )
 
-        # train_trend_full_norm = (
-        #     train_trend_full - np.min(train_trend_full, axis=0)
-        # ) / (np.max(train_trend_full, axis=0) - np.min(train_trend_full, axis=0))
-        # variances = np.var(train_trend_full_norm, axis=0)
-        # top_indices = np.argsort(variances)[:cond_num]
-        # bottom_indices = np.argsort(variances)[-cond_num:]
+        train_trend_full_norm = train_trend_full[
+            :, np.where(np.std(train_trend_full, axis=0) != 0)[0]
+        ]
+        train_trend_full_norm = (
+            train_trend_full - np.min(train_trend_full, axis=0)
+        ) / (np.max(train_trend_full, axis=0) - np.min(train_trend_full, axis=0))
+        variances = np.var(train_trend_full_norm, axis=0)
+        feat_indices = np.argsort(variances)[-cond_num:]
 
-        np.random.seed(42)
-        indices = np.arange(train_trend_full.shape[1])
-        np.random.shuffle(indices)
-        top_indices = indices[:cond_num]
-        bottom_indices = indices[-cond_num:]
-        self.train_trend = train_trend_full[:, top_indices]
-        print(self.train_trend.shape)
+        test_text = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "test_continuous_conditions.npy")
+        )[:, ::24, :].reshape(self.test_size, -1)
+        train_text = np.load(
+            Path(
+                self.cfg_dataset.paths.dataset_path + "train_continuous_conditions.npy"
+            )
+        )[:, ::24, :].reshape(self.train_size, -1)
+        val_text = np.load(
+            Path(self.cfg_dataset.paths.dataset_path + "val_continuous_conditions.npy")
+        )[:, ::24, :].reshape(self.cali_size, -1)
 
-        self.test_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
-        )[:, top_indices]
-
-        self.val_trend = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
-        )[:, top_indices]
-        print(self.val_trend.shape)
+        self.test_trend = test_text[:, 3 * self.gpt3_output_dim :]
+        self.train_trend = train_text[:, 3 * self.gpt3_output_dim :]
+        self.val_trend = val_text[:, 3 * self.gpt3_output_dim :]
 
         self.test_ts = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_timeseries.npy")
@@ -86,38 +88,19 @@ class BTCDataset(BaseAny2AnyDataset):
 
         self.test_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "test_tsfresh_features.npy")
-        )[:, bottom_indices]
+        )[:, feat_indices]
         self.train_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "train_tsfresh_features.npy")
-        )[:, bottom_indices]
+        )[:, feat_indices]
         self.val_feat = np.load(
             Path(self.cfg_dataset.paths.dataset_path + "val_tsfresh_features.npy")
-        )[:, bottom_indices]
+        )[:, feat_indices]
         print(self.val_feat.shape)
 
-        self.test_cond = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "test_continuous_conditions.npy")
-        )[:, ::24, :].reshape(self.test_size, -1)
-        self.train_cond = np.load(
-            Path(
-                self.cfg_dataset.paths.dataset_path + "train_continuous_conditions.npy"
-            )
-        )[:, ::24, :].reshape(self.train_size, -1)
-        self.val_cond = np.load(
-            Path(self.cfg_dataset.paths.dataset_path + "val_continuous_conditions.npy")
-        )[:, ::24, :].reshape(self.cali_size, -1)
+        self.test_cond = test_text[:, : 3 * self.gpt3_output_dim]
+        self.train_cond = train_text[:, : 3 * self.gpt3_output_dim]
+        self.val_cond = val_text[:, : 3 * self.gpt3_output_dim]
         self.num_data = self.test_size + self.cali_size + self.train_size
-
-        # print the details of the data
-        names = np.load(
-            Path(
-                self.cfg_dataset.paths.dataset_path + "tsfresh_feature_names.npy",
-            ),
-            allow_pickle=True,
-        )
-        print(names[top_indices])
-        print("-" * 20)
-        print(names[bottom_indices])
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""

@@ -79,7 +79,7 @@ def plot_single_modal_recall(cfg: DictConfig) -> None:
 
     cfg_dataset = cfg["BTC"]
     dir_path = Path(cfg_dataset.paths.plots_path)
-    single1_recalls = [[6.1, 4.7], [3.4, 3.4]]
+    single1_recalls = [[4.1, 4.7], [3.4, 4.7]]
     single_recalls = np.array(single1_recalls).reshape(2, 2)
     plt.figure(figsize=(6, 6))
     ax = sns.heatmap(
@@ -89,7 +89,7 @@ def plot_single_modal_recall(cfg: DictConfig) -> None:
         cbar=False,
         square=True,
         xticklabels=["Time", "Stats"],
-        yticklabels=["Text", "Trend"],
+        yticklabels=["Prev News", "Text (2)"],
         annot=True,
         annot_kws={"size": cell_size, "weight": "bold"},
     )
