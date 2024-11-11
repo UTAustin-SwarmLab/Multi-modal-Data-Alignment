@@ -490,7 +490,6 @@ def load_sop(
     with Path(cfg_dataset.paths.dataset_path + "text_descriptions_SOP.pkl").open(
         "rb"
     ) as f:
-        # '/store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG'
         # "The image features a close-up view of a bicycle's suspension system,
         # specifically focusing on the front fork and the shock absorber. "
         path_text_descriptions = joblib.load(f)
@@ -499,7 +498,6 @@ def load_sop(
         path_text[1] = path_text[1].replace(" ", "")
     img_paths = [x[0] for x in path_text_descriptions]
     text_descriptions = [x[1] for x in path_text_descriptions]
-    ### img_path example: /store/omama/datasets/Stanford_Online_Products/bicycle_final/251952414262_2.JPG
     classes = [img_path.split("/")[-2].split("_")[0] for img_path in img_paths]
     obj_ids = [img_path.split("/")[-1].split("_")[0] for img_path in img_paths]
     return img_paths, text_descriptions, classes, obj_ids
