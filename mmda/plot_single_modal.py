@@ -1,4 +1,4 @@
-"""Plot functions."""
+"""Plot single-modal recall."""
 
 from pathlib import Path
 
@@ -45,30 +45,6 @@ def plot_single_modal_recall(cfg: DictConfig) -> None:
         dir_path
         / f"single_modal_recall5_{cfg_dataset.retrieval_dim}_{cfg_dataset.mask_ratio}.pdf"
     )
-
-    dir_path = Path("plots/KITTI/")
-    single1_recalls = [[32.4], [32.8]]
-    single_recalls = np.array(single1_recalls).reshape(2, 1)
-    plt.figure(figsize=(6, 8))
-    ax = sns.heatmap(
-        single_recalls,
-        fmt=".1f",
-        cmap="YlGnBu",
-        cbar=False,
-        square=True,
-        xticklabels=["LiDAR (Lip-loc)"],
-        yticklabels=["LiDAR (Lip-loc)", "Text (GTR)"],
-        annot=True,
-        annot_kws={"size": cell_size + 10, "weight": "bold"},
-    )
-    ax.xaxis.tick_top()
-    plt.xlabel("Reference modality", fontsize=label_size)
-    plt.ylabel("Query modality", fontsize=label_size)
-    plt.xticks(fontsize=ticks_size)
-    plt.yticks(fontsize=ticks_size)
-    ax.xaxis.set_label_position("top")  # Move the label to the top
-    plt.tight_layout()
-    plt.savefig(dir_path / f"bimodal_recall5_{cfg_dataset.retrieval_dim}.pdf")
 
     cfg_dataset = cfg["MSRVTT"]
     dir_path = (
