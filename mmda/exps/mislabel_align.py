@@ -118,6 +118,8 @@ def separate_data(
             "valdata2align": valdata2align,
             "valdata1unalign": valdata1unalign,
             "valdata2unalign": valdata2unalign,
+            "train_idx": train_idx,
+            "train_wrong_labels_bool": train_wrong_labels_bool,
         }
     )
     return alldata

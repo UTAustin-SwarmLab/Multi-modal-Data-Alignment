@@ -414,8 +414,8 @@ def load_imagenet(
         idx, label = int(idx.strip()), label.strip()
         label = label.replace("'", "")
         clsidx_to_labels[idx] = label
-    print(np.sum(orig_idx != mturks_idx))
-    print(len(orig_idx))
+    print("Mismatch: ", np.sum(orig_idx != mturks_idx))
+    print("Total: ", len(orig_idx))
     return img_path, mturks_idx, orig_idx, clsidx_to_labels
 
 

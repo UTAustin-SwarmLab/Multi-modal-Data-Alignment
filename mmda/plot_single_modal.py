@@ -59,7 +59,7 @@ def plot_single_modal_recall(cfg: DictConfig) -> None:
         xticklabels=["LiDAR (Lip-loc)"],
         yticklabels=["LiDAR (Lip-loc)", "Text (GTR)"],
         annot=True,
-        annot_kws={"size": cell_size, "weight": "bold"},
+        annot_kws={"size": cell_size + 10, "weight": "bold"},
     )
     ax.xaxis.tick_top()
     plt.xlabel("Reference modality", fontsize=label_size)
