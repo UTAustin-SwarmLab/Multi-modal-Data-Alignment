@@ -92,8 +92,8 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "dino"
-  text_encoder: "gtr"
+  img_encoder: "clip"
+  text_encoder: "clip"
   train_test_ratios: [0.7] #, 0.3, 0.5, 0.7]
   shuffle_ratios: [0.1, 0.3, 0.5, 0.7, 1.0]
   shuffle: False

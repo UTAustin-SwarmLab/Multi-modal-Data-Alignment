@@ -414,6 +414,8 @@ def load_imagenet(
         idx, label = int(idx.strip()), label.strip()
         label = label.replace("'", "")
         clsidx_to_labels[idx] = label
+    print(np.sum(orig_idx != mturks_idx))
+    print(len(orig_idx))
     return img_path, mturks_idx, orig_idx, clsidx_to_labels
 
 
@@ -700,7 +702,7 @@ def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
-    load_msrvtt(cfg.MSRVTT)
+    load_imagenet(cfg.imagenet)
 
 
 if __name__ == "__main__":

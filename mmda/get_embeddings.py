@@ -543,5 +543,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
 
 
 if __name__ == "__main__":
-    main()
+    clip_imgs(["/Users/yunfan/Downloads/1.jpg"], noise=True)
+    # main()
 # CUDA_VISIBLE_DEVICES=5 poetry run python mmda/get_embeddings.py

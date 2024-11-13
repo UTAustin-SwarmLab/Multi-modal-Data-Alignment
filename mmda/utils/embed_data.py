@@ -134,6 +134,9 @@ def clip_imgs(
         "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
     )
     model = model.cuda()
+    print("Loading CLIP model")
+    num_params = sum(p.numel() for p in model.parameters())
+    print(f"Number of parameters in CLIP model: {num_params:,}")
     img_embeddings = []
     with torch.no_grad(), torch.cuda.amp.autocast():
         for i in tqdm(range(0, len(img_files), batch_size)):
