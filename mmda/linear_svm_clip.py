@@ -98,7 +98,6 @@ def plot_accuracy(cfg: DictConfig) -> None:
     df = pd.read_csv(csv_save_path)
     ratios = df["train_test_ratio"] * ds_size
     cca_accs = df["cca_accs"]
-    asif_accs = df["asif_accs"]
     fig, ax = plt.subplots()
     ax.plot(
         ratios,
@@ -117,6 +116,24 @@ def plot_accuracy(cfg: DictConfig) -> None:
         label="CLIP",
         color="red",
     )
+    asif_accs = df["asif_accs"]
+    ax.plot(
+        ratios,
+        asif_accs,
+        "D-.",
+        ms=12,
+        label="ASIF",
+        color="green",
+    )
+    csa_svm_accs = df["csa_svm_accs"]
+    ax.plot(
+        ratios,
+        csa_svm_accs,
+        "D-",
+        ms=12,
+        label="CSA + Linear SVM",
+        color="purple",
+    )
     clip_svm_accs = df["svm_accs"]
     ax.plot(
         ratios,
@@ -126,28 +143,11 @@ def plot_accuracy(cfg: DictConfig) -> None:
         label="CLIP + Linear SVM",
         color="orange",
     )
-    csa_svm_accs = df["csa_svm_accs"]
-    ax.plot(
-        ratios,
-        csa_svm_accs,
-        "D-.",
-        ms=12,
-        label="CSA + Linear SVM",
-        color="purple",
-    )
-    ax.plot(
-        ratios,
-        asif_accs,
-        "D-.",
-        ms=12,
-        label="ASIF",
-        color="green",
-    )
     ax.set_xlabel("Amount of training data", fontsize=20)
     ax.set_ylabel("Classification accuracy", fontsize=20)
     ax.xaxis.set_tick_params(labelsize=15)
     ax.yaxis.set_tick_params(labelsize=15)
-    ax.set_ylim(-0.1, 1.1) if cfg.dataset == "imagenet" else ax.set_ylim(0.3, 0.7)
+    ax.set_ylim(0.0, 1.1) if cfg.dataset == "imagenet" else ax.set_ylim(0.2, 0.8)
     ax.legend(loc="lower right", fontsize=16)
     ax.grid()
 
