@@ -31,6 +31,8 @@ from mmda.utils.embed_data import (
     clip_text,
     cosplace_img,
     dinov2,
+    fair_clip_imgs,
+    fair_clip_text,
     gtr_text,
 )
 from mmda.utils.imagebind_utils import ImageBindInference
@@ -40,7 +42,7 @@ from mmda.utils.video_audio_utils import (
     process_audio,
 )
 
-BATCH_SIZE = 256
+BATCH_SIZE = 758
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -372,6 +374,24 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         text_descriptions = ["An image of " + label + "." for label in orig_labels]
 
         # get text embeddings
+        model = "openai"
+
+        img_emb = fair_clip_imgs(img_path, BATCH_SIZE, model_name=("ViT-L-14", model))
+        with Path(
+            cfg_dataset.paths.save_path, f"ImageNet_img_emb_clip{model}.pkl"
+        ).open("wb") as f:
+            pickle.dump(img_emb, f)
+        print("FairCLIP embeddings saved")
+
+        text_emb = fair_clip_text(
+            text_descriptions, BATCH_SIZE, model_name=("ViT-L-14", model)
+        )
+        with Path(
+            cfg_dataset.paths.save_path, f"ImageNet_text_emb_clip{model}.pkl"
+        ).open("wb") as f:
+            pickle.dump(text_emb, f)
+        print("FairCLIP embeddings saved")
+
         text_emb = clip_text(text_descriptions, BATCH_SIZE)
         with Path(cfg_dataset.paths.save_path, "ImageNet_text_emb_clip.pkl").open(
             "wb"
@@ -543,6 +563,5 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
 
 
 if __name__ == "__main__":
-    clip_imgs(["/Users/yunfan/Downloads/1.jpg"], noise=True)
-    # main()
+    main()
 # CUDA_VISIBLE_DEVICES=5 poetry run python mmda/get_embeddings.py

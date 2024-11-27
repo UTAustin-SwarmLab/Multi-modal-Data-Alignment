@@ -204,10 +204,16 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         )
     elif dataset == "imagenet":
         data1 = joblib.load(
-            Path(cfg_dataset.paths.save_path + "ImageNet_img_emb_clip.pkl")
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_img_emb_clip{cfg_dataset.model_name}.pkl"
+            )
         )
         data2 = joblib.load(
-            Path(cfg_dataset.paths.save_path + "ImageNet_text_emb_clip.pkl")
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_text_emb_clip{cfg_dataset.model_name}.pkl"
+            )
         )
     elif dataset == "tiil":
         data1 = joblib.load(Path(cfg_dataset.paths.save_path + "TIIL_img_emb_clip.pkl"))

@@ -39,7 +39,6 @@ BTC:
     save_path: ${BTC.paths.dataset_path}/any2any/
     plots_path: ${repo_root}plots/BTC/
 
-
 MSRVTT:
   img_encoder: "clip"
   audio_encoder: "clap"
@@ -92,9 +91,10 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "dino"
-  text_encoder: "gtr"
-  train_test_ratios: [0.7] #, 0.3, 0.5, 0.7]
+  img_encoder: "clipopenai"
+  text_encoder: "clipdatacomp_xl_s13b_b90k"
+  model_name: "openai"
+  train_test_ratios: [0.3, 0.5, 0.7]
   shuffle_ratios: [0.1, 0.3, 0.5, 0.7, 1.0]
   shuffle: False
   paths:

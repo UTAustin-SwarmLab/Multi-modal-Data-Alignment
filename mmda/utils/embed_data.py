@@ -161,6 +161,46 @@ def clip_imgs(
     return np.concatenate(img_embeddings, axis=0)
 
 
+def fair_clip_imgs(
+    img_files: list[str],
+    batch_size: int = 32,
+    model_name: tuple[str, str] = ("ViT-L-14", "datacomp_xl_s13b_b90k"),
+) -> np.ndarray:
+    """Extract image features using CLIP model.
+
+    Args:
+        img_files: list of image files
+        batch_size: batch size
+        model_name: name of the CLIP model. (architecture, pretrained)
+
+    Returns:
+        image features
+    """
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        model_name[0], pretrained=model_name[1]
+    )
+    # commonpool_xl_clip_s13b_b90k, commonpool_xl_s13b_b90k, commonpool_xl_laion_s13b_b90k, openai
+    model = model.cuda()
+    img_embeddings = []
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        for i in tqdm(range(0, len(img_files), batch_size)):
+            batch = []
+            for img_file in img_files[i : i + batch_size]:
+                if isinstance(img_file, str):
+                    image = preprocess(Image.open(img_file)).unsqueeze(0)
+                elif isinstance(img_file, Path):
+                    image = preprocess(Image.open(str(img_file))).unsqueeze(0)
+                elif isinstance(img_file, Image.Image):
+                    image = preprocess(img_file).unsqueeze(0)
+                batch.append(image)
+            batch = torch.cat(batch, dim=0)
+            batch = batch.cuda()
+            image_features = model.encode_image(batch)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            img_embeddings.append(image_features.detach().cpu().numpy())
+    return np.concatenate(img_embeddings, axis=0)
+
+
 # clip text in batch with gpu
 def clip_text(
     text: list[str],
@@ -178,6 +218,39 @@ def clip_text(
     """
     model, _, _ = open_clip.create_model_and_transforms(f"hf-hub:{model_name}")
     tokenizer = open_clip.get_tokenizer(f"hf-hub:{model_name}")
+    model = model.cuda()
+
+    text_features = []
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        for i in tqdm(range(0, len(text), batch_size)):
+            batch = text[i : i + batch_size]
+            batch = tokenizer(batch)
+            batch = batch.cuda()
+            batch = model.encode_text(batch)
+            batch /= batch.norm(dim=-1, keepdim=True)
+            text_features.append(batch.detach().cpu().numpy())
+    return np.concatenate(text_features, axis=0)
+
+
+def fair_clip_text(
+    text: list[str],
+    batch_size: int = 32,
+    model_name: tuple[str, str] = ("ViT-L-14", "openai"),
+) -> np.ndarray:
+    """Extract text features using CLIP model.
+
+    Args:
+        text: list of text
+        batch_size: batch size
+        model_name: name of the CLIP model. (architecture, pretrained)
+
+    Returns:
+        text features
+    """
+    model, _, _ = open_clip.create_model_and_transforms(
+        model_name[0], pretrained=model_name[1]
+    )
+    tokenizer = open_clip.get_tokenizer(model_name[0])
     model = model.cuda()
 
     text_features = []

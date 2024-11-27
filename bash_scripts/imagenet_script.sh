@@ -1,3 +1,4 @@
+# mislabeled data
 # CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=10
 # CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=25
 # CUDA_VISIBLE_DEVICES=1 poetry run python mmda/bimodal_mislabeled_data.py dataset=imagenet imagenet.sim_dim=50
@@ -21,6 +22,6 @@
 
 # SVM
 # poetry run python mmda/linear_svm_clip.py train_test_ratio=0.1
-poetry run python mmda/linear_svm_clip.py train_test_ratio=0.3
-poetry run python mmda/linear_svm_clip.py train_test_ratio=0.5
-poetry run python mmda/linear_svm_clip.py train_test_ratio=0.7
+# poetry run python mmda/linear_svm_clip.py train_test_ratio=0.3
+# poetry run python mmda/linear_svm_clip.py train_test_ratio=0.5
+# poetry run python mmda/linear_svm_clip.py train_test_ratio=0.7
