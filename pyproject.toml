@@ -32,6 +32,7 @@ description = "Multimodal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]
+matplotlib = "*"
 python = ">=3.9,<3.13"
 ruff = "*"
 numpy = "^1.19"
@@ -50,7 +51,7 @@ protobuf = "3.20.*"
 torchvision = "*"
 torchaudio = "*"
 ipython = "^8.15.0"
-scipy = "^1.11.2"
+scipy = "*"
 cca-zoo = "^2.5.0"
 ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
@@ -72,7 +73,7 @@ kaggle = "*"
 moviepy = "*"
 # imagebind = {git = "https://github.com/facebookresearch/ImageBind"}
 # LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"} # contradicting with imagebind
-chronos = {git = "https://github.com/amazon-science/chronos-forecasting.git"}
+# chronos = {git = "https://github.com/amazon-science/chronos-forecasting.git"}
 aeon = {git = "https://github.com/aeon-toolkit/aeon.git", branch = "main"}
 kagglehub = "*"
 

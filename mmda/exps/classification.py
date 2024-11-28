@@ -20,15 +20,14 @@ def cca_classification(
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
-    print("CCA")
     cfg_dataset = cfg[cfg.dataset]
+    print(f"CCA {cfg_dataset.sim_dim}")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)
-    cca = ReNormalizedCCA() if cfg.dataset == "handwriting" else NormalizedCCA()
+    cca = ReNormalizedCCA() if True else NormalizedCCA()
     ds.train_img, ds.train_text, corr = cca.fit_transform_train_data(
         cfg_dataset, ds.train_img, ds.train_text
     )
-    print("corr", corr)
     ds.test_img, ds.test_text = cca.transform_data(ds.test_img, ds.test_text)
 
     ds.get_labels_emb()
@@ -50,6 +49,7 @@ def clip_like_classification(cfg: DictConfig, train_test_ratio: float) -> float:
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
+    print("CLIP-like")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=True)
     ds.get_labels_emb()
@@ -68,6 +68,7 @@ def asif_classification(
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
+    print("ASIF")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)
     ds.get_labels_emb()

@@ -5,6 +5,7 @@ from typing import Union
 import numpy as np
 import torch
 from omegaconf import DictConfig
+from sklearn.metrics import roc_auc_score
 
 from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
@@ -306,7 +307,6 @@ class HandwritingDataset(BaseClassificationDataset):
             self.labels[:train_size],
             self.labels[train_size:],
         )
-        print(self.train_img.shape, self.train_text.shape)
 
     def get_labels_emb(self) -> None:
         """Get the text embeddings for all possible labels."""
@@ -332,7 +332,6 @@ class HandwritingDataset(BaseClassificationDataset):
         assert np.allclose(
             self.labels_emb[self.train_idx[0]], self.train_text[0], atol=1e-3, rtol=1e-4
         ), f"{self.labels_emb[self.train_idx[0]].shape}!={self.train_text[0].shape}"
-
         cfg = self.cfg
         sim_scores = []
         if sim_fn == "asif":
@@ -373,15 +372,19 @@ class HandwritingDataset(BaseClassificationDataset):
             for label_idx in range(len(self.num2alphabet)):  # 0 to 25
                 label_emb = self.labels_emb[label_idx].reshape(1, -1)
                 label_emb = np.repeat(label_emb, self.test_text.shape[0], axis=0)
-                ##################
-                # sim_score_matrix = sim_fn(self.test_img, label_emb)
-                sim_score_matrix = sim_fn(self.test_text, label_emb)
-                # print(sim_score_matrix)
-                # input()
-                ##################
+                sim_score_matrix = sim_fn(self.test_img, label_emb)
                 sim_scores.append(sim_score_matrix)
             sim_scores = np.array(sim_scores)  # labels x test_img_size
 
+            # ROC with scikit-learn
+            y = self.test_idx
+            sim_scores_t = sim_scores.T  # test_img_size x labels
+            sim_scores_t = np.nan_to_num(sim_scores_t, nan=0.0)
+            pred_y = sim_scores_t / sim_scores_t.sum(axis=1, keepdims=True)
+            roc_auc = roc_auc_score(y, pred_y, multi_class="ovr")
+            print(f"ROC AUC: {roc_auc}")
+
+        # accuracy
         most_similar_label_idx = np.argmax(sim_scores, axis=0)
         correct = most_similar_label_idx == self.test_idx
         return np.mean(correct)

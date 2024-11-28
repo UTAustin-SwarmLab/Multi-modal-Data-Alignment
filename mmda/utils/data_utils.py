@@ -178,7 +178,7 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
         data2 = joblib.load(
             Path(
                 cfg_dataset.paths.save_path
-                + f"Handwriting_text_emb_{cfg_dataset.text_encoder}.pkl"
+                + f"Handwriting_emb_{cfg_dataset.text_encoder}.pkl"
             )
         )
     # TODO: add more datasets
@@ -264,6 +264,13 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
             Path(
                 cfg_dataset.paths.save_path + "LeafySpurge_text_emb_clip.pkl",
             )
+        )
+    elif dataset == "handwriting":
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "Handwriting_emb_gtr.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "Handwriting_emb_gtr.pkl")
         )
     # TODO: add more datasets
     else:

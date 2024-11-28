@@ -52,13 +52,9 @@ def main(cfg: DictConfig) -> None:  # noqa: C901, PLR0915, PLR0912
                 f.write(f"{shuffle_ratio},{cca_accs},{asif_accs}\n")
     else:
         for train_test_ratio in cfg_dataset.train_test_ratios:
-            asif_accs = asif_classification(cfg, train_test_ratio)
             cca_accs = cca_classification(cfg, train_test_ratio)
-            clip_accs = (
-                clip_like_classification(cfg, train_test_ratio)
-                if cfg.dataset != "handwriting"
-                else 0
-            )
+            asif_accs = 0 if True else asif_classification(cfg, train_test_ratio)
+            clip_accs = 0 if True else clip_like_classification(cfg, train_test_ratio)
             # write accuracy to file
             if not csv_save_path.exists():
                 # create the file and write the header

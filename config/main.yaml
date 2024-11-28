@@ -106,9 +106,9 @@ imagenet:
 handwriting:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "chronos"
+  img_encoder: "tsfresh"
   text_encoder: "clip"
-  train_test_ratios: [0.9]
+  train_test_ratios: [0.85]
   shuffle: False
   paths:
     dataset_path: "/nas/pohan/datasets/Handwriting/"

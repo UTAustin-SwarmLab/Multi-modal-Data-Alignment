@@ -42,10 +42,8 @@ def load_handwriting(
     # merge train and test
     x = np.concatenate([train_x, test_x], axis=0)
     y = np.concatenate([train_y, test_y], axis=0)
-    num2alphabet = {f"{i+1}.0": (chr(65 + i), chr(97 + i)) for i in range(26)}
-    np.random.seed(42)
+    num2alphabet = {f"{i+1}.0": chr(65 + i) for i in range(26)}
     idx = np.arange(x.shape[0])
-    np.random.shuffle(idx)
     x = x[idx]
     y = y[idx]
 
@@ -78,7 +76,12 @@ def load_handwriting(
         random_idx = np.random.choice(alphabets_img[label].shape[0])
         random_df = alphabets_img[label].iloc[random_idx].to_numpy()
         random_df = random_df.reshape(28, 28).astype(np.uint8)
-        alphabets_hand.append(Image.fromarray(random_df))
+        # save image to png
+        path = Path(
+            cfg_dataset.paths.dataset_path, f"alphabet_{label}_{random_idx}.png"
+        )
+        Image.fromarray(random_df, mode="L").save(path)
+        alphabets_hand.append(path)
     return (
         x,
         y,

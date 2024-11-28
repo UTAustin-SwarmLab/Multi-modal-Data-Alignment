@@ -560,39 +560,35 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         print("CLIP embeddings saved")
 
     elif dataset == "handwriting":
-        # sentence_26 = {
-        #     1: "apple.",
-        #     2: "ball.",
-        #     3: "cat.",
-        #     4: "dog.",
-        #     5: "elephant.",
-        #     6: "fish.",
-        #     7: "giraffe.",
-        #     8: "hat.",
-        #     9: "ice cream.",
-        #     10: "jaguar.",
-        #     11: "kangaroo.",
-        #     12: "lion.",
-        #     13: "monkey.",
-        #     14: "nest.",
-        #     15: "owl.",
-        #     16: "penguin.",
-        #     17: "queen.",
-        #     18: "rabbit.",
-        #     19: "snake.",
-        #     20: "tiger.",
-        #     21: "umbrella.",
-        #     22: "vase.",
-        #     23: "whale.",
-        #     24: "x-ray.",
-        #     25: "yak.",
-        #     26: "zebra.",
-        # }
         data, labels, num2alphabet, alphabets_hand = load_handwriting(cfg_dataset)
-        # sentences = [sentence_26[int(label.split(".")[0])] for label in labels]
-        # int_labels = [int(label.split(".")[0]) - 1 for label in labels]
+        # save data
+        with Path(cfg_dataset.paths.save_path, "Handwriting_data.pkl").open("wb") as f:
+            pickle.dump(data, f)
+        print("Handwriting data saved")
+        return
 
-        embeddings = chronos_ts(data) if False else data.reshape(data.shape[0], -1)
+        embeddings = clip_imgs(alphabets_hand, 256)
+        print("text shape:", embeddings.shape)
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("CLIP embeddings saved")
+
+        sentences = [f"Alphabet {num2alphabet[label]}." for label in labels]
+        print(sentences[15:21])
+        embeddings = gtr_text(sentences)
+        assert np.allclose(
+            embeddings[15], embeddings[20], atol=1e-3, rtol=1e-4
+        ), f"{embeddings[15].shape}!={embeddings[20].shape}"
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("GTR shape:", embeddings.shape)
+        print("GTR embeddings saved")
+
+        embeddings = chronos_ts(data)
         # check if embeddings has unique rows
         assert embeddings.shape[0] == len(
             np.unique(embeddings, axis=0)
@@ -604,13 +600,6 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             pickle.dump(embeddings, f)
         print("Chronos embeddings saved")
 
-        embeddings = clip_imgs(alphabets_hand, 256)
-        print("text shape:", embeddings.shape)
-        with Path(cfg_dataset.paths.save_path, "Handwriting_text_emb_clip.pkl").open(
-            "wb"
-        ) as f:
-            pickle.dump(embeddings, f)
-        print("CLIP embeddings saved")
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
