@@ -15,7 +15,7 @@ from mmda.exps.classification import (
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:  # noqa: C901, PLR0915, PLR0912
     """Main function to generate the classification results of the bimodal datasets.
 
     Args:
@@ -27,7 +27,12 @@ def main(cfg: DictConfig) -> None:
     ), f"{cfg.dataset} is not for classification."
     cfg_dataset = cfg[cfg.dataset]
     shuffle_tag = "shuffled" if cfg_dataset.shuffle else ""
-    ds_size = 50_000 if cfg.dataset == "imagenet" else 900
+    if cfg.dataset == "imagenet":
+        ds_size = 50_000
+    elif cfg.dataset == "leafy_spurge":
+        ds_size = 900
+    elif cfg.dataset == "handwriting":
+        ds_size = 1000
     csv_save_path = (
         Path(cfg_dataset.paths.plots_path)
         / f"classify_{cfg_dataset.text_encoder}_{cfg_dataset.img_encoder}/"
@@ -49,7 +54,11 @@ def main(cfg: DictConfig) -> None:
         for train_test_ratio in cfg_dataset.train_test_ratios:
             asif_accs = asif_classification(cfg, train_test_ratio)
             cca_accs = cca_classification(cfg, train_test_ratio)
-            clip_accs = clip_like_classification(cfg, train_test_ratio)
+            clip_accs = (
+                clip_like_classification(cfg, train_test_ratio)
+                if cfg.dataset != "handwriting"
+                else 0
+            )
             # write accuracy to file
             if not csv_save_path.exists():
                 # create the file and write the header
@@ -77,7 +86,7 @@ def main(cfg: DictConfig) -> None:
             label="CSA (ours)",
             color="blue",
         )
-        if not cfg_dataset.shuffle:
+        if not cfg_dataset.shuffle and cfg.dataset != "handwriting":
             clip_accs = df["clip_accs"]
             ax.plot(
                 ratios,
@@ -99,7 +108,12 @@ def main(cfg: DictConfig) -> None:
         ax.set_ylabel("Classification accuracy", fontsize=20)
         ax.xaxis.set_tick_params(labelsize=15)
         ax.yaxis.set_tick_params(labelsize=15)
-        ax.set_ylim(0, 1.03) if cfg.dataset == "imagenet" else ax.set_ylim(0.4, 0.65)
+        if cfg.dataset == "imagenet":
+            ax.set_ylim(0, 1.03)
+        elif cfg.dataset == "leafy_spurge":
+            ax.set_ylim(0.4, 0.65)
+        else:
+            ax.set_ylim(0, 1.03)
         (
             ax.legend(loc="lower right", fontsize=18)
             if not cfg_dataset.shuffle

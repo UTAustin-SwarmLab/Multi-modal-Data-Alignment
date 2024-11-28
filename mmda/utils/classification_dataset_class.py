@@ -10,6 +10,7 @@ from mmda.baselines.asif_core import zero_shot_classification
 from mmda.utils.data_utils import load_clip_like_data, load_two_encoder_data
 from mmda.utils.dataset_utils import (
     get_train_test_split_index,
+    load_handwriting,
     load_imagenet,
     load_leafy_spurge,
     shuffle_percentage_of_data,
@@ -255,7 +256,140 @@ class LeafySpurgeDataset(BaseClassificationDataset):
         return np.mean(correct)
 
 
-def load_classification_dataset(cfg: DictConfig) -> ImageNetDataset:
+class HandwritingDataset(BaseClassificationDataset):
+    """Handwriting dataset class."""
+
+    def __init__(self, cfg: DictConfig) -> None:
+        """Initialize the dataset.
+
+        Args:
+            cfg: configuration file
+        """
+        super().__init__(cfg)
+        self.cfg = cfg
+        self.images, self.labels, self.num2alphabet, _ = load_handwriting(
+            cfg.handwriting
+        )
+        # convert labels to int (str)
+        self.labels = [int(label.split(".")[0]) for label in self.labels]
+        self.labels = np.array(self.labels) - 1
+
+    def load_data(
+        self,
+        train_test_ratio: float,
+        clip_bool: bool = False,
+        shuffle_ratio: float = 0.0,
+    ) -> None:
+        """Load the data for ImageNet dataset.
+
+        Args:
+            train_test_ratio: ratio of training data
+            clip_bool: whether to use CLIP-like method
+            shuffle_ratio: ratio of data to shuffle
+        """
+        shuffle_ratio = shuffle_ratio + 1  # unused
+        self.train_test_ratio = train_test_ratio
+        if clip_bool:
+            _, self.img_emb, self.text_emb = load_clip_like_data(self.cfg)
+        else:
+            _, self.img_emb, self.text_emb = load_two_encoder_data(self.cfg)
+        train_size = int(self.train_test_ratio * self.img_emb.shape[0])
+        self.train_img, self.test_img = (
+            self.img_emb[:train_size],
+            self.img_emb[train_size:],
+        )
+        self.train_text, self.test_text = (
+            self.text_emb[:train_size],
+            self.text_emb[train_size:],
+        )
+        self.train_idx, self.test_idx = (
+            self.labels[:train_size],
+            self.labels[train_size:],
+        )
+        print(self.train_img.shape, self.train_text.shape)
+
+    def get_labels_emb(self) -> None:
+        """Get the text embeddings for all possible labels."""
+        label_emb = []
+        for num in range(len(self.num2alphabet)):
+            # find where the label is in the train_idx
+            assert (
+                self.labels.shape[0] == self.text_emb.shape[0]
+            ), f"{self.labels.shape[0]}!={self.text_emb.shape[0]}"
+            label_idx_in_ds = np.where(self.labels == num)[0]
+            label_emb.append(self.text_emb[label_idx_in_ds[0]])
+        self.labels_emb = np.array(label_emb)
+        assert self.labels_emb.shape[0] == len(self.num2alphabet)
+
+    def classification(self, sim_fn: Union[callable, str]) -> float:  # noqa: UP007
+        """Classification task.
+
+        Args:
+            sim_fn: similarity function
+        Returns:
+            accuracy: classification accuracy
+        """
+        assert np.allclose(
+            self.labels_emb[self.train_idx[0]], self.train_text[0], atol=1e-3, rtol=1e-4
+        ), f"{self.labels_emb[self.train_idx[0]].shape}!={self.train_text[0].shape}"
+
+        cfg = self.cfg
+        sim_scores = []
+        if sim_fn == "asif":
+            # set parameters
+            non_zeros = min(cfg.asif.non_zeros, self.train_img.shape[0])
+            range_anch = [
+                2**i
+                for i in range(
+                    int(np.log2(non_zeros) + 1),
+                    int(np.log2(len(self.train_img))) + 2,
+                )
+            ]
+            range_anch = range_anch[-1:]  # run just last anchor to be quick
+            val_labels = torch.zeros((1,), dtype=torch.float32)
+            # generate noise in the shape of the labels_emb
+            noise = np.random.rand(
+                self.test_img.shape[0] - self.labels_emb.shape[0],
+                self.labels_emb.shape[1],
+            ).astype(np.float32)
+            self.test_label = np.concatenate((self.labels_emb, noise), axis=0)
+            assert (
+                self.test_img.shape[0] == self.test_label.shape[0]
+            ), f"{self.test_img.shape[0]}!={self.test_label.shape[0]}"
+            _anchors, scores, sim_score_matrix = zero_shot_classification(
+                torch.tensor(self.test_img, dtype=torch.float32),
+                torch.tensor(self.test_label, dtype=torch.float32),
+                torch.tensor(self.train_img, dtype=torch.float32),
+                torch.tensor(self.train_text, dtype=torch.float32),
+                val_labels,
+                non_zeros,
+                range_anch,
+                cfg.asif.val_exps,
+                max_gpu_mem_gb=cfg.asif.max_gpu_mem_gb,
+            )
+            sim_score_matrix = sim_score_matrix.numpy().astype(np.float32)[:, :2]
+            sim_scores = sim_score_matrix.T  # labels x test_img_size
+        else:
+            for label_idx in range(len(self.num2alphabet)):  # 0 to 25
+                label_emb = self.labels_emb[label_idx].reshape(1, -1)
+                label_emb = np.repeat(label_emb, self.test_text.shape[0], axis=0)
+                ##################
+                # sim_score_matrix = sim_fn(self.test_img, label_emb)
+                sim_score_matrix = sim_fn(self.test_text, label_emb)
+                # print(sim_score_matrix)
+                # input()
+                ##################
+                sim_scores.append(sim_score_matrix)
+            sim_scores = np.array(sim_scores)  # labels x test_img_size
+
+        most_similar_label_idx = np.argmax(sim_scores, axis=0)
+        correct = most_similar_label_idx == self.test_idx
+        return np.mean(correct)
+
+
+def load_classification_dataset(
+    cfg: DictConfig,
+) -> ImageNetDataset | LeafySpurgeDataset | HandwritingDataset:
     """Load the dataset for classification task.
 
     Args:
@@ -267,6 +401,8 @@ def load_classification_dataset(cfg: DictConfig) -> ImageNetDataset:
         dataset = ImageNetDataset(cfg)
     elif cfg.dataset == "leafy_spurge":
         dataset = LeafySpurgeDataset(cfg)
+    elif cfg.dataset == "handwriting":
+        dataset = HandwritingDataset(cfg)
     else:
         msg = f"Dataset {cfg.dataset} not supported"
         raise ValueError(msg)

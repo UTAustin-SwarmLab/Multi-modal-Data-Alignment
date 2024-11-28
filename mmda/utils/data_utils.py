@@ -168,6 +168,19 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
                 + f"LeafySpurge_text_emb_{cfg_dataset.text_encoder}.pkl",
             )
         )
+    elif dataset == "handwriting":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"Handwriting_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"Handwriting_text_emb_{cfg_dataset.text_encoder}.pkl"
+            )
+        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."

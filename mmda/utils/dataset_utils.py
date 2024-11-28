@@ -10,12 +10,81 @@ import datasets
 import joblib
 import numpy as np
 import pandas as pd
+from aeon.datasets import load_classification
 from omegaconf import DictConfig
+from PIL import Image
 
 import hydra
 from mmda.liploc.dataloaders.KittiBothDataset import KITTIBothDataset
 from mmda.utils.liploc_model import CFG, load_eval_filenames
 from mmda.utils.video_audio_utils import process_video_ids
+
+
+def load_handwriting(
+    cfg_dataset: DictConfig,
+) -> tuple[np.ndarray, np.ndarray, dict[str, tuple[str, str]]]:
+    """Load the Handwriting dataset (https://github.com/amazon-science/aeon).
+
+    Args:
+        cfg_dataset: configuration file
+    Returns:
+        data: data. shape: (num_samples, 3, 152)
+        labels: labels. e.g. "1.0"
+        num2alphabet: a dict of index to alphabet
+        alphabets_hand: list of PIL images
+    """
+    assert cfg_dataset is not None, "cfg_dataset is None"
+    # train_x.shape: (150, 3, 152), test_x.shape: (850, 3, 152)
+    train_x, train_y = load_classification(
+        "Handwriting", split="train"
+    )  # np.ndarray, list[str]
+    test_x, test_y = load_classification("Handwriting", split="test")
+    # merge train and test
+    x = np.concatenate([train_x, test_x], axis=0)
+    y = np.concatenate([train_y, test_y], axis=0)
+    num2alphabet = {f"{i+1}.0": (chr(65 + i), chr(97 + i)) for i in range(26)}
+    np.random.seed(42)
+    idx = np.arange(x.shape[0])
+    np.random.shuffle(idx)
+    x = x[idx]
+    y = y[idx]
+
+    def load_alphabets_img() -> tuple[np.ndarray, np.ndarray]:
+        """Load the MNIST dataset.
+
+        Returns:
+            data: data
+            labels: labels
+        """
+        import kagglehub
+
+        # Download latest version
+        path = kagglehub.dataset_download(
+            "sachinpatel21/az-handwritten-alphabets-in-csv-format"
+        )
+        df = pd.read_csv(path + "/A_Z Handwritten Data.csv")
+        labels = df.iloc[:, 0]
+        data = df.iloc[:, 1:]
+        return data, labels
+
+    alphabets_x, alphabets_y = load_alphabets_img()
+    alphabets_img = {}
+    for i in range(26):
+        alphabets_img[i + 1] = alphabets_x[alphabets_y == i][:100]
+
+    alphabets_hand = []
+    for i in range(x.shape[0]):
+        label = int(y[i].split(".")[0])
+        random_idx = np.random.choice(alphabets_img[label].shape[0])
+        random_df = alphabets_img[label].iloc[random_idx].to_numpy()
+        random_df = random_df.reshape(28, 28).astype(np.uint8)
+        alphabets_hand.append(Image.fromarray(random_df))
+    return (
+        x,
+        y,
+        num2alphabet,
+        alphabets_hand,
+    )
 
 
 def load_msrvtt(
@@ -702,7 +771,7 @@ def shuffle_by_level(  # noqa: PLR0912, C901, ANN201
 
 @hydra.main(version_base=None, config_path="../../config", config_name="main")
 def main(cfg: DictConfig) -> None:  # noqa: D103
-    load_imagenet(cfg.imagenet)
+    load_handwriting(cfg.handwriting)
 
 
 if __name__ == "__main__":

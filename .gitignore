@@ -172,3 +172,4 @@ plots/*
 *.lock
 .checkpoints/
 .assets/
+*.keras

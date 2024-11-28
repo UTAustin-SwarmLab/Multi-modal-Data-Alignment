@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import open_clip
 import torch
+from chronos import ChronosPipeline
 from PIL import Image, ImageFilter
 from sentence_transformers import SentenceTransformer
 from torchvision import transforms
@@ -17,6 +18,29 @@ from transformers import (
     ViTImageProcessor,
     ViTModel,
 )
+
+
+def chronos_ts(ts: np.ndarray) -> np.ndarray:
+    """Extract time series features using Chronos model."""
+    num_data, channels, num_timestamps = ts.shape
+    pipeline = ChronosPipeline.from_pretrained(
+        "amazon/chronos-t5-large",
+        device_map="cuda",  # use "cpu" for CPU inference and "mps" for Apple Silicon
+        torch_dtype=torch.bfloat16,
+    )
+    all_embeddings = []
+    print("ts shape:", ts.shape)  # (1000, 3, 152)
+    for channel in range(channels):
+        if channel > 0:
+            break
+        # context must be either a 1D tensor, a list of 1D tensors,
+        # or a left-padded 2D tensor with batch as the first dimension
+        context = torch.tensor(ts[:, channel, :]).reshape(num_data, num_timestamps)
+        embeddings, tokenizer_state = pipeline.embed(context)  # (1000, 153, 1024)
+        all_embeddings.append(
+            embeddings[:, -1, :].detach().cpu().to(torch.float32).numpy()
+        )
+    return np.concatenate(all_embeddings, axis=1)
 
 
 def cosplace_img(img_files: list, batch_size: int = 32) -> np.ndarray:
@@ -134,9 +158,6 @@ def clip_imgs(
         "hf-hub:laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
     )
     model = model.cuda()
-    print("Loading CLIP model")
-    num_params = sum(p.numel() for p in model.parameters())
-    print(f"Number of parameters in CLIP model: {num_params:,}")
     img_embeddings = []
     with torch.no_grad(), torch.cuda.amp.autocast():
         for i in tqdm(range(0, len(img_files), batch_size)):

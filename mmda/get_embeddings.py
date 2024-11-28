@@ -15,6 +15,7 @@ import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
     load_flickr,
+    load_handwriting,
     load_imagenet,
     load_kitti,
     load_leafy_spurge,
@@ -25,6 +26,7 @@ from mmda.utils.dataset_utils import (
     load_tiil,
 )
 from mmda.utils.embed_data import (
+    chronos_ts,
     clap_audio,
     clap_text,
     clip_imgs,
@@ -35,7 +37,6 @@ from mmda.utils.embed_data import (
     fair_clip_text,
     gtr_text,
 )
-from mmda.utils.imagebind_utils import ImageBindInference
 from mmda.utils.video_audio_utils import (
     get_video_emb,
     prepare_audio_for_imagebind,
@@ -94,6 +95,8 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
+        from mmda.utils.imagebind_utils import ImageBindInference
+
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
         id_order, img_paths, audio_start_secs, audio_num_secs = get_video_emb(
             cfg_dataset, video_dict
@@ -556,6 +559,58 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
 
+    elif dataset == "handwriting":
+        # sentence_26 = {
+        #     1: "apple.",
+        #     2: "ball.",
+        #     3: "cat.",
+        #     4: "dog.",
+        #     5: "elephant.",
+        #     6: "fish.",
+        #     7: "giraffe.",
+        #     8: "hat.",
+        #     9: "ice cream.",
+        #     10: "jaguar.",
+        #     11: "kangaroo.",
+        #     12: "lion.",
+        #     13: "monkey.",
+        #     14: "nest.",
+        #     15: "owl.",
+        #     16: "penguin.",
+        #     17: "queen.",
+        #     18: "rabbit.",
+        #     19: "snake.",
+        #     20: "tiger.",
+        #     21: "umbrella.",
+        #     22: "vase.",
+        #     23: "whale.",
+        #     24: "x-ray.",
+        #     25: "yak.",
+        #     26: "zebra.",
+        # }
+        data, labels, num2alphabet, alphabets_hand = load_handwriting(cfg_dataset)
+        # sentences = [sentence_26[int(label.split(".")[0])] for label in labels]
+        # int_labels = [int(label.split(".")[0]) - 1 for label in labels]
+
+        embeddings = chronos_ts(data) if False else data.reshape(data.shape[0], -1)
+        # check if embeddings has unique rows
+        assert embeddings.shape[0] == len(
+            np.unique(embeddings, axis=0)
+        ), f"Embeddings has repeated entries. {embeddings.shape[0]}!={len(np.unique(embeddings, axis=0))}"
+        print("Chronos shape:", embeddings.shape)
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_chronos.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("Chronos embeddings saved")
+
+        embeddings = clip_imgs(alphabets_hand, 256)
+        print("text shape:", embeddings.shape)
+        with Path(cfg_dataset.paths.save_path, "Handwriting_text_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("CLIP embeddings saved")
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
