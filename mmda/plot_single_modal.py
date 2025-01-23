@@ -1,4 +1,4 @@
-"""Plot functions."""
+"""Plot single-modal recall."""
 
 from pathlib import Path
 

@@ -168,6 +168,19 @@ def load_two_encoder_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.n
                 + f"LeafySpurge_text_emb_{cfg_dataset.text_encoder}.pkl",
             )
         )
+    elif dataset == "handwriting":
+        data1 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"Handwriting_emb_{cfg_dataset.img_encoder}.pkl"
+            )
+        )
+        data2 = joblib.load(
+            Path(
+                cfg_dataset.paths.save_path
+                + f"Handwriting_emb_{cfg_dataset.text_encoder}.pkl"
+            )
+        )
     # TODO: add more datasets
     else:
         msg = f"Dataset {dataset} not supported."
@@ -204,10 +217,16 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
         )
     elif dataset == "imagenet":
         data1 = joblib.load(
-            Path(cfg_dataset.paths.save_path + "ImageNet_img_emb_clip.pkl")
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_img_emb_clip{cfg_dataset.model_name}.pkl"
+            )
         )
         data2 = joblib.load(
-            Path(cfg_dataset.paths.save_path + "ImageNet_text_emb_clip.pkl")
+            Path(
+                cfg_dataset.paths.save_path
+                + f"ImageNet_text_emb_clip{cfg_dataset.model_name}.pkl"
+            )
         )
     elif dataset == "tiil":
         data1 = joblib.load(Path(cfg_dataset.paths.save_path + "TIIL_img_emb_clip.pkl"))
@@ -245,6 +264,13 @@ def load_clip_like_data(cfg: DictConfig) -> tuple[DictConfig, np.ndarray, np.nda
             Path(
                 cfg_dataset.paths.save_path + "LeafySpurge_text_emb_clip.pkl",
             )
+        )
+    elif dataset == "handwriting":
+        data1 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "Handwriting_emb_gtr.pkl")
+        )
+        data2 = joblib.load(
+            Path(cfg_dataset.paths.save_path + "Handwriting_emb_gtr.pkl")
         )
     # TODO: add more datasets
     else:

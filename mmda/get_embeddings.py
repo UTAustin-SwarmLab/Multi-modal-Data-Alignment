@@ -15,6 +15,7 @@ import hydra
 from mmda.utils.dataset_utils import (
     load_cosmos,
     load_flickr,
+    load_handwriting,
     load_imagenet,
     load_kitti,
     load_leafy_spurge,
@@ -25,22 +26,24 @@ from mmda.utils.dataset_utils import (
     load_tiil,
 )
 from mmda.utils.embed_data import (
+    chronos_ts,
     clap_audio,
     clap_text,
     clip_imgs,
     clip_text,
     cosplace_img,
     dinov2,
+    fair_clip_imgs,
+    fair_clip_text,
     gtr_text,
 )
-from mmda.utils.imagebind_utils import ImageBindInference
 from mmda.utils.video_audio_utils import (
     get_video_emb,
     prepare_audio_for_imagebind,
     process_audio,
 )
 
-BATCH_SIZE = 256
+BATCH_SIZE = 758
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="main")
@@ -92,6 +95,8 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
             pickle.dump(clap_audio_features, f)
 
     elif dataset == "MSRVTT":
+        from mmda.utils.imagebind_utils import ImageBindInference
+
         _, captions, video_info_sen_order, video_dict = load_msrvtt(cfg_dataset)
         id_order, img_paths, audio_start_secs, audio_num_secs = get_video_emb(
             cfg_dataset, video_dict
@@ -372,6 +377,24 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         text_descriptions = ["An image of " + label + "." for label in orig_labels]
 
         # get text embeddings
+        model = "openai"
+
+        img_emb = fair_clip_imgs(img_path, BATCH_SIZE, model_name=("ViT-L-14", model))
+        with Path(
+            cfg_dataset.paths.save_path, f"ImageNet_img_emb_clip{model}.pkl"
+        ).open("wb") as f:
+            pickle.dump(img_emb, f)
+        print("FairCLIP embeddings saved")
+
+        text_emb = fair_clip_text(
+            text_descriptions, BATCH_SIZE, model_name=("ViT-L-14", model)
+        )
+        with Path(
+            cfg_dataset.paths.save_path, f"ImageNet_text_emb_clip{model}.pkl"
+        ).open("wb") as f:
+            pickle.dump(text_emb, f)
+        print("FairCLIP embeddings saved")
+
         text_emb = clip_text(text_descriptions, BATCH_SIZE)
         with Path(cfg_dataset.paths.save_path, "ImageNet_text_emb_clip.pkl").open(
             "wb"
@@ -535,6 +558,47 @@ def main(cfg: DictConfig) -> None:  # noqa: PLR0915, C901, PLR0912
         ) as f:
             pickle.dump(img_emb, f)
         print("CLIP embeddings saved")
+
+    elif dataset == "handwriting":
+        data, labels, num2alphabet, alphabets_hand = load_handwriting(cfg_dataset)
+        # save data
+        with Path(cfg_dataset.paths.save_path, "Handwriting_data.pkl").open("wb") as f:
+            pickle.dump(data, f)
+        print("Handwriting data saved")
+        return
+
+        embeddings = clip_imgs(alphabets_hand, 256)
+        print("text shape:", embeddings.shape)
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_clip.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("CLIP embeddings saved")
+
+        sentences = [f"Alphabet {num2alphabet[label]}." for label in labels]
+        print(sentences[15:21])
+        embeddings = gtr_text(sentences)
+        assert np.allclose(
+            embeddings[15], embeddings[20], atol=1e-3, rtol=1e-4
+        ), f"{embeddings[15].shape}!={embeddings[20].shape}"
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_gtr.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("GTR shape:", embeddings.shape)
+        print("GTR embeddings saved")
+
+        embeddings = chronos_ts(data)
+        # check if embeddings has unique rows
+        assert embeddings.shape[0] == len(
+            np.unique(embeddings, axis=0)
+        ), f"Embeddings has repeated entries. {embeddings.shape[0]}!={len(np.unique(embeddings, axis=0))}"
+        print("Chronos shape:", embeddings.shape)
+        with Path(cfg_dataset.paths.save_path, "Handwriting_emb_chronos.pkl").open(
+            "wb"
+        ) as f:
+            pickle.dump(embeddings, f)
+        print("Chronos embeddings saved")
 
     # TODO: add more datasets
     else:

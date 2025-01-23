@@ -7,7 +7,7 @@ noisy_train_set: True
 repo_root: "/home/pl22767/Project/MMDA/"
 # repo_root: "/home/po-han/Desktop/Projects/MMDA/"
 
-dataset: "MSRVTT"
+dataset: "handwriting"
 dataset_level_datasets: [pitts, imagenet, cosmos, sop, tiil, musiccaps, flickr]
 class_level_datasets: [sop]
 object_level_datasets: [pitts, sop]
@@ -16,7 +16,7 @@ retrieval_datasets: [flickr]
 any_retrieval_datasets: [KITTI, MSRVTT, BTC]
 shuffle_llava_datasets: [pitts, sop] # datasets whose plots contains llava
 mislabel_llava_datasets: [imagenet]
-classification_datasets: [imagenet, leafy_spurge]
+classification_datasets: [imagenet, leafy_spurge, handwriting]
 dataset_size: {
   sop: 56222,
   musiccaps: 5397,
@@ -38,7 +38,6 @@ BTC:
     dataset_path: "/nas/timeseries/timeseries_synthesis/sameep_store/btc/split_fresh_large_120/"
     save_path: ${BTC.paths.dataset_path}/any2any/
     plots_path: ${repo_root}plots/BTC/
-
 
 MSRVTT:
   img_encoder: "clip"
@@ -92,9 +91,10 @@ musiccaps:
 imagenet:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation
   equal_weights: False
-  img_encoder: "dino"
-  text_encoder: "gtr"
-  train_test_ratios: [0.7] #, 0.3, 0.5, 0.7]
+  img_encoder: "clipopenai"
+  text_encoder: "clipdatacomp_xl_s13b_b90k"
+  model_name: "openai"
+  train_test_ratios: [0.3, 0.5, 0.7]
   shuffle_ratios: [0.1, 0.3, 0.5, 0.7, 1.0]
   shuffle: False
   paths:
@@ -102,6 +102,19 @@ imagenet:
     save_path: ${imagenet.paths.dataset_path}embeddings/
     plots_path: ${repo_root}plots/ImageNet/
     label_embeddings: ${imagenet.paths.dataset_path}_${text_encoder}_label_embeddings.npy
+
+handwriting:
+  sim_dim: 50 # dimension of the similarity score and the CCA transformation
+  equal_weights: True
+  img_encoder: "tsfresh"
+  text_encoder: "gtr"
+  train_test_ratios: [0.85]
+  shuffle: False
+  paths:
+    dataset_path: "/nas/pohan/datasets/Handwriting/"
+    save_path: ${handwriting.paths.dataset_path}embeddings/
+    plots_path: ${repo_root}plots/handwriting/
+    label_embeddings: ${handwriting.paths.dataset_path}_${text_encoder}_label_embeddings.npy
 
 leafy_spurge:
   sim_dim: 700 # dimension of the similarity score and the CCA transformation

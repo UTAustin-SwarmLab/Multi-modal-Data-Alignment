@@ -3,14 +3,14 @@
 import numpy as np
 from omegaconf import DictConfig
 
-from mmda.utils.cca_class import NormalizedCCA
+from mmda.utils.cca_class import NormalizedCCA, ReNormalizedCCA
 from mmda.utils.classification_dataset_class import load_classification_dataset
 from mmda.utils.sim_utils import cosine_sim, weighted_corr_sim
 
 
 def cca_classification(
     cfg: DictConfig, train_test_ratio: float, shuffle_ratio: float = 0.0
-) -> tuple[dict[float:float], dict[float : dict[float:float]]]:
+) -> float:
     """Retrieve data using the proposed CCA method.
 
     Args:
@@ -21,9 +21,10 @@ def cca_classification(
         data_size2accuracy: {data_size: accuracy}
     """
     cfg_dataset = cfg[cfg.dataset]
+    print(f"CCA {cfg_dataset.sim_dim}")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)
-    cca = NormalizedCCA()
+    cca = ReNormalizedCCA() if True else NormalizedCCA()
     ds.train_img, ds.train_text, corr = cca.fit_transform_train_data(
         cfg_dataset, ds.train_img, ds.train_text
     )
@@ -39,9 +40,7 @@ def cca_classification(
     return ds.classification(sim_fn=sim_fn)
 
 
-def clip_like_classification(
-    cfg: DictConfig, train_test_ratio: float
-) -> tuple[dict[float:float], dict[float:float]]:
+def clip_like_classification(cfg: DictConfig, train_test_ratio: float) -> float:
     """Retrieve data using the CLIP-like method.
 
     Args:
@@ -50,6 +49,7 @@ def clip_like_classification(
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
+    print("CLIP-like")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=True)
     ds.get_labels_emb()
@@ -58,7 +58,7 @@ def clip_like_classification(
 
 def asif_classification(
     cfg: DictConfig, train_test_ratio: float, shuffle_ratio: float = 0.0
-) -> tuple[dict[float:float], dict[float:float]]:
+) -> float:
     """Retrieve data using the CLIP-like method.
 
     Args:
@@ -68,6 +68,7 @@ def asif_classification(
     Returns:
         data_size2accuracy: {data_size: accuracy}
     """
+    print("ASIF")
     ds = load_classification_dataset(cfg)
     ds.load_data(train_test_ratio, clip_bool=False, shuffle_ratio=shuffle_ratio)
     ds.get_labels_emb()

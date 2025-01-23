@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Multimodal Feature Extraction"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9,<3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,7 +32,8 @@ description = "Multimodal Data Alignment"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+matplotlib = "*"
+python = ">=3.9,<3.13"
 ruff = "*"
 numpy = "^1.19"
 pandas = "*"
@@ -48,9 +49,9 @@ hydra-core = "1.3.2"
 hydra-joblib-launcher = "1.2.0"
 protobuf = "3.20.*"
 torchvision = "*"
+torchaudio = "*"
 ipython = "^8.15.0"
-scipy = "^1.11.2"
-swarm-visualizer = {git = "https://github.com/UTAustin-SwarmLab/Swarm-Visualization"}
+scipy = "*"
 cca-zoo = "^2.5.0"
 ipykernel = "^6.29.3"
 jupyter = "^1.0.0"
@@ -70,8 +71,11 @@ timm = "*"
 albumentations = "*"
 kaggle = "*"
 moviepy = "*"
-imagebind = {git = "https://github.com/facebookresearch/ImageBind"}
+# imagebind = {git = "https://github.com/facebookresearch/ImageBind"}
 # LLaVA = {git = "https://github.com/haotian-liu/LLaVA.git"} # contradicting with imagebind
+# chronos = {git = "https://github.com/amazon-science/chronos-forecasting.git"}
+aeon = {git = "https://github.com/aeon-toolkit/aeon.git", branch = "main"}
+kagglehub = "*"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
