@@ -104,10 +104,10 @@ imagenet:
     label_embeddings: ${imagenet.paths.dataset_path}_${text_encoder}_label_embeddings.npy
 
 handwriting:
-  sim_dim: 700 # dimension of the similarity score and the CCA transformation
-  equal_weights: False
+  sim_dim: 50 # dimension of the similarity score and the CCA transformation
+  equal_weights: True
   img_encoder: "tsfresh"
-  text_encoder: "clip"
+  text_encoder: "gtr"
   train_test_ratios: [0.85]
   shuffle: False
   paths:
