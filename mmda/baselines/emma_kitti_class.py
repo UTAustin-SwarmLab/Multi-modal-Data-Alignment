@@ -1,6 +1,6 @@
 """Dataset class for any2any retrieval task."""
 
-import os
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -37,6 +37,7 @@ class KITTIEMMADataset:
         self.shape = (3, 3)  # shape of the similarity matrix
         self.shuffle_step = cfg["KITTI"].shuffle_step
         self.save_tag = f"_thres_{Args.threshold_dist}_shuffle_{self.shuffle_step}"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -94,15 +95,15 @@ class KITTIEMMADataset:
         self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
         self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
 
-    def train_crossmodal_similarity(self, max_epoch: int) -> None:  # noqa: C901
+    def train_crossmodal_similarity(  # noqa: C901, PLR0912
+        self, max_epoch: int
+    ) -> None:
         """Train the cross-modal similarity, aka the CSA method."""
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         data_loader = self.get_joint_dataloader(batch_size=256, num_workers=4)
         self.define_fc_networks(output_dim=256)
-        self.img_fc.to(device)
-        self.lidar_fc.to(device)
-        self.txt_fc.to(device)
+        self.img_fc.to(self.device)
+        self.lidar_fc.to(self.device)
+        self.txt_fc.to(self.device)
         self.optimizer = torch.optim.Adam(
             list(self.img_fc.parameters())
             + list(self.lidar_fc.parameters())
@@ -110,18 +111,18 @@ class KITTIEMMADataset:
             lr=0.001,
         )
 
-        model_path = self.cfg["KITTI"].paths.save_path + "models/"
-        os.makedirs(model_path, exist_ok=True)
+        model_path = Path(self.cfg["KITTI"].paths.save_path) / "models"
+        model_path.mkdir(parents=True, exist_ok=True)
         ds_retrieval_cls = KITTI_file_Retrieval()
 
         for epoch in range(max_epoch):
             for _, (img, lidar, txt, orig_idx) in enumerate(data_loader):
                 bs = img.shape[0]
-                img_embed = self.img_fc(img.to(device))
-                lidar_embed = self.lidar_fc(lidar.to(device))
-                txt_embed = self.txt_fc(txt.to(device))
+                img_embed = self.img_fc(img.to(self.device))
+                lidar_embed = self.lidar_fc(lidar.to(self.device))
+                txt_embed = self.txt_fc(txt.to(self.device))
                 three_embed = torch.stack([img_embed, lidar_embed, txt_embed], dim=0)
-                loss = torch.tensor(0.0, device=device, requires_grad=True)
+                loss = torch.tensor(0.0, device=self.device, requires_grad=True)
 
                 # get gt labels once
                 gt_labels = {}
@@ -194,14 +195,36 @@ class KITTIEMMADataset:
     def load_fc_models(self, epoch: int) -> None:
         """Load the fc models."""
         model_path = self.cfg["KITTI"].paths.save_path + "models/"
-        self.img_fc = torch.load(model_path + f"img_fc_epoch_{epoch}.pth")
-        self.lidar_fc = torch.load(model_path + f"lidar_fc_epoch_{epoch}.pth")
-        self.txt_fc = torch.load(model_path + f"txt_fc_epoch_{epoch}.pth")
+        self.define_fc_networks(output_dim=256)
+        self.img_fc.load_state_dict(
+            torch.load(model_path + f"img_fc_epoch_{epoch}.pth", weights_only=True)
+        )
+        self.img_fc.to(self.device)
+        self.lidar_fc.load_state_dict(
+            torch.load(model_path + f"lidar_fc_epoch_{epoch}.pth", weights_only=True)
+        )
+        self.lidar_fc.to(self.device)
+        self.txt_fc.load_state_dict(
+            torch.load(model_path + f"txt_fc_epoch_{epoch}.pth", weights_only=True)
+        )
+        self.txt_fc.to(self.device)
 
     def transform_with_fc(
-        self, img: torch.Tensor, lidar: torch.Tensor, txt: torch.Tensor
+        self,
+        img: torch.Tensor | np.ndarray,
+        lidar: torch.Tensor | np.ndarray,
+        txt: torch.Tensor | np.ndarray,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Transform the data with the fc networks."""
+        if isinstance(img, np.ndarray):
+            img = torch.tensor(img)
+        if isinstance(lidar, np.ndarray):
+            lidar = torch.tensor(lidar)
+        if isinstance(txt, np.ndarray):
+            txt = torch.tensor(txt)
+        img = img.to(self.device)
+        lidar = lidar.to(self.device)
+        txt = txt.to(self.device)
         self.img_fc.eval()
         self.lidar_fc.eval()
         self.txt_fc.eval()
@@ -327,6 +350,8 @@ class KITTIEMMADataset:
                     q_feats[q_modality].reshape(1, -1),
                     r_feats[r_modality].reshape(1, -1),
                 )
+        if cnt == 0:
+            return -1
         return sim_score / cnt
 
     def retrieve_data(
@@ -348,10 +373,12 @@ class KITTIEMMADataset:
         maps = {5: [], 20: []}
         ds_retrieval_cls = KITTI_file_Retrieval()
 
-        for idx_q in tqdm(
-            self.test_idx,
-            desc="Retrieving data",
-            leave=True,
+        for ii, idx_q in enumerate(
+            tqdm(
+                self.test_idx,
+                desc="Retrieving data",
+                leave=True,
+            )
         ):
             ds_idx_q = self.shuffle2idx[idx_q]
             retrieved_pairs = []
@@ -361,17 +388,17 @@ class KITTIEMMADataset:
             for modality in range(3):
                 if ds_idx_q in self.mask[modality]:
                     q_missing_modalities.append(modality)
-            q_feats = np.concatenate(
+            q_feats = np.stack(
                 [
-                    self.imgdata["test"][ds_idx_q],
-                    self.lidardata["test"][ds_idx_q],
-                    self.txtdata["test"][ds_idx_q],
+                    self.imgdata["test"][ii].reshape(1, -1),
+                    self.lidardata["test"][ii].reshape(1, -1),
+                    self.txtdata["test"][ii].reshape(1, -1),
                 ],
                 axis=0,
             )
             assert q_feats.shape[0:2] == (3, 1), f"{q_feats.shape}"
 
-            for idx_r in self.test_idx:
+            for jj, idx_r in enumerate(self.test_idx):
                 if idx_r == idx_q:  # cannot retrieve itself
                     continue
                 ds_idx_r = self.shuffle2idx[idx_r]
@@ -379,11 +406,11 @@ class KITTIEMMADataset:
                 for modality in range(3):
                     if ds_idx_r in self.mask[modality]:
                         r_missing_modalities.append(modality)
-                r_feats = np.concatenate(
+                r_feats = np.stack(
                     [
-                        self.imgdata["test"][ds_idx_r],
-                        self.lidardata["test"][ds_idx_r],
-                        self.txtdata["test"][ds_idx_r],
+                        self.imgdata["test"][jj].reshape(1, -1),
+                        self.lidardata["test"][jj].reshape(1, -1),
+                        self.txtdata["test"][jj].reshape(1, -1),
                     ],
                     axis=0,
                 )
@@ -433,18 +460,20 @@ class KITTIEMMADataset:
 
 
 if __name__ == "__main__":
-    # CUDA_VISIBLE_DEVICES=2 poetry run python mmda/utils/emma_ds_class.py
+    # CUDA_VISIBLE_DEVICES=2 poetry run python mmda/baselines/emma_ds_class.py
     from omegaconf import OmegaConf
 
     cfg = OmegaConf.load("config/main.yaml")
     ds = KITTIEMMADataset(cfg)
     ds.preprocess_retrieval_data()
-    ds.train_crossmodal_similarity(max_epoch=100)
-    exit()
+    if False:
+        ds.train_crossmodal_similarity(max_epoch=100)
     ds.load_fc_models(epoch=100)
     img_transformed, lidar_transformed, txt_transformed = ds.transform_with_fc(
         ds.imgdata["test"], ds.lidardata["test"], ds.txtdata["test"]
     )
-    print(img_transformed.shape, lidar_transformed.shape, txt_transformed.shape)
+    ds.imgdata["test"] = img_transformed
+    ds.lidardata["test"] = lidar_transformed
+    ds.txtdata["test"] = txt_transformed
     maps, precisions, recalls = ds.retrieve_data()
     print(maps, precisions, recalls)
