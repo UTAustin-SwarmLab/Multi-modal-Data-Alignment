@@ -1,16 +1,54 @@
 # Multi-modal Data Alignment (MMDA)
+The is the repo of CSA: Data-efficient Mapping of Unimodal Features to Multimodal Features and Any2Any: Incomplete Multimodal Retrieval with Conformal Prediction.
 
-## Reproducing the results
-### Adding more datasets
-To add more dataset, just add the dataset configs in `configs/main.yaml` and fill in the code with the "TODO: add more dataset" comment.
+Link to papers: [CSA](https://openreview.net/forum?id=6Mg7pjG7Sw&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DICLR.cc%2F2025%2FConference%2FAuthors%23your-submissions)) and
+[Any2Any](https://arxiv.org/abs/2411.10513)
+
+Link to blogs: [CSA](https://utaustin-swarmlab.github.io/2025/01/24/CSA.html)
+
+## TL;DR
+Canonical Similarity Analysis (CSA) matches CLIP in multimodal tasks with far less data, mapping unimodal features into a multimodal space without extensive GPU training.
+
+Any2Any effectively retrieves from incomplete multimodal data, achieving 35% Recall@5 on the KITTI dataset, matching baseline models.
+
+## Table of Contents
+- [Prerequisites](#prerequisites)
+- [Adding more datasets](#adding-more-datasets)
+- [Reproducing the results](#reproducing-the-results)
+- [Core code of CSA](#core-code-of-csa)
+- [Core code of Any2Any](#core-code-of-any2any)
+- [Disclaimer](#disclaimer)
+
+## Prerequisites
+To run the code, you need to install the packages using poetry:
+```bash
+poetry lock && poetry install
+```
+Or, you can install the packages using pip (check the pyproject.toml for the dependencies).
+
+## Adding more datasets
+To add more dataset, just add the dataset configs in `configs/main.yaml` and fill in the code wherever with the "TODO: add more dataset" comment.
 To reproduce the results, download the datasets and change their corresponding paths in the `configs/main.yaml` file.
 Then, run the following command according to what experiment you want to run (see the description of the experiments in the head of each .py file):
 ```bash
 poetry run python mmda/<experiment>.py
 ```
 
+## CSA: System plot and major results
+![CSA_system_graph](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/SystemGraph.png)
+
+![COSMOS_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/COSMOS.png)
+
+![ImageNet_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/imagenet.png)
+
+## Reproducing the results
+
 ### Core code of CSA
 To see the core code of CSA, see "class NormalizedCCA" in mmda.utils.cca_class.py and "fn weighted_corr_sim" in mmda.utils.sim_utils.py.
+
+
+### Core code of Any2Any
+To see the core code of Any2Any, see in `mmda/any2any_conformal_retrieval.py` and `mmda/exps/any2any_retrieval.py`. We put the configs of KITTI (Image-to-LiDAR retrieval) in `mmda/utils/liploc_model.py`, which is modified from the [Lip-loc](https://github.com/Shubodh/lidar-image-pretrain-VPR) repository.
 
 
 
