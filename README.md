@@ -18,7 +18,7 @@ Any2Any effectively retrieves from incomplete multimodal data, achieving 35% Rec
 - [Core code of CSA](#core-code-of-csa)
 - [Core code of Any2Any](#core-code-of-any2any)
 - [Disclaimer](#disclaimer)
-
+- [Citation](#citation)
 ## Prerequisites
 To run the code, you need to install the packages using poetry:
 ```bash
@@ -55,3 +55,25 @@ To see the core code of Any2Any, see in `mmda/any2any_conformal_retrieval.py` an
 ## Disclaimer
 Some of the code are modified from the [ASIF](https://github.com/noranta4/ASIF) and [Lip-loc](https://github.com/Shubodh/lidar-image-pretrain-VPR) repositories and leverage datasets and models from Hugginface.
 We tried our best to cite the source of all code, models, and datasets used. If we missed any, please let us know.
+
+## Citation
+If you find this repo useful for your research, please consider citing our paper:
+```
+@inproceedings{li2025csa,
+    title={{CSA}: Data-efficient Mapping of Unimodal Features to Multimodal Features},
+    author={Li, Po-han and Chinchali, Sandeep P and Topcu, Ufuk},
+    booktitle={The Thirteenth International Conference on Learning Representations},
+    year={2025},
+    url={https://openreview.net/forum?id=6Mg7pjG7Sw}
+}
+
+@misc{li2024any2anyincompletemultimodalretrieval,
+      title={Any2Any: Incomplete Multimodal Retrieval with Conformal Prediction}, 
+      author={Po-han Li and Yunhao Yang and Mohammad Omama and Sandeep Chinchali and Ufuk Topcu},
+      year={2024},
+      eprint={2411.10513},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2411.10513}, 
+}
+```
