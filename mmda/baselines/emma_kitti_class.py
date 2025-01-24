@@ -456,11 +456,24 @@ class KITTIEMMADataset:
             precisions[20].append(precision_20)
             maps[5].append(ap_5)
             maps[20].append(ap_20)
-        return maps, precisions, recalls
+
+        maps_dict = {5: np.mean(maps[5]), 20: np.mean(maps[20])}
+        precisions_dict = {
+            1: np.mean(precisions[1]),
+            5: np.mean(precisions[5]),
+            20: np.mean(precisions[20]),
+        }
+        recalls_dict = {
+            1: np.mean(recalls[1]),
+            5: np.mean(recalls[5]),
+            20: np.mean(recalls[20]),
+        }
+        return maps_dict, precisions_dict, recalls_dict
 
 
 if __name__ == "__main__":
     # CUDA_VISIBLE_DEVICES=2 poetry run python mmda/baselines/emma_ds_class.py
+    import pandas as pd
     from omegaconf import OmegaConf
 
     cfg = OmegaConf.load("config/main.yaml")
@@ -477,3 +490,22 @@ if __name__ == "__main__":
     ds.txtdata["test"] = txt_transformed
     maps, precisions, recalls = ds.retrieve_data()
     print(maps, precisions, recalls)
+    # write the results to a csv file
+    data = {
+        "method": [
+            "EMMA",
+        ],
+        "mAP@5": [maps[5]],
+        "mAP@20": [maps[20]],
+        "Precision@1": [precisions[1]],
+        "Precision@5": [precisions[5]],
+        "Precision@20": [precisions[20]],
+        "Recall@1": [recalls[1]],
+        "Recall@5": [recalls[5]],
+        "Recall@20": [recalls[20]],
+    }
+    df = pd.DataFrame(data)
+    dir_path = Path(cfg.KITTI.paths.plots_path)
+    df_path = dir_path / "emma_kitti_class.csv"
+    df_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(df_path, index=False)
