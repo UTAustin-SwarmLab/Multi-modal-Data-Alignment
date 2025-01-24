@@ -76,6 +76,7 @@ moviepy = "*"
 # chronos = {git = "https://github.com/amazon-science/chronos-forecasting.git"}
 aeon = {git = "https://github.com/aeon-toolkit/aeon.git", branch = "main"}
 kagglehub = "*"
+seaborn = "*"
 
 [project.optional-dependencies]
 dev = ["black", "ruff", "mypy"]
