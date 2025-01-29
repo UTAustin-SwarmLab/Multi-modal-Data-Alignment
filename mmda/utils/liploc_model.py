@@ -77,7 +77,7 @@ class CFG:
 class Args:
     expid: str = "exp_default"
     eval_sequence = ["04", "05", "06", "07", "08", "09", "10"]
-    threshold_dist: int = 5
+    threshold_dist: int = 20
 
 
 model_import_path = f"mmda.liploc.models.{CFG.model}"

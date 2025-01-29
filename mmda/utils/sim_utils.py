@@ -16,8 +16,8 @@ def cosine_sim(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     assert (
         x.shape == y.shape
     ), f"x and y should have the same number of shape, but got {x.shape} and {y.shape}"
-    x = x / np.linalg.norm(x, axis=1, keepdims=True)
-    y = y / np.linalg.norm(y, axis=1, keepdims=True)
+    x = x / (np.linalg.norm(x, axis=1, keepdims=True) + 1e-10)
+    y = y / (np.linalg.norm(y, axis=1, keepdims=True) + 1e-10)
     return np.sum(x * y, axis=1)
 
 
