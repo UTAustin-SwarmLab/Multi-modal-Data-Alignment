@@ -21,7 +21,6 @@ class KITTIEMMADataset:
         Args:
             cfg: configuration file
         """
-        super().__init__()
         np.random.seed(0)
         self.cfg = cfg
 
@@ -38,6 +37,7 @@ class KITTIEMMADataset:
         self.shuffle_step = cfg["KITTI"].shuffle_step
         self.save_tag = f"_thres_{Args.threshold_dist}_shuffle_{self.shuffle_step}"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model_path = Path(self.cfg["KITTI"].paths.save_path) / "models"
 
     def preprocess_retrieval_data(self) -> None:
         """Preprocess the data for retrieval."""
@@ -89,11 +89,17 @@ class KITTIEMMADataset:
         }
 
         # masking missing data in the test set. Mask the whole modality of an instance at a time.
-        mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
-        self.mask = {}  # modality -> masked idx
-        self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
-        self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
-        self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
+        if self.cfg_dataset.mask_ratio > 0:
+            mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
+            self.mask = {}  # modality -> masked idx
+            self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
+            self.mask[1] = np.random.choice(self.test_size, mask_num, replace=False)
+            self.mask[2] = np.random.choice(self.test_size, mask_num, replace=False)
+        else:
+            self.mask = {}  # modality -> masked idx
+            self.mask[0] = []
+            self.mask[1] = []
+            self.mask[2] = []
 
     def train_crossmodal_similarity(  # noqa: C901, PLR0912
         self, max_epoch: int
@@ -111,8 +117,7 @@ class KITTIEMMADataset:
             lr=0.001,
         )
 
-        model_path = Path(self.cfg["KITTI"].paths.save_path) / "models"
-        model_path.mkdir(parents=True, exist_ok=True)
+        self.model_path.mkdir(parents=True, exist_ok=True)
         ds_retrieval_cls = KITTI_file_Retrieval()
 
         for epoch in range(max_epoch):
@@ -180,32 +185,40 @@ class KITTIEMMADataset:
             if (epoch + 1) % 5 == 0:  # Save models per 5 epochs
                 torch.save(
                     self.img_fc.state_dict(),
-                    model_path + f"img_fc_epoch_{epoch+1}.pth",
+                    str(self.model_path / f"img_fc_epoch_{epoch+1}.pth"),
                 )
                 torch.save(
                     self.lidar_fc.state_dict(),
-                    model_path + f"lidar_fc_epoch_{epoch+1}.pth",
+                    str(self.model_path / f"lidar_fc_epoch_{epoch+1}.pth"),
                 )
                 torch.save(
                     self.txt_fc.state_dict(),
-                    model_path + f"txt_fc_epoch_{epoch+1}.pth",
+                    str(self.model_path / f"txt_fc_epoch_{epoch+1}.pth"),
                 )
                 print(f"Models saved at epoch {epoch+1}")
 
     def load_fc_models(self, epoch: int) -> None:
         """Load the fc models."""
-        model_path = self.cfg["KITTI"].paths.save_path + "models/"
         self.define_fc_networks(output_dim=256)
         self.img_fc.load_state_dict(
-            torch.load(model_path + f"img_fc_epoch_{epoch}.pth", weights_only=True)
+            torch.load(
+                str(self.model_path / f"img_fc_epoch_{epoch}.pth"),
+                weights_only=True,
+            )
         )
         self.img_fc.to(self.device)
         self.lidar_fc.load_state_dict(
-            torch.load(model_path + f"lidar_fc_epoch_{epoch}.pth", weights_only=True)
+            torch.load(
+                str(self.model_path / f"lidar_fc_epoch_{epoch}.pth"),
+                weights_only=True,
+            )
         )
         self.lidar_fc.to(self.device)
         self.txt_fc.load_state_dict(
-            torch.load(model_path + f"txt_fc_epoch_{epoch}.pth", weights_only=True)
+            torch.load(
+                str(self.model_path / f"txt_fc_epoch_{epoch}.pth"),
+                weights_only=True,
+            )
         )
         self.txt_fc.to(self.device)
 
@@ -472,7 +485,7 @@ class KITTIEMMADataset:
 
 
 if __name__ == "__main__":
-    # CUDA_VISIBLE_DEVICES=2 poetry run python mmda/baselines/emma_ds_class.py
+    # CUDA_VISIBLE_DEVICES=4 poetry run python mmda/baselines/emma/emma_kitti_class.py
     import pandas as pd
     from omegaconf import OmegaConf
 

@@ -143,7 +143,7 @@ class MSRVTTDataset(BaseAny2AnyDataset):
         self.mask[1] = []
         if self.cfg_dataset.mask_ratio != 0:
             mask_num = int(self.test_size / self.cfg_dataset.mask_ratio)
-            # mask the text modality only since the audio modality already has missing data
+            # mask the img modality only since the audio modality already has missing data
             self.mask[0] = np.random.choice(self.test_size, mask_num, replace=False)
         else:
             self.mask[0] = []

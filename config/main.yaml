@@ -40,10 +40,10 @@ BTC:
     plots_path: ${repo_root}plots/BTC/
 
 MSRVTT:
-  img_encoder: "clip"
-  audio_encoder: "clap"
+  img_encoder: "clip" # clip, imagebind
+  audio_encoder: "clap" # clap, imagebind
   retrieval_dim: "" # we use all the dimensions for retrieval
-  mask_ratio: 4 # ratio of the missing data : size of test data
+  mask_ratio: 0 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/MSR-VTT/"
     # dataset_path: "/home/po-han/Downloads/MSR-VTT/"
@@ -58,7 +58,7 @@ KITTI:
   lidar_encoder: "liploc"
   text_encoder: "gtr"
   shuffle_step: 20
-  mask_ratio: 2 # ratio of the missing data : size of test data
+  mask_ratio: 0 # ratio of the missing data : size of test data
   paths:
     dataset_path: "/nas/pohan/datasets/KITTI/"
     save_path: ${KITTI.paths.dataset_path}embeddings/
