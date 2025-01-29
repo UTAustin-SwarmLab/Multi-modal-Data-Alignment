@@ -45,6 +45,7 @@ poetry run python mmda/<experiment>.py
 
 ### Core code of CSA
 To see the core code of CSA, see "class NormalizedCCA" in mmda.utils.cca_class.py and "fn weighted_corr_sim" in mmda.utils.sim_utils.py.
+We have a notebook to show the usage of the core code of CSA in `mmda/csa_example.ipynb`.
 
 
 ### Core code of Any2Any
