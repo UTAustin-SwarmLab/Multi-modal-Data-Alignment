@@ -35,7 +35,7 @@ poetry run python mmda/<experiment>.py
 ```
 
 ## CSA: System plot and major results
-![CSA_system_graph](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/SystemGraph.png)
+![CSA_system_graph](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/CSA_system_graph.png)
 
 ![COSMOS_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/COSMOS.png)
 
