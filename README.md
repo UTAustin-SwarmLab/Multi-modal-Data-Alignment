@@ -1,7 +1,7 @@
 # Multi-modal Data Alignment (MMDA)
 The is the repo of CSA: Data-efficient Mapping of Unimodal Features to Multimodal Features and Any2Any: Incomplete Multimodal Retrieval with Conformal Prediction.
 
-Link to papers: [CSA](https://openreview.net/forum?id=6Mg7pjG7Sw&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DICLR.cc%2F2025%2FConference%2FAuthors%23your-submissions)) and
+Link to papers: [CSA](https://openreview.net/forum?id=6Mg7pjG7Sw) and
 [Any2Any](https://arxiv.org/abs/2411.10513)
 
 Link to blogs: [CSA](https://utaustin-swarmlab.github.io/2025/01/24/CSA.html)
@@ -62,7 +62,7 @@ If you find this repo useful for your research, please consider citing our paper
 ```
 @inproceedings{li2025csa,
     title={{CSA}: Data-efficient Mapping of Unimodal Features to Multimodal Features},
-    author={Li, Po-han and Chinchali, Sandeep P and Topcu, Ufuk},
+    author={Po-han Li and Sandeep P. Chinchali and ufuk topcu},
     booktitle={The Thirteenth International Conference on Learning Representations},
     year={2025},
     url={https://openreview.net/forum?id=6Mg7pjG7Sw}
