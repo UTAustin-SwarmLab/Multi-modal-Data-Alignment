@@ -1,10 +1,13 @@
 # Multi-modal Data Alignment (MMDA)
 The is the repo of CSA: Data-efficient Mapping of Unimodal Features to Multimodal Features and Any2Any: Incomplete Multimodal Retrieval with Conformal Prediction.
 
-Link to papers: [CSA](https://openreview.net/forum?id=6Mg7pjG7Sw) and
-[Any2Any](https://arxiv.org/abs/2411.10513)
+### CSA
+[Website](https://d31003.github.io/CSA-Project-Website/)
+[paper](https://openreview.net/forum?id=6Mg7pjG7Sw)
+[Blog](https://utaustin-swarmlab.github.io/2025/01/24/CSA.html)
 
-Link to blogs: [CSA](https://utaustin-swarmlab.github.io/2025/01/24/CSA.html)
+### Any2Any
+[paper](https://arxiv.org/abs/2411.10513)
 
 ## TL;DR
 Canonical Similarity Analysis (CSA) matches CLIP in multimodal tasks with far less data, mapping unimodal features into a multimodal space without extensive GPU training.
