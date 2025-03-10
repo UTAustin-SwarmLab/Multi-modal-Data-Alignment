@@ -12,6 +12,7 @@ Canonical Similarity Analysis (CSA) matches CLIP in multimodal tasks with far le
 Any2Any effectively retrieves from incomplete multimodal data, achieving 35% Recall@5 on the KITTI dataset, matching baseline models.
 
 ## Table of Contents
+- [CSA: System plot and major results](#csa:-system-plot-and-major-results)
 - [Prerequisites](#prerequisites)
 - [Adding more datasets](#adding-more-datasets)
 - [Reproducing the results](#reproducing-the-results)
@@ -19,6 +20,14 @@ Any2Any effectively retrieves from incomplete multimodal data, achieving 35% Rec
 - [Core code of Any2Any](#core-code-of-any2any)
 - [Disclaimer](#disclaimer)
 - [Citation](#citation)
+
+## CSA: System plot and major results
+![CSA_system_graph](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/CSA_system_graph.png)
+
+![COSMOS_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/COSMOS.png)
+
+![ImageNet_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/imagenet.png)
+
 ## Prerequisites
 To run the code, you need to install the packages using poetry:
 ```bash
@@ -34,24 +43,14 @@ Then, run the following command according to what experiment you want to run (se
 poetry run python mmda/<experiment>.py
 ```
 
-## CSA: System plot and major results
-![CSA_system_graph](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/CSA_system_graph.png)
-
-![COSMOS_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/COSMOS.png)
-
-![ImageNet_results](https://github.com/UTAustin-SwarmLab/Multi-modal-Data-Alignment/blob/main/assets/imagenet.png)
-
 ## Reproducing the results
 
 ### Core code of CSA
 To see the core code of CSA, see "class NormalizedCCA" in mmda.utils.cca_class.py and "fn weighted_corr_sim" in mmda.utils.sim_utils.py.
 We have a notebook to show the usage of the core code of CSA in `mmda/csa_example.ipynb`.
 
-
 ### Core code of Any2Any
 To see the core code of Any2Any, see in `mmda/any2any_conformal_retrieval.py` and `mmda/exps/any2any_retrieval.py`. We put the configs of KITTI (Image-to-LiDAR retrieval) in `mmda/utils/liploc_model.py`, which is modified from the [Lip-loc](https://github.com/Shubodh/lidar-image-pretrain-VPR) repository.
-
-
 
 ## Disclaimer
 Some of the code are modified from the [ASIF](https://github.com/noranta4/ASIF) and [Lip-loc](https://github.com/Shubodh/lidar-image-pretrain-VPR) repositories and leverage datasets and models from Hugginface.
