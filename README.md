@@ -12,7 +12,7 @@ Canonical Similarity Analysis (CSA) matches CLIP in multimodal tasks with far le
 Any2Any effectively retrieves from incomplete multimodal data, achieving 35% Recall@5 on the KITTI dataset, matching baseline models.
 
 ## Table of Contents
-- [CSA: System plot and major results](#csa:-system-plot-and-major-results)
+- [CSA: System plot and major results](#csa-system-plot-and-major-results)
 - [Prerequisites](#prerequisites)
 - [Adding more datasets](#adding-more-datasets)
 - [Reproducing the results](#reproducing-the-results)
