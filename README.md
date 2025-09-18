@@ -3,11 +3,11 @@ The is the repo of CSA: Data-efficient Mapping of Unimodal Features to Multimoda
 
 ### CSA
 [Website](https://d31003.github.io/CSA-Project-Website/)
-[paper](https://openreview.net/forum?id=6Mg7pjG7Sw)
+[Paper](https://openreview.net/forum?id=6Mg7pjG7Sw)
 [Blog](https://utaustin-swarmlab.github.io/2025/01/24/CSA.html)
 
 ### Any2Any
-[paper](https://arxiv.org/abs/2411.10513)
+[Paper](https://arxiv.org/abs/2411.10513)
 
 ## TL;DR
 Canonical Similarity Analysis (CSA) matches CLIP in multimodal tasks with far less data, mapping unimodal features into a multimodal space without extensive GPU training.
